@@ -40,6 +40,21 @@ is $p->build_kill_cursors(1, 1),
   . "\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00",
   'empty kill_cursors';
 
+# Parse full reply with leftovers
+my $buffer
+  = "\x51\x00\x00\x00\x69\xaa\x04\x00\x03\x00\x00\x00\x01\x00\x00\x00\x08\x00"
+  . "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00"
+  . "\x2d\x00\x00\x00\x02\x6e\x6f\x6e\x63\x65\x00\x11\x00\x00\x00\x33\x32\x39"
+  . "\x35\x65\x35\x63\x64\x35\x65\x65\x66\x32\x35\x30\x30\x00\x01\x6f\x6b\x00"
+  . "\x00\x00\x00\x00\x00\x00\xf0\x3f\x00\x51";
+my $reply = $p->parse_reply(\$buffer);
+is $buffer, "\x51", 'right leftovers';
+my $nonce = [
+  305769, 3, {await_capable => 1, query_failure => 0, cursor_not_found => 0},
+  0, 0, [{nonce => '3295e5cd5eef2500', ok => 1}]
+];
+is_deeply $reply, $nonce, 'right reply';
+
 # Parse partial reply
 my $before = my $after = "\x10";
 is $p->parse_reply(\$after), undef, 'nothing';
@@ -49,7 +64,7 @@ is $p->parse_reply(\$after), undef, 'nothing';
 is $before, $after, 'no changes';
 
 # Parse wrong message type
-my $buffer = $p->build_insert(1, 'foo', {}, {}) . "\x00";
+$buffer = $p->build_insert(1, 'foo', {}, {}) . "\x00";
 is $p->parse_reply(\$buffer), undef, 'nothing';
 is $buffer, "\x00", 'message has been removed';
 
