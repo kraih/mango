@@ -22,7 +22,7 @@ has protocol    => sub { Mango::Protocol->new };
 has w           => 1;
 has wtimeout    => 1000;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
@@ -489,7 +489,7 @@ perform operation non-blocking.
 Perform low level C<insert> operation followed by C<getLastError> command. You
 can also append a callback to perform operation non-blocking.
 
-  $mango->delete(($name, $flags, @docs) => sub {
+  $mango->insert(($name, $flags, @docs) => sub {
     my ($mango, $err, $reply) = @_;
     ...
   });
@@ -534,7 +534,7 @@ perform operation non-blocking.
 Perform low level C<update> operation followed by C<getLastError> command. You
 can also append a callback to perform operation non-blocking.
 
-  $mango->delete(($name, $flags, $query, $update) => sub {
+  $mango->update(($name, $flags, $query, $update) => sub {
     my ($mango, $err, $reply) = @_;
     ...
   });
