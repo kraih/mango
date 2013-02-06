@@ -65,7 +65,10 @@ sub update {
   return $self->_handle('update', {}, $query, $update, @_);
 }
 
-sub _error { $_[0]->[5][0]{ok} ? $_[0]->[5][0]{err} : $_[0]->[5][0]{errmsg} }
+sub _error {
+  my $doc = shift->{docs}[0];
+  return $doc->{ok} ? $doc->{err} : $doc->{errmsg};
+}
 
 sub _handle {
   my ($self, $method) = (shift, shift);
@@ -76,14 +79,14 @@ sub _handle {
     ($self->full_name, @_) => sub {
       my ($mango, $err, $reply) = @_;
       $err ||= _error($reply);
-      $self->$cb($err, $reply->[5][0]);
+      $self->$cb($err, $reply->{docs}[0]);
     }
   ) if $cb;
 
   # Blocking
   my $reply = $self->db->mango->$method($self->full_name, @_);
   if (my $err = _error($reply)) { croak $err }
-  return $reply->[5][0];
+  return $reply->{docs}[0];
 }
 
 1;

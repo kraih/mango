@@ -27,4 +27,30 @@ ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 ok $nonce, 'command was successful';
 
+# Interrupted blocking command
+my $port = Mojo::IOLoop->generate_port;
+$mango = Mango->new("mongodb://localhost:$port");
+my $id = $mango->ioloop->server((port => $port) => sub { $_[1]->close });
+eval { $mango->db->command('getnonce') };
+like $@, qr/Premature connection close/, 'right error';
+$mango->ioloop->remove($id);
+
+# Interrupted non-blocking command
+Mojo::IOLoop->generate_port;
+$mango = Mango->new("mongodb://localhost:$port");
+$id    = Mojo::IOLoop->server((port => $port) => sub { $_[1]->close });
+$fail  = $nonce = undef;
+$mango->db->command(
+  'getnonce' => sub {
+    my ($db, $err, $doc) = @_;
+    $fail  = $err;
+    $nonce = $doc;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+Mojo::IOLoop->remove($id);
+like $fail, qr/Premature connection close/, 'right error';
+ok !$nonce, 'command was not successful';
+
 done_testing();

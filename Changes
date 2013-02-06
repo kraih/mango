@@ -1,7 +1,9 @@
 
 0.02  2013-02-07
+  - Changed reply format from array to hash.
   - Improved documentation.
   - Improved tests.
+  - Fixed a few exception handling bugs.
 
 0.01  2013-02-06
   - First release.

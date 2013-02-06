@@ -158,7 +158,14 @@ sub parse_reply {
   my @docs;
   push @docs, bson_decode(substr $msg, 0, bson_length($msg), '') while $msg;
 
-  return [$id, $to, $flags, $cursor, $from, \@docs];
+  return {
+    id     => $id,
+    to     => $to,
+    flags  => $flags,
+    cursor => $cursor,
+    from   => $from,
+    docs   => \@docs
+  };
 }
 
 sub _build_header {

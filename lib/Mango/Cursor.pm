@@ -75,7 +75,8 @@ sub _query {
 
 sub _queue {
   my ($self, $reply) = @_;
-  push @{$self->{results} ||= []}, @{$reply->[5]};
+  return unless $reply;
+  push @{$self->{results} ||= []}, @{$reply->{docs}};
   return shift @{$self->{results}};
 }
 
@@ -91,14 +92,14 @@ sub _start {
   return $collection->db->mango->query(
     @args => sub {
       my ($mango, $err, $reply) = @_;
-      $self->id($reply->[3]);
+      $self->id($reply->{cursor}) if $reply;
       $self->$cb($err, $self->_queue($reply));
     }
   ) if $cb;
 
   # Blocking
   my $reply = $collection->db->mango->query(@args);
-  $self->id($reply->[3]);
+  $self->id($reply->{cursor}) if $reply;
   return $self->_queue($reply);
 }
 

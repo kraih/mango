@@ -23,16 +23,16 @@ push @docs, $cursor->next;
 push @docs, $cursor->next;
 ok !$cursor->next, 'no more documents';
 @docs = sort { $a->{test} <=> $b->{test} } @docs;
-is $docs[0]->{test}, 1, 'right document';
-is $docs[1]->{test}, 2, 'right document';
-is $docs[2]->{test}, 3, 'right document';
+is $docs[0]{test}, 1, 'right document';
+is $docs[1]{test}, 2, 'right document';
+is $docs[2]{test}, 3, 'right document';
 
 # Fetch all documents blocking
 my $docs = $collection->find({})->limit(2)->all;
 @$docs = sort { $a->{test} <=> $b->{test} } @$docs;
-is $docs->[0]->{test}, 1, 'right document';
-is $docs->[1]->{test}, 2, 'right document';
-is $docs->[2]->{test}, 3, 'right document';
+is $docs->[0]{test}, 1, 'right document';
+is $docs->[1]{test}, 2, 'right document';
+is $docs->[2]{test}, 3, 'right document';
 
 # Fetch documents non-blocking
 $cursor = $collection->find({})->limit(2);
@@ -65,9 +65,9 @@ $delay->wait;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 @docs = sort { $a->{test} <=> $b->{test} } @docs;
-is $docs[0]->{test}, 1, 'right document';
-is $docs[1]->{test}, 2, 'right document';
-is $docs[2]->{test}, 3, 'right document';
+is $docs[0]{test}, 1, 'right document';
+is $docs[1]{test}, 2, 'right document';
+is $docs[2]{test}, 3, 'right document';
 
 # Fetch all documents non-blocking
 @docs = ();
@@ -81,9 +81,9 @@ $collection->find({})->limit(2)->all(
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 @docs = sort { $a->{test} <=> $b->{test} } @docs;
-is $docs[0]->{test}, 1, 'right document';
-is $docs[1]->{test}, 2, 'right document';
-is $docs[2]->{test}, 3, 'right document';
+is $docs[0]{test}, 1, 'right document';
+is $docs[1]{test}, 2, 'right document';
+is $docs[2]{test}, 3, 'right document';
 
 # Fetch subset of documents sorted
 $docs = $collection->find({})->fields({_id => 0})->sort({test => 1})->all;
