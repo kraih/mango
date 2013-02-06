@@ -7,7 +7,7 @@ use Config;
 use ExtUtils::MakeMaker;
 
 die "Perl with support for quads is required!\n"
-  unless ($Config{use64bitint} eq 'define' || $Config{longsize} >= 8);
+  unless (($Config{use64bitint} // '') eq 'define' || $Config{longsize} >= 8);
 
 WriteMakefile(
   NAME         => 'Mango',
