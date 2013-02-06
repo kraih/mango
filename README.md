@@ -11,18 +11,20 @@
     my $oid = $mango->db('test')->collection('foo')->insert({bar => 'baz'});
 
     # Find document
-    use Mango::BSON ':bson';
     my $doc = $mango->db('test')->collection('foo')->find_one({bar => 'baz'});
     say $doc->{bar};
 
-    # Update document with special BSON type
-    use Mango::BSON ':bson';
+    # Update document
     $mango->db('test')->collection('foo')
-      ->update({bar => 'baz'}, {bar => bson_true});
+      ->update({bar => 'baz'}, {bar => 'yada'});
 
-    # Remove document with special BSON type
+    # Remove document
+    $mango->db('test')->collection('foo')->remove({bar => 'yada'});
+
+    # Insert document with special BSON types
     use Mango::BSON ':bson';
-    $mango->db('test')->collection('foo')->remove({bar => bson_true});
+    my $oid = $mango->db('test')->collection('foo')
+      ->insert({data => bson_bin("\x00\x01"), now => bson_time});
 
     # Find documents non-blocking (does work inside a running event loop)
     my $delay = Mojo::IOLoop->delay(sub {

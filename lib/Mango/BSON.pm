@@ -370,7 +370,7 @@ Mango::BSON - BSON
 
   use Mango::BSON ':bson';
 
-  my $bson = bson_encode now => bson_time, counter => 13;
+  my $bson = bson_encode bson_doc(now => bson_time, counter => 13);
   my $doc  = bson_decode $bson;
 
 =head1 DESCRIPTION
@@ -423,6 +423,7 @@ Create new BSON document.
 =head2 bson_encode
 
   my $bson = bson_encode $doc;
+  my $bson = bson_encode {};
 
 Encode Perl data structures into BSON.
 
