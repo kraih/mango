@@ -202,17 +202,12 @@ sub _error {
 
 sub _finish {
   my ($self, $reply, $cb, $err) = @_;
-  my $docs = $reply ? $reply->{docs} : undef;
-  $err ||= $docs->[0]{'$err'} if $docs && $reply->{cursor} == 0 && @$docs;
+  my $docs = $reply ? $reply->{docs} : [];
+  $err ||= $docs->[0]{'$err'} if @$docs && $reply->{cursor} == 0;
   $self->$cb($err, $reply);
 }
 
-sub _id {
-  my $self = shift;
-  my $id   = ++$self->{id};
-  $id = $self->{id} = 1 if $id > 2147483647;
-  return $id;
-}
+sub _id { $_[0]->{id} = $_[0]->protocol->next_id($_[0]->{id} // 0) }
 
 sub _loop { $_[0]{nb} ? Mojo::IOLoop->singleton : $_[0]->ioloop }
 

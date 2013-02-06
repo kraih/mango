@@ -125,6 +125,8 @@ sub build_update {
   return _build_header($id, length($msg), UPDATE) . $msg;
 }
 
+sub next_id { $_[1] > 2147483646 ? 1 : $_[1] + 1 }
+
 sub parse_reply {
   my ($self, $bufref) = @_;
 
@@ -236,6 +238,12 @@ Build packet for C<query> operation.
   my $bytes = $protocol->build_update($id, $name, $flags, $query, $update);
 
 Build packet for C<update> operation.
+
+=head2 next_id
+
+  my $id = $protocol->next_id(23);
+
+Generate next id.
 
 =head2 parse_reply
 
