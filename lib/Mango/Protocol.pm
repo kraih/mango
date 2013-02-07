@@ -153,7 +153,7 @@ sub parse_reply {
   my $vec = substr $msg, 0, 4, '';
   $flags->{cursor_not_found} = vec $vec, 0, 1;
   $flags->{query_failure}    = vec $vec, 1, 1;
-  $flags->{await_capable}    = vec $vec, 2, 1;
+  $flags->{await_capable}    = vec $vec, 3, 1;
 
   # Cursor id
   my $cursor = decode_int64(substr $msg, 0, 8, '');

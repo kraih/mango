@@ -87,7 +87,7 @@ is $buffer, "\x51", 'right leftovers';
 my $nonce = {
   id     => 305769,
   to     => 3,
-  flags  => {await_capable => 0, query_failure => 0, cursor_not_found => 0},
+  flags  => {await_capable => 1, query_failure => 0, cursor_not_found => 0},
   cursor => 0,
   from   => 0,
   docs => [{nonce => '3295e5cd5eef2500', ok => 1}]
@@ -129,7 +129,7 @@ is $buffer, "\x00", 'message has been removed';
 my $unknown = {
   id     => 316991,
   to     => 1,
-  flags  => {await_capable => 0, query_failure => 0, cursor_not_found => 0},
+  flags  => {await_capable => 1, query_failure => 0, cursor_not_found => 0},
   cursor => 0,
   from   => 0,
   docs   => [
