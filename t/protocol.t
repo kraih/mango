@@ -103,11 +103,11 @@ $buffer
   . "\x61\x72\x72\x61\x79\x00\x10\x63\x6f\x64\x65\x00\xce\x33\x00\x00\x00";
 $reply = $protocol->parse_reply(\$buffer);
 my $query = {
-  to     => 1,
-  cursor => 0,
-  flags  => {await_capable => 0, query_failure => 1, cursor_not_found => 0},
-  from   => 0,
   id     => 317243,
+  to     => 1,
+  flags  => {await_capable => 0, query_failure => 1, cursor_not_found => 0},
+  cursor => 0,
+  from   => 0,
   docs => [{'$err' => '$or requires nonempty array', code => 13262}]
 };
 is_deeply $reply, $query, 'right reply';
@@ -127,16 +127,16 @@ is $buffer, "\x00", 'message has been removed';
 
 # Extract error messages from reply
 my $unknown = {
-  to     => 1,
-  cursor => 0,
-  flags  => {await_capable => 0, query_failure => 0, cursor_not_found => 0},
-  from   => 0,
   id     => 316991,
+  to     => 1,
+  flags  => {await_capable => 0, query_failure => 0, cursor_not_found => 0},
+  cursor => 0,
+  from   => 0,
   docs   => [
     {errmsg => 'no such cmd: whatever', 'bad cmd' => {whatever => 1}, ok => 0}
   ]
 };
-is $protocol->query_failure(), undef, 'no query failure';
+is $protocol->query_failure(undef), undef, 'no query failure';
 is $protocol->query_failure($unknown), undef, 'no query failure';
 is $protocol->query_failure($query), '$or requires nonempty array',
   'right query failure';

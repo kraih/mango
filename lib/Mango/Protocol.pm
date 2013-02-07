@@ -151,9 +151,9 @@ sub parse_reply {
   # FLags
   my $flags = {};
   my $vec = pack 'V', decode_int32(substr $msg, 0, 4, '');
-  $flags->{cursor_not_found} = vec($vec, 0, 1) ? 1 : 0;
-  $flags->{query_failure}    = vec($vec, 1, 1) ? 1 : 0;
-  $flags->{await_capable}    = vec($vec, 2, 1) ? 1 : 0;
+  $flags->{cursor_not_found} = vec $vec, 0, 1;
+  $flags->{query_failure}    = vec $vec, 1, 1;
+  $flags->{await_capable}    = vec $vec, 2, 1;
 
   # Cursor id
   my $cursor = decode_int64(substr $msg, 0, 8, '');
