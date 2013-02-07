@@ -2,6 +2,7 @@ package Mango::Cursor;
 use Mojo::Base -base;
 
 use Mango::BSON 'bson_doc';
+use Mojo::IOLoop;
 
 has [qw(batch_size limit skip)] => 0;
 has [qw(collection id sort)];
@@ -52,7 +53,7 @@ sub rewind {
   my ($self, $cb) = @_;
 
   delete $self->{$_} for qw(num results);
-  return $cb ? $self->$cb : undef unless my $id = $self->id;
+  return $cb ? $self->_defer($cb) : undef unless my $id = $self->id;
   $self->id(undef);
 
   # Non-blocking
@@ -65,7 +66,7 @@ sub rewind {
 
 sub _collect {
   my ($self, $all, $cb, $err, $doc) = @_;
-  return $self->$cb($err, $all) if $err || !$doc;
+  return $self->_defer($cb, $err, $all) if $err || !$doc;
   push @$all, $doc;
   $self->next(sub { shift->_collect($all, $cb, @_) });
 }
@@ -77,7 +78,7 @@ sub _continue {
   my $collection = $self->collection;
   my $name       = $collection->full_name;
   if ($cb) {
-    return $self->$cb(undef, $self->_dequeue) if $self->_enough;
+    return $self->_defer($cb, undef, $self->_dequeue) if $self->_enough;
     return $collection->db->mango->get_more(
       ($name, $self->_max, $self->id) => sub {
         my ($mango, $err, $reply) = @_;
@@ -90,6 +91,11 @@ sub _continue {
   return $self->_dequeue if $self->_enough;
   return $self->_enqueue(
     $collection->db->mango->get_more($name, $self->_max, $self->id));
+}
+
+sub _defer {
+  my ($self, $cb, @args) = @_;
+  Mojo::IOLoop->timer(0 => sub { $self->$cb(@args) });
 }
 
 sub _dequeue {

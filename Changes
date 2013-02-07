@@ -10,6 +10,7 @@
   - Improved tests.
   - Fixed a few exception handling bugs.
   - Fixed limit functionality in Mango::Cursor.
+  - Fixed a few small timing bugs in Mango::Cursor.
 
 0.01  2013-02-06
   - First release.
