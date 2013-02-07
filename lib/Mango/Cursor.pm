@@ -4,9 +4,8 @@ use Mojo::Base -base;
 use Mango::BSON 'bson_doc';
 
 has [qw(collection id sort)];
-has limit => 10;
+has [qw(limit skip)] => 0;
 has [qw(fields query)] => sub { {} };
-has skip => 0;
 
 sub all {
   my ($self, $cb) = @_;
@@ -163,9 +162,9 @@ Cursor id.
 =head2 limit
 
   my $limit = $cursor->limit;
-  $cursor   = $cursor->limit(1);
+  $cursor   = $cursor->limit(10);
 
-Limit, defaults to C<10>.
+Limit, defaults to C<0>.
 
 =head2 fields
 
