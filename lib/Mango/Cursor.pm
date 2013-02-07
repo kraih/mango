@@ -51,9 +51,9 @@ sub next {
 sub rewind {
   my ($self, $cb) = @_;
 
-  return unless my $id = $self->id;
-  $self->id(undef);
   delete $self->{$_} for qw(num results);
+  return $cb ? $self->$cb : undef unless my $id = $self->id;
+  $self->id(undef);
 
   # Non-blocking
   return $self->collection->db->mango->kill_cursors($id => sub { $self->$cb })

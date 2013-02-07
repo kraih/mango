@@ -10,7 +10,8 @@ plan skip_all => 'set TEST_ONLINE to enable this test'
 # Add some documents to fetch
 my $mango      = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('cursor_test');
-my $oids       = $collection->insert([{test => 3}, {test => 1}, {test => 2}]);
+$collection->remove;
+my $oids = $collection->insert([{test => 3}, {test => 1}, {test => 2}]);
 is scalar @$oids, 3, 'three documents inserted';
 
 # Fetch documents blocking
@@ -126,21 +127,18 @@ $docs = $collection->find({})->fields({_id => 0})->sort({test => 1})->all;
 is_deeply $docs, [{test => 1}, {test => 2}, {test => 3}], 'right subset';
 
 # Rewind cursor blocking
-$cursor = $collection->find({})->batch_size(2);
+$cursor = $collection->find({});
 ok !$cursor->id, 'no cursor id';
 $cursor->rewind;
 my $doc = $cursor->next;
-my $id  = $cursor->id;
-ok $id,  'has cursor id';
 ok $doc, 'found a document';
 $cursor->rewind;
 is_deeply $cursor->next, $doc, 'found same document again';
-isnt $cursor->id,        $id,  'new cursor id';
 
 # Rewind cursor non-blocking
-$fail = $id = undef;
-@docs = ();
-$cursor = $collection->find({})->batch_size(2);
+$fail   = undef;
+@docs   = ();
+$cursor = $collection->find({});
 $delay  = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
@@ -149,7 +147,6 @@ $delay  = Mojo::IOLoop->delay(
   sub {
     my ($delay, $err, $doc) = @_;
     $fail = $err;
-    $id   = $cursor->id;
     push @docs, $doc;
     $cursor->rewind($delay->begin);
   },
@@ -167,7 +164,6 @@ $delay->wait;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is_deeply $docs[0], $docs[1], 'found same document again';
-isnt $cursor->id, $id, 'new cursor id';
 
 # Remove all documents from collection
 is $collection->remove->{n}, 3, 'three documents removed';

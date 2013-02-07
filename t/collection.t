@@ -10,6 +10,7 @@ plan skip_all => 'set TEST_ONLINE to enable this test'
 # Collection names
 my $mango      = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('collection_test');
+$collection->remove;
 is $collection->name, 'collection_test', 'right collection name';
 is $collection->full_name, join('.', $mango->db->name, $collection->name),
   'right full collection name';
