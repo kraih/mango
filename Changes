@@ -1,5 +1,6 @@
 
 0.03  2013-02-08
+  - Improved tests.
   - Fixed small exception handling bugs in Mango.
 
 0.02  2013-02-07

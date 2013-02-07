@@ -37,7 +37,6 @@ is $docs->[2]{test}, 3, 'right document';
 
 # Fetch two documents blocking
 $docs = $collection->find({})->limit(2)->sort({test => 1})->all;
-@$docs = sort { $a->{test} <=> $b->{test} } @$docs;
 is scalar @$docs, 2, 'two documents';
 is $docs->[0]{test}, 1, 'right document';
 is $docs->[1]{test}, 2, 'right document';
