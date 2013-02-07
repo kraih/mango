@@ -466,12 +466,12 @@ can also append a callback to perform operation non-blocking.
 
 =head2 get_more
 
-  my $reply = $mango->get_more($name, $limit, $cursor);
+  my $reply = $mango->get_more($name, $return, $cursor);
 
 Perform low level C<get_more> operation. You can also append a callback to
 perform operation non-blocking.
 
-  $mango->get_more(($name, $limit, $cursor) => sub {
+  $mango->get_more(($name, $return, $cursor) => sub {
     my ($mango, $err, $reply) = @_;
     ...
   });
@@ -511,12 +511,12 @@ perform operation non-blocking.
 
 =head2 query
 
-  my $reply = $mango->query($name, $flags, $skip, $limit, $query, $fields);
+  my $reply = $mango->query($name, $flags, $skip, $return, $query, $fields);
 
 Perform low level C<query> operation. You can also append a callback to
 perform operation non-blocking.
 
-  $mango->query(($name, $flags, $skip, $limit, $query, $fields) => sub {
+  $mango->query(($name, $flags, $skip, $return, $query, $fields) => sub {
     my ($mango, $err, $reply) = @_;
     ...
   });

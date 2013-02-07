@@ -1,5 +1,6 @@
 
 0.02  2013-02-07
+  - Added batch_size attribute to Mango::Cursor.
   - Added count method to Mango::Cursor.
   - Added next_id method to Mango::Protocol.
   - Added multi and upsert options to update method in Mango::Collection.
@@ -8,6 +9,7 @@
   - Improved documentation.
   - Improved tests.
   - Fixed a few exception handling bugs.
+  - Fixed limit functionality in Mango::Cursor.
 
 0.01  2013-02-06
   - First release.

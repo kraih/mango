@@ -34,13 +34,13 @@ sub build_delete {
 }
 
 sub build_get_more {
-  my ($self, $id, $name, $limit, $cursor) = @_;
+  my ($self, $id, $name, $return, $cursor) = @_;
 
   # Zero and name
   my $msg = encode_int32(0) . encode_cstring($name);
 
-  # Limit and cursor id
-  $msg .= encode_int32($limit) . encode_int64($cursor);
+  # Number to return and cursor id
+  $msg .= encode_int32($return) . encode_int64($cursor);
 
   # Header
   return _build_header($id, length($msg), GET_MORE) . $msg;
@@ -78,7 +78,7 @@ sub build_kill_cursors {
 }
 
 sub build_query {
-  my ($self, $id, $name, $flags, $skip, $limit, $query, $fields) = @_;
+  my ($self, $id, $name, $flags, $skip, $return, $query, $fields) = @_;
 
   # Flags
   my $vec = pack 'B*', '0' x 32;
@@ -93,8 +93,8 @@ sub build_query {
   # Name
   $msg .= encode_cstring $name;
 
-  # Skip and limit
-  $msg .= encode_int32($skip) . encode_int32($limit);
+  # Skip and number to return
+  $msg .= encode_int32($skip) . encode_int32($return);
 
   # Query
   $msg .= bson_encode $query;
@@ -208,7 +208,7 @@ Build packet for C<delete> operation.
 
 =head2 build_get_more
 
-  my $bytes = $protocol->build_get_more($id, $name, $limit, $cursor);
+  my $bytes = $protocol->build_get_more($id, $name, $return, $cursor);
 
 Build packet for C<get_more> operation.
 
@@ -226,7 +226,7 @@ Build packet for C<kill_cursors> operation.
 
 =head2 build_query
 
-  my $bytes = $protocol->build_query($id, $name, $flags, $skip, $limit,
+  my $bytes = $protocol->build_query($id, $name, $flags, $skip, $return,
     $query, $fields);
 
 Build packet for C<query> operation.
