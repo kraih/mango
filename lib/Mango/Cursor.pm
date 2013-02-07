@@ -24,7 +24,11 @@ sub count {
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
 
   my $collection = $self->collection;
-  my $count = bson_doc count => $collection->name, query => $self->_query;
+  my $count      = bson_doc
+    count => $collection->name,
+    query => $self->_query,
+    skip  => $self->skip,
+    limit => $self->limit;
 
   # Non-blocking
   return $collection->db->command(

@@ -43,6 +43,7 @@ is $docs->[1]{test}, 2, 'right document';
 
 # Count documents blocking
 is $collection->find({foo => 'bar'})->count, 0, 'no documents';
+is $collection->find({})->skip(1)->limit(1)->count, 1, 'one document';
 is $collection->find({})->count, 3, 'three documents';
 
 # Count documents non-blocking
