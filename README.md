@@ -1,5 +1,5 @@
 
-# Mango [![Build Status](https://secure.travis-ci.org/kraih/mango.png)](http://travis-ci.org/kraih/mango)
+# Mango
 
   Pure-Perl non-blocking I/O MongoDB client, optimized for use with the
   [Mojolicious](http://mojolicio.us) real-time web framework.
