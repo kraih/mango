@@ -1,5 +1,6 @@
 
 0.02  2013-02-07
+  - Added count method to Mango::Cursor.
   - Added next_id method to Mango::Protocol.
   - Changed reply format from array to hash.
   - Improved documentation.

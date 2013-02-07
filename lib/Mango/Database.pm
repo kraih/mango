@@ -13,18 +13,19 @@ sub collection {
 
 sub command {
   my ($self, $command) = (shift, shift);
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+  $command = ref $command ? $command : bson_doc($command => 1, @_);
 
   # Non-blocking
-  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
   return $self->collection('$cmd')->find_one(
-    bson_doc($command => 1, @_) => sub {
+    $command => sub {
       my ($collection, $err, $doc) = @_;
       $self->$cb($err, $doc);
     }
   ) if $cb;
 
   # Blocking
-  return $self->collection('$cmd')->find_one(bson_doc($command => 1, @_));
+  return $self->collection('$cmd')->find_one($command);
 }
 
 1;
@@ -75,6 +76,7 @@ Get L<Mango::Collection> object for collection.
 
 =head2 command
 
+  my $doc = $db->command($doc);
   my $doc = $db->command('getLastError', {w => 2});
 
 Run command against database. You can also append a callback to run command

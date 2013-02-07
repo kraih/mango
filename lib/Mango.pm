@@ -214,8 +214,7 @@ sub _loop { $_[0]{nb} ? Mojo::IOLoop->singleton : $_[0]->ioloop }
 sub _queue {
   my ($self, $op) = @_;
   push @{$self->{queue} ||= []}, $op;
-  if   ($self->{connection}) { $self->_write }
-  else                       { $self->_connect }
+  $self->{connection} ? $self->_write : $self->_connect;
 }
 
 sub _read {
@@ -242,6 +241,7 @@ sub _start {
       $self->_cleanup;
       $self->{nb}++;
     }
+
     return $self->_queue($op);
   }
 
@@ -251,14 +251,13 @@ sub _start {
     $self->_cleanup;
     delete $self->{nb};
   }
+
   my ($err, $reply);
   $op->{cb} = sub {
     (my $self, $err, $reply) = @_;
     $self->ioloop->stop;
   };
   $self->_queue($op);
-
-  # Start event loop
   $self->ioloop->start;
 
   # Throw blocking errors

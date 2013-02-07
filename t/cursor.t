@@ -34,11 +34,39 @@ is $docs->[0]{test}, 1, 'right document';
 is $docs->[1]{test}, 2, 'right document';
 is $docs->[2]{test}, 3, 'right document';
 
+# Count documents blocking
+is $collection->find({foo => 'bar'})->limit(2)->count, 0, 'no documents';
+is $collection->find({})->limit(2)->count, 3, 'three documents';
+
+# Count documents non-blocking
+my ($fail, @count);
+my $delay = Mojo::IOLoop->delay(
+  sub {
+    my $delay = shift;
+    $collection->find({})->limit(2)->count($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $count) = @_;
+    $fail = $err;
+    push @count, $count;
+    $collection->find({foo => 'bar'})->limit(2)->count($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $count) = @_;
+    $fail ||= $err;
+    push @count, $count;
+  }
+);
+$delay->wait;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is_deeply \@count, [3, 0], 'right number of documents';
+
 # Fetch documents non-blocking
 $cursor = $collection->find({})->limit(2);
 @docs   = ();
-my $fail;
-my $delay = Mojo::IOLoop->delay(
+$fail   = undef;
+$delay  = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
     $cursor->next($delay->begin);

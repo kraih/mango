@@ -1,6 +1,8 @@
 package Mango::Cursor;
 use Mojo::Base -base;
 
+use Mango::BSON 'bson_doc';
+
 has [qw(collection id sort)];
 has limit => 10;
 has [qw(fields query)] => sub { {} };
@@ -16,6 +18,26 @@ sub all {
   # Blocking
   while (my $next = $self->next) { push @all, $next }
   return \@all;
+}
+
+sub count {
+  my $self = shift;
+
+  my $collection = $self->collection;
+  my $count = bson_doc count => $collection->name, query => $self->_query;
+
+  # Non-blocking
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+  return $collection->db->command(
+    $count => sub {
+      my ($collection, $err, $doc) = @_;
+      $self->$cb($err, $doc ? $doc->{n} : 0);
+    }
+  ) if $cb;
+
+  # Blocking
+  my $doc = $collection->db->command($count);
+  return $doc ? $doc->{n} : 0;
 }
 
 sub next {
@@ -187,6 +209,19 @@ non-blocking.
 
   $cursor->all(sub {
     my ($cursor, $err, $docs) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 count
+
+  my $count = $cursor->count;
+
+Count number of documents this cursor can return. You can also append a
+callback to perform operation non-blocking.
+
+  $cursor->count(sub {
+    my ($cursor, $err, $count) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
