@@ -1,4 +1,7 @@
 
+0.03  2013-02-08
+  - Fixed small exception handling bugs in Mango.
+
 0.02  2013-02-07
   - Added batch_size attribute to Mango::Cursor.
   - Added count method to Mango::Cursor.

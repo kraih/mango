@@ -22,7 +22,7 @@ has protocol    => sub { Mango::Protocol->new };
 has w           => 1;
 has wtimeout    => 1000;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
@@ -203,7 +203,7 @@ sub _error {
 sub _finish {
   my ($self, $reply, $cb, $err) = @_;
   my $docs = $reply ? $reply->{docs} : [];
-  $err ||= $docs->[0]{'$err'} if @$docs && $reply->{cursor} == 0;
+  $err ||= $docs->[0]{'$err'} if @$docs && $reply->{flags}{query_failure};
   $self->$cb($err, $reply);
 }
 
