@@ -125,6 +125,12 @@ sub build_update {
   return _build_header($id, length($msg), UPDATE) . $msg;
 }
 
+sub command_error {
+  my ($self, $reply) = @_;
+  my $doc = $reply->{docs}[0];
+  return $doc->{ok} ? $doc->{err} : $doc->{errmsg};
+}
+
 sub next_id { $_[1] > 2147483646 ? 1 : $_[1] + 1 }
 
 sub parse_reply {
@@ -144,10 +150,10 @@ sub parse_reply {
 
   # FLags
   my $flags = {};
-  my $vec = decode_int32(substr $msg, 0, 4, '');
-  $flags->{cursor_not_found} = _flag($vec, 0b10000000000000000000000000000000);
-  $flags->{query_failure}    = _flag($vec, 0b01000000000000000000000000000000);
-  $flags->{await_capable}    = _flag($vec, 0b00010000000000000000000000000000);
+  my $vec = pack 'V', decode_int32(substr $msg, 0, 4, '');
+  $flags->{cursor_not_found} = vec($vec, 0, 1) ? 1 : 0;
+  $flags->{query_failure}    = vec($vec, 1, 1) ? 1 : 0;
+  $flags->{await_capable}    = vec($vec, 2, 1) ? 1 : 0;
 
   # Cursor id
   my $cursor = decode_int64(substr $msg, 0, 8, '');
@@ -170,12 +176,16 @@ sub parse_reply {
   };
 }
 
+sub query_failure {
+  my ($self, $reply) = @_;
+  return undef unless $reply;
+  return $reply->{flags}{query_failure} ? $reply->{docs}[0]{'$err'} : undef;
+}
+
 sub _build_header {
   my ($id, $length, $op) = @_;
   return join '', map { encode_int32($_) } $length + 16, $id, 0, $op;
 }
-
-sub _flag { (vec($_[0], 0, 32) & $_[1]) == $_[1] ? 1 : 0 }
 
 1;
 
@@ -237,6 +247,12 @@ Build packet for C<query> operation.
 
 Build packet for C<update> operation.
 
+=head2 command_error
+
+  my $err = $protocol->command_error($reply);
+
+Extract command error from reply.
+
 =head2 next_id
 
   my $id = $protocol->next_id(23);
@@ -248,6 +264,12 @@ Generate next id.
   my $reply = $protocol->parse_reply(\$string);
 
 Extract and parse C<reply> packet.
+
+=head2 query_failure
+
+  my $err = $protocol->query_failure($reply);
+
+Extract query failure from reply.
 
 =head1 SEE ALSO
 

@@ -40,17 +40,18 @@ sub insert {
   my @ids = map { $_->{_id} //= bson_oid } @$docs;
 
   # Non-blocking
-  return $self->db->mango->insert(
+  my $mango = $self->db->mango;
+  return $mango->insert(
     ($self->full_name, {}, @$docs) => sub {
       my ($mango, $err, $reply) = @_;
-      $err ||= _error($reply);
+      $err ||= $mango->protocol->command_error($reply);
       $self->$cb($err, @ids > 1 ? \@ids : $ids[0]);
     }
   ) if $cb;
 
   # Blocking
-  my $reply = $self->db->mango->insert($self->full_name, {}, @$docs);
-  if (my $err = _error($reply)) { croak $err }
+  my $reply = $mango->insert($self->full_name, {}, @$docs);
+  if (my $err = $mango->protocol->command_error($reply)) { croak $err }
   return @ids > 1 ? \@ids : $ids[0];
 }
 
@@ -73,27 +74,23 @@ sub update {
   return $self->_handle('update', $flags, $query, $update, @_);
 }
 
-sub _error {
-  my $doc = shift->{docs}[0];
-  return $doc->{ok} ? $doc->{err} : $doc->{errmsg};
-}
-
 sub _handle {
   my ($self, $method) = (shift, shift);
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
 
   # Non-blocking
-  return $self->db->mango->$method(
+  my $mango = $self->db->mango;
+  return $mango->$method(
     ($self->full_name, @_) => sub {
       my ($mango, $err, $reply) = @_;
-      $err ||= _error($reply);
+      $err ||= $mango->protocol->command_error($reply);
       $self->$cb($err, $reply->{docs}[0]);
     }
   ) if $cb;
 
   # Blocking
-  my $reply = $self->db->mango->$method($self->full_name, @_);
-  if (my $err = _error($reply)) { croak $err }
+  my $reply = $mango->$method($self->full_name, @_);
+  if (my $err = $mango->protocol->command_error($reply)) { croak $err }
   return $reply->{docs}[0];
 }
 

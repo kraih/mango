@@ -110,11 +110,8 @@ sub _auth {
   my ($self, $credentials, $auth, $err, $reply) = @_;
   my ($db, $user, $pass) = @$auth;
 
-  # No nonce value
-  return $self->_connected($credentials) if $err || !$reply->{docs}[0]{ok};
-  my $nonce = $reply->{docs}[0]{nonce};
-
   # Authenticate
+  my $nonce = $reply->{docs}[0]{nonce} // '';
   my $key = md5_sum $nonce . $user . md5_sum "${user}:mongo:${pass}";
   my $command
     = bson_doc(authenticate => 1, user => $user, nonce => $nonce, key => $key);
@@ -150,11 +147,19 @@ sub _close {
 sub _command {
   my ($self, $db, $command, $cb) = @_;
 
+  # Handle errors
+  my $protocol = $self->protocol;
+  my $wrapper  = sub {
+    my ($self, $err, $reply) = @_;
+    $err ||= $protocol->command_error($reply);
+    return $err ? $self->_error($err) : $self->$cb($err, $reply);
+  };
+
   # Skip the queue and run command right away
   my $id = $self->_id;
-  my $msg
-    = $self->protocol->build_query($id, "$db.\$cmd", {}, 0, -1, $command, {});
-  unshift @{$self->{queue}}, {id => $id, safe => 1, cb => $cb, msg => $msg};
+  my $msg = $protocol->build_query($id, "$db.\$cmd", {}, 0, -1, $command, {});
+  unshift @{$self->{queue}},
+    {id => $id, safe => 1, msg => $msg, cb => $wrapper};
   warn "-- Fast operation $id (query)\n" if DEBUG;
   $self->_write;
 }
@@ -202,9 +207,7 @@ sub _error {
 
 sub _finish {
   my ($self, $reply, $cb, $err) = @_;
-  my $docs = $reply ? $reply->{docs} : [];
-  $err ||= $docs->[0]{'$err'} if @$docs && $reply->{flags}{query_failure};
-  $self->$cb($err, $reply);
+  $self->$cb($err || $self->protocol->query_failure($reply), $reply);
 }
 
 sub _id { $_[0]->{id} = $_[0]->protocol->next_id($_[0]->{id} // 0) }

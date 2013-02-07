@@ -87,12 +87,30 @@ is $buffer, "\x51", 'right leftovers';
 my $nonce = {
   id     => 305769,
   to     => 3,
-  flags  => {await_capable => 1, query_failure => 0, cursor_not_found => 0},
+  flags  => {await_capable => 0, query_failure => 0, cursor_not_found => 0},
   cursor => 0,
   from   => 0,
   docs => [{nonce => '3295e5cd5eef2500', ok => 1}]
 };
 is_deeply $reply, $nonce, 'right reply';
+
+# Parse query failure
+$buffer
+  = "\x59\x00\x00\x00\x3b\xd7\x04\x00\x01\x00\x00\x00\x01\x00\x00\x00\x02\x00"
+  . "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00"
+  . "\x35\x00\x00\x00\x02\x24\x65\x72\x72\x00\x1c\x00\x00\x00\x24\x6f\x72\x20"
+  . "\x72\x65\x71\x75\x69\x72\x65\x73\x20\x6e\x6f\x6e\x65\x6d\x70\x74\x79\x20"
+  . "\x61\x72\x72\x61\x79\x00\x10\x63\x6f\x64\x65\x00\xce\x33\x00\x00\x00";
+$reply = $protocol->parse_reply(\$buffer);
+my $query = {
+  to     => 1,
+  cursor => 0,
+  flags  => {await_capable => 0, query_failure => 1, cursor_not_found => 0},
+  from   => 0,
+  id     => 317243,
+  docs => [{'$err' => '$or requires nonempty array', code => 13262}]
+};
+is_deeply $reply, $query, 'right reply';
 
 # Parse partial reply
 my $before = my $after = "\x10";
@@ -106,5 +124,24 @@ is $before, $after, 'no changes';
 $buffer = $protocol->build_insert(1, 'foo', {}, {}) . "\x00";
 is $protocol->parse_reply(\$buffer), undef, 'nothing';
 is $buffer, "\x00", 'message has been removed';
+
+# Extract error messages from reply
+my $unknown = {
+  to     => 1,
+  cursor => 0,
+  flags  => {await_capable => 0, query_failure => 0, cursor_not_found => 0},
+  from   => 0,
+  id     => 316991,
+  docs   => [
+    {errmsg => 'no such cmd: whatever', 'bad cmd' => {whatever => 1}, ok => 0}
+  ]
+};
+is $protocol->query_failure(), undef, 'no query failure';
+is $protocol->query_failure($unknown), undef, 'no query failure';
+is $protocol->query_failure($query), '$or requires nonempty array',
+  'right query failure';
+is $protocol->command_error($unknown), 'no such cmd: whatever', 'right error';
+is $protocol->command_error($query),   undef,                   'no error';
+is $protocol->command_error($nonce),   undef,                   'no error';
 
 done_testing();
