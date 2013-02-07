@@ -2,6 +2,8 @@
 0.02  2013-02-07
   - Added count method to Mango::Cursor.
   - Added next_id method to Mango::Protocol.
+  - Added multi and upsert options to update method in Mango::Collection.
+  - Added single option to remove method in Mango::Collection.
   - Changed reply format from array to hash.
   - Improved documentation.
   - Improved tests.

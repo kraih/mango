@@ -22,12 +22,12 @@ sub all {
 
 sub count {
   my $self = shift;
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
 
   my $collection = $self->collection;
   my $count = bson_doc count => $collection->name, query => $self->_query;
 
   # Non-blocking
-  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
   return $collection->db->command(
     $count => sub {
       my ($collection, $err, $doc) = @_;
