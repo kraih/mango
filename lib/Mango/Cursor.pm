@@ -93,23 +93,20 @@ sub _collect {
 sub _continue {
   my ($self, $cb) = @_;
 
-  # Non-blocking
   my $collection = $self->collection;
   my $name       = $collection->full_name;
+  my $mango      = $collection->db->mango;
+
+  # Non-blocking
   if ($cb) {
     return $self->_defer($cb, undef, $self->_dequeue) if $self->_enough;
-    return $collection->db->mango->get_more(
-      ($name, $self->_max, $self->id) => sub {
-        my ($mango, $err, $reply) = @_;
-        $self->$cb($err, $self->_enqueue($reply));
-      }
-    );
+    return $mango->get_more(($name, $self->_max, $self->id) =>
+        sub { shift; $self->$cb(shift, $self->_enqueue(shift)) });
   }
 
   # Blocking
   return $self->_dequeue if $self->_enough;
-  return $self->_enqueue(
-    $collection->db->mango->get_more($name, $self->_max, $self->id));
+  return $self->_enqueue($mango->get_more($name, $self->_max, $self->id));
 }
 
 sub _defer {
@@ -137,7 +134,7 @@ sub _enqueue {
   my ($self, $reply) = @_;
   return unless $reply;
   push @{$self->{results} ||= []}, @{$reply->{docs}};
-  return $self->_dequeue;
+  return $self->id($reply->{cursor})->_dequeue;
 }
 
 sub _max {
@@ -171,12 +168,8 @@ sub _start {
 
   # Non-blocking
   return $collection->db->mango->query(
-    @args => sub {
-      my ($mango, $err, $reply) = @_;
-      $self->id($reply->{cursor}) if $reply;
-      $self->$cb($err, $self->_enqueue($reply));
-    }
-  ) if $cb;
+    @args => sub { shift; $self->$cb(shift, $self->_enqueue(shift)) })
+    if $cb;
 
   # Blocking
   my $reply = $collection->db->mango->query(@args);

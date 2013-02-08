@@ -18,15 +18,11 @@ sub find_one {
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
 
   # Non-blocking
-  return $self->find($query)->limit(-1)->next(
-    sub {
-      my ($cursor, $err, $doc) = @_;
-      $self->$cb($err, $doc);
-    }
-  ) if $cb;
+  my $cursor = $self->find($query)->limit(-1);
+  return $cursor->next(sub { shift; $self->$cb(@_) }) if $cb;
 
   # Blocking
-  return $self->find($query)->limit(-1)->next;
+  return $cursor->next;
 }
 
 sub full_name { join '.', $_[0]->db->name, $_[0]->name }

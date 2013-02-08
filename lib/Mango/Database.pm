@@ -17,15 +17,12 @@ sub command {
   $command = ref $command ? $command : bson_doc($command => 1, @_);
 
   # Non-blocking
-  return $self->collection('$cmd')->find_one(
-    $command => sub {
-      my ($collection, $err, $doc) = @_;
-      $self->$cb($err, $doc);
-    }
-  ) if $cb;
+  my $collection = $self->collection('$cmd');
+  return $collection->find_one($command => sub { shift; $self->$cb(@_) })
+    if $cb;
 
   # Blocking
-  return $self->collection('$cmd')->find_one($command);
+  return $collection->find_one($command);
 }
 
 1;
