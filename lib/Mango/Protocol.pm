@@ -24,7 +24,7 @@ sub build_delete {
   # Flags
   my $vec = pack 'B*', '0' x 32;
   vec($vec, 0, 1) = 1 if $flags->{single_remove};
-  $msg .= encode_int32 unpack('V', $vec);
+  $msg .= encode_int32(unpack 'V', $vec);
 
   # Query
   $msg .= bson_encode $query;
@@ -52,7 +52,7 @@ sub build_insert {
   # Flags
   my $vec = pack 'B*', '0' x 32;
   vec($vec, 0, 1) = 1 if $flags->{continue_on_error};
-  my $msg = encode_int32 unpack('V', $vec);
+  my $msg = encode_int32(unpack 'V', $vec);
 
   # Name
   $msg .= encode_cstring $name;
@@ -88,7 +88,7 @@ sub build_query {
   vec($vec, 4, 1) = 1 if $flags->{await_data};
   vec($vec, 5, 1) = 1 if $flags->{exhaust};
   vec($vec, 6, 1) = 1 if $flags->{partial};
-  my $msg = encode_int32 unpack('V', $vec);
+  my $msg = encode_int32(unpack 'V', $vec);
 
   # Name
   $msg .= encode_cstring $name;
@@ -116,7 +116,7 @@ sub build_update {
   my $vec = pack 'B*', '0' x 32;
   vec($vec, 0, 1) = 1 if $flags->{upsert};
   vec($vec, 1, 1) = 1 if $flags->{multi_update};
-  $msg .= encode_int32 unpack('V', $vec);
+  $msg .= encode_int32(unpack 'V', $vec);
 
   # Query and update sepecification
   $msg .= bson_encode($query) . bson_encode($update);
@@ -214,38 +214,38 @@ following new ones.
 
   my $bytes = $protocol->build_delete($id, $name, $flags, $query);
 
-Build packet for C<delete> operation.
+Build message for C<delete> operation.
 
 =head2 build_get_more
 
   my $bytes = $protocol->build_get_more($id, $name, $return, $cursor);
 
-Build packet for C<get_more> operation.
+Build message for C<get_more> operation.
 
 =head2 build_insert
 
   my $bytes = $protocol->build_insert($id, $name, $flags, @docs);
 
-Build packet for C<insert> operation.
+Build message for C<insert> operation.
 
 =head2 build_kill_cursors
 
   my $bytes = $protocol->build_kill_cursors($id, @ids);
 
-Build packet for C<kill_cursors> operation.
+Build message for C<kill_cursors> operation.
 
 =head2 build_query
 
   my $bytes = $protocol->build_query($id, $name, $flags, $skip, $return,
     $query, $fields);
 
-Build packet for C<query> operation.
+Build message for C<query> operation.
 
 =head2 build_update
 
   my $bytes = $protocol->build_update($id, $name, $flags, $query, $update);
 
-Build packet for C<update> operation.
+Build message for C<update> operation.
 
 =head2 command_error
 
@@ -263,7 +263,7 @@ Generate next id.
 
   my $reply = $protocol->parse_reply(\$string);
 
-Extract and parse C<reply> packet.
+Extract and parse C<reply> message.
 
 =head2 query_failure
 
