@@ -5,7 +5,7 @@ use Mango::BSON 'bson_doc';
 use Mojo::IOLoop;
 
 has [qw(batch_size limit skip)] => 0;
-has [qw(collection id sort)];
+has [qw(collection hint id snapshot sort)];
 has [qw(fields query)] => sub { {} };
 
 sub all {
@@ -20,11 +20,30 @@ sub all {
   return \@all;
 }
 
+sub build_query {
+  my ($self, $explain) = @_;
+
+  my $query    = $self->query;
+  my $sort     = $self->sort;
+  my $hint     = $self->hint;
+  my $snapshot = $self->snapshot;
+
+  return $query unless $snapshot || $hint || $sort || $explain;
+
+  $query = {'$query' => $query};
+  $query->{'$explain'}  = 1     if $explain;
+  $query->{'$orderby'}  = $sort if $sort;
+  $query->{'$hint'}     = $hint if $hint;
+  $query->{'$snapshot'} = 1     if $snapshot;
+
+  return $query;
+}
+
 sub clone {
   my $self  = shift;
   my $clone = $self->new;
   $clone->$_($self->$_)
-    for qw(batch_size limit skip collection sort fields query);
+    for qw(batch_size collection fields hint limit query skip snapshot sort);
   return $clone;
 }
 
@@ -35,7 +54,7 @@ sub count {
   my $collection = $self->collection;
   my $count      = bson_doc
     count => $collection->name,
-    query => $self->_query,
+    query => $self->build_query,
     skip  => $self->skip,
     limit => $self->limit;
 
@@ -56,7 +75,7 @@ sub explain {
   my ($self, $cb) = @_;
 
   # Non-blocking
-  my $clone = $self->clone->query($self->_query(1))->sort(undef);
+  my $clone = $self->clone->query($self->build_query(1))->sort(undef);
   return $clone->next(sub { shift; $self->$cb(@_) }) if $cb;
 
   # Blocking
@@ -145,26 +164,13 @@ sub _max {
   return $size > $limit ? $limit : $size;
 }
 
-sub _query {
-  my ($self, $explain) = @_;
-
-  my $query = $self->query;
-  my $sort  = $self->sort;
-  return $query unless $sort || $explain;
-  $query = {'$query' => $query};
-  $query->{'$orderby'} = $sort if $sort;
-  $query->{'$explain'} = 1     if $explain;
-
-  return $query;
-}
-
 sub _start {
   my ($self, $cb) = @_;
 
   my $collection = $self->collection;
   my $name       = $collection->full_name;
   my @args
-    = ($name, {}, $self->skip, $self->_max, $self->_query, $self->fields);
+    = ($name, {}, $self->skip, $self->_max, $self->build_query, $self->fields);
 
   # Non-blocking
   return $collection->db->mango->query(
@@ -203,7 +209,7 @@ L<Mango::Cursor> implements the following attributes.
   my $size = $cursor->batch_size;
   $cursor  = $cursor->batch_size(10);
 
-Batch size, defaults to C<0>.
+Number of documents to fetch in one batch, defaults to C<0>.
 
 =head2 collection
 
@@ -211,6 +217,20 @@ Batch size, defaults to C<0>.
   $cursor        = $cursor->collection(Mango::Collection->new);
 
 L<Mango::Collection> object this cursor belongs to.
+
+=head2 fields
+
+  my $fields = $cursor->fields;
+  $cursor    = $cursor->fields({foo => 1});
+
+Select fields from documents.
+
+=head2 hint
+
+  my $hint = $cursor->hint;
+  $cursor  = $cursor->hint({foo => 1});
+
+Force a specific index to be used.
 
 =head2 id
 
@@ -224,35 +244,35 @@ Cursor id.
   my $limit = $cursor->limit;
   $cursor   = $cursor->limit(10);
 
-Limit, defaults to C<0>.
-
-=head2 fields
-
-  my $fields = $cursor->fields;
-  $cursor    = $cursor->fields({foo => 1});
-
-Fields.
+Limit the number of documents, defaults to C<0>.
 
 =head2 query
 
   my $query = $cursor->query;
   $cursor   = $cursor->query({foo => 'bar'});
 
-Query.
+Original query.
 
 =head2 skip
 
   my $skip = $cursor->skip;
   $cursor  = $cursor->skip(5);
 
-Documents to skip, defaults to C<0>.
+Number of documents to skip, defaults to C<0>.
+
+=head2 snapshot
+
+  my $snapshot = $cursor->snapshot;
+  $cursor      = $cursor->snapshot(1);
+
+Use snapshot mode.
 
 =head2 sort
 
   my $sort = $cursor->sort;
   $cursor  = $cursor->sort({foo => 1});
 
-Sort.
+Sort documents.
 
 =head1 METHODS
 
@@ -271,6 +291,13 @@ non-blocking.
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 build_query
+
+  my $query = $cursor->build_query;
+  my $query = $cursor->build_query($explain);
+
+Generate final query with cursor attributes.
 
 =head2 clone
 

@@ -41,6 +41,19 @@ is scalar @$docs, 2, 'two documents';
 is $docs->[0]{test}, 1, 'right document';
 is $docs->[1]{test}, 2, 'right document';
 
+# Build query
+$cursor = $collection->find({test => 1});
+is_deeply $cursor->build_query, {test => 1}, 'right query';
+is_deeply $cursor->build_query(1), {'$query' => {test => 1}, '$explain' => 1},
+  'right query';
+$cursor->sort({test => -1});
+is_deeply $cursor->build_query,
+  {'$query' => {test => 1}, '$orderby' => {test => -1}}, 'right query';
+$cursor->sort(undef)->hint({test => 1})->snapshot(1);
+is_deeply $cursor->build_query,
+  {'$query' => {test => 1}, '$hint' => {test => 1}, '$snapshot' => 1},
+  'right query';
+
 # Clone cursor
 $cursor
   = $collection->find({test => {'$exists' => 1}})->batch_size(2)->limit(3)
@@ -48,14 +61,16 @@ $cursor
 my $doc = $cursor->next;
 ok defined $cursor->id, 'has a cursor id';
 ok $doc->{test}, 'right document';
-my $clone = $cursor->clone;
+my $clone = $cursor->snapshot(1)->hint({test => 1})->clone;
 isnt $cursor, $clone, 'different objects';
 ok !defined $clone->id, 'has no cursor id';
 is $clone->batch_size, 2, 'right batch size';
 is_deeply $clone->fields, {test => 1}, 'right fields';
+is_deeply $clone->hint,   {test => 1}, 'right hint value';
 is $clone->limit, 3, 'right limit';
 is_deeply $clone->query, {test => {'$exists' => 1}}, 'right query';
-is $clone->skip, 1, 'right skip value';
+is $clone->skip,     1, 'right skip value';
+is $clone->snapshot, 1, 'right snapshot value';
 is_deeply $clone->sort, {test => 1}, 'right sort value';
 
 # Explain blocking
