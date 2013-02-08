@@ -326,7 +326,7 @@ sub _encode_value {
     # Array
     if ($ref eq 'ARRAY') {
       my $array = bson_doc();
-      my $i     = 1;
+      my $i     = 0;
       $array->{$i++} = $_ for @$value;
       return ARRAY . $e . bson_encode($array);
     }

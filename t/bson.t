@@ -97,6 +97,8 @@ $doc = bson_decode($bytes);
 is_deeply $doc, {empty => []}, 'empty array';
 $bson = bson_encode($doc);
 is $bson, $bytes, 'successful roundtrip';
+is_deeply bson_decode(bson_encode {five => [1, 2, 3, 4, 5]}),
+  {five => [1, 2, 3, 4, 5]}, 'successful roundtrip';
 
 # Timestamp roundtrip
 $bytes = "\x13\x00\x00\x00\x11\x74\x65\x73\x74\x00\x14\x00\x00\x00\x04\x00\x00"

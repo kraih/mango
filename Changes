@@ -4,6 +4,7 @@
   - Added command_error and query_failure methods to Mango::Protocol.
   - Improved documentation.
   - Improved tests.
+  - Fixed array encoding in Mango::BSON.
   - Fixed small exception handling bugs in Mango.
 
 0.02  2013-02-07
