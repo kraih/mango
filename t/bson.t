@@ -50,8 +50,7 @@ my $bytes = "\x05\x00\x00\x00\x00";
 $doc = bson_decode($bytes);
 is_deeply [keys %$doc], [], 'empty document';
 is_deeply $doc, {}, 'empty document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Incomplete document
 is bson_decode("\x05\x00\x00\x00"), undef, 'no result';
@@ -63,10 +62,9 @@ is bson_decode("\x05"),             undef, 'no result';
 $bytes = "\x10\x00\x00\x00\x03\x6e\x6f\x6e\x65\x00\x05\x00\x00\x00\x00\x00";
 $doc   = bson_decode($bytes);
 is_deeply $doc, {none => {}}, 'empty nested document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip for hash';
-$bson = bson_encode(bson_doc(none => {}));
-is $bson, $bytes, 'successful roundtrip for document';
+is bson_encode($doc), $bytes, 'successful roundtrip for hash';
+is bson_encode(bson_doc(none => {})), $bytes,
+  'successful roundtrip for document';
 
 # Document roundtrip with "0" in key
 is_deeply bson_decode(bson_encode {n0ne => 'n0ne'}), bson_doc(n0ne => 'n0ne'),
@@ -79,8 +77,7 @@ $doc = bson_decode($bytes);
 is $doc->{test}, 'hello world', 'right value';
 is_deeply [keys %$doc], ['test'], 'one element';
 is_deeply $doc, {test => 'hello world'}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 $doc = bson_decode(bson_encode {foo => 'i ♥ mojolicious'});
 is $doc->{foo}, 'i ♥ mojolicious', 'successful roundtrip';
 
@@ -95,10 +92,14 @@ $bytes
   = "\x11\x00\x00\x00\x04\x65\x6d\x70\x74\x79\x00\x05\x00\x00\x00\x00\x00";
 $doc = bson_decode($bytes);
 is_deeply $doc, {empty => []}, 'empty array';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
-is_deeply bson_decode(bson_encode {five => [1, 2, 3, 4, 5]}),
-  {five => [1, 2, 3, 4, 5]}, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
+$bytes
+  = "\x33\x00\x00\x00\x04\x66\x69\x76\x65\x00\x28\x00\x00\x00\x10\x30\x00\x01"
+  . "\x00\x00\x00\x10\x31\x00\x02\x00\x00\x00\x10\x32\x00\x03\x00\x00\x00\x10"
+  . "\x33\x00\x04\x00\x00\x00\x10\x34\x00\x05\x00\x00\x00\x00\x00";
+$doc = bson_decode($bytes);
+is_deeply $doc, {five => [1, 2, 3, 4, 5]}, 'array with five elements';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Timestamp roundtrip
 $bytes = "\x13\x00\x00\x00\x11\x74\x65\x73\x74\x00\x14\x00\x00\x00\x04\x00\x00"
@@ -107,16 +108,14 @@ $doc = bson_decode($bytes);
 isa_ok $doc->{test}, 'Mango::BSON::Timestamp', 'right reference';
 is $doc->{test}->seconds,   4,  'right seconds';
 is $doc->{test}->increment, 20, 'right increment';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Double roundtrip
 $bytes = "\x14\x00\x00\x00\x01\x68\x65\x6c\x6c\x6f\x00\x00\x00\x00\x00\x00\x00"
   . "\xf8\x3f\x00";
 $doc = bson_decode($bytes);
 is_deeply $doc, {hello => 1.5}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 $doc = bson_decode(bson_encode {test => -1.5});
 is $doc->{test}, -1.5, 'successful roundtrip';
 
@@ -124,8 +123,7 @@ is $doc->{test}, -1.5, 'successful roundtrip';
 $bytes = "\x0f\x00\x00\x00\x10\x6d\x69\x6b\x65\x00\x64\x00\x00\x00\x00";
 $doc   = bson_decode($bytes);
 is_deeply $doc, {mike => 100}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 $doc = bson_decode(bson_encode {test => -100});
 is $doc->{test}, -100, 'successful roundtrip';
 
@@ -134,8 +132,7 @@ $bytes = "\x13\x00\x00\x00\x12\x6d\x69\x6b\x65\x00\x01\x00\x00\x80\x00\x00\x00"
   . "\x00\x00";
 $doc = bson_decode($bytes);
 is_deeply $doc, {mike => 2147483649}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 $doc = bson_decode(bson_encode {test => -2147483648});
 is $doc->{test}, -2147483648, 'successful roundtrip';
 
@@ -143,34 +140,29 @@ is $doc->{test}, -2147483648, 'successful roundtrip';
 $bytes = "\x0c\x00\x00\x00\x08\x74\x72\x75\x65\x00\x01\x00";
 $doc   = bson_decode($bytes);
 is_deeply $doc, {true => bson_true()}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 $bytes = "\x0d\x00\x00\x00\x08\x66\x61\x6c\x73\x65\x00\x00\x00";
 $doc   = bson_decode($bytes);
 is_deeply $doc, {false => bson_false()}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Null roundtrip
 $bytes = "\x0b\x00\x00\x00\x0a\x74\x65\x73\x74\x00\x00";
 $doc   = bson_decode($bytes);
 is_deeply $doc, {test => undef}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Max key roundtrip
 $bytes = "\x0b\x00\x00\x00\x7f\x74\x65\x73\x74\x00\x00";
 $doc   = bson_decode($bytes);
 is_deeply $doc, {test => bson_max()}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Min key roundtrip
 $bytes = "\x0b\x00\x00\x00\xff\x74\x65\x73\x74\x00\x00";
 $doc   = bson_decode($bytes);
 is_deeply $doc, {test => bson_min()}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Object ID roundtrip
 my $id = '000102030405060708090a0b';
@@ -180,8 +172,7 @@ $doc = bson_decode($bytes);
 isa_ok $doc->{oid}, 'Mango::BSON::ObjectID', 'right reference';
 is $doc->{oid}->to_epoch, 66051, 'right epoch time';
 is_deeply $doc, {oid => $id}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Regex roundtrip
 $bytes
@@ -191,8 +182,7 @@ is_deeply $doc, {regex => qr/a*b/i}, 'right document';
 like 'AAB',  $doc->{regex}, 'regex works';
 like 'ab',   $doc->{regex}, 'regex works';
 unlike 'Ax', $doc->{regex}, 'regex works';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Code roundtrip
 $bytes = "\x1c\x00\x00\x00\x0d\x66\x6f\x6f\x00\x0e\x00\x00\x00\x76\x61\x72\x20"
@@ -200,8 +190,7 @@ $bytes = "\x1c\x00\x00\x00\x0d\x66\x6f\x6f\x00\x0e\x00\x00\x00\x76\x61\x72\x20"
 $doc = bson_decode($bytes);
 isa_ok $doc->{foo}, 'Mango::BSON::Code', 'right reference';
 is_deeply $doc, {foo => bson_code('var foo = 23;')}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Code with scope roundtrip
 $bytes
@@ -212,8 +201,7 @@ $doc = bson_decode($bytes);
 isa_ok $doc->{foo}, 'Mango::BSON::Code', 'right reference';
 is_deeply $doc, {foo => bson_code('var foo = 24;')->scope({foo => 'bar'})},
   'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Time roundtrip
 $bytes = "\x14\x00\x00\x00\x09\x74\x6f\x64\x61\x79\x00\x4e\x61\xbc\x00\x00\x00"
@@ -221,8 +209,7 @@ $bytes = "\x14\x00\x00\x00\x09\x74\x6f\x64\x61\x79\x00\x4e\x61\xbc\x00\x00\x00"
 $doc = bson_decode($bytes);
 isa_ok $doc->{today}, 'Mango::BSON::Time', 'right reference';
 is_deeply $doc, {today => bson_time(12345678)}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Generic binary roundtrip
 $bytes = "\x14\x00\x00\x00\x05\x66\x6f\x6f\x00\x05\x00\x00\x00\x00\x31\x32\x33"
@@ -231,8 +218,7 @@ $doc = bson_decode($bytes);
 isa_ok $doc->{foo}, 'Mango::BSON::Binary', 'right reference';
 is $doc->{foo}->type, 'generic', 'right type';
 is_deeply $doc, {foo => bson_bin('12345')}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Function binary roundtrip
 $bytes = "\x14\x00\x00\x00\x05\x66\x6f\x6f\x00\x05\x00\x00\x00\x01\x31\x32\x33"
@@ -241,8 +227,7 @@ $doc = bson_decode($bytes);
 isa_ok $doc->{foo}, 'Mango::BSON::Binary', 'right reference';
 is $doc->{foo}->type, 'function', 'right type';
 is_deeply $doc, {foo => bson_bin('12345')->type('function')}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # MD5 binary roundtrip
 $bytes = "\x14\x00\x00\x00\x05\x66\x6f\x6f\x00\x05\x00\x00\x00\x05\x31\x32\x33"
@@ -251,8 +236,7 @@ $doc = bson_decode($bytes);
 isa_ok $doc->{foo}, 'Mango::BSON::Binary', 'right reference';
 is $doc->{foo}->type, 'md5', 'right type';
 is_deeply $doc, {foo => bson_bin('12345')->type('md5')}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # UUID binary roundtrip
 $bytes = "\x14\x00\x00\x00\x05\x66\x6f\x6f\x00\x05\x00\x00\x00\x04\x31\x32\x33"
@@ -261,8 +245,7 @@ $doc = bson_decode($bytes);
 isa_ok $doc->{foo}, 'Mango::BSON::Binary', 'right reference';
 is $doc->{foo}->type, 'uuid', 'right type';
 is_deeply $doc, {foo => bson_bin('12345')->type('uuid')}, 'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # User defined binary roundtrip
 $bytes = "\x14\x00\x00\x00\x05\x66\x6f\x6f\x00\x05\x00\x00\x00\x80\x31\x32\x33"
@@ -272,8 +255,7 @@ isa_ok $doc->{foo}, 'Mango::BSON::Binary', 'right reference';
 is $doc->{foo}->type, 'user_defined', 'right type';
 is_deeply $doc, {foo => bson_bin('12345')->type('user_defined')},
   'right document';
-$bson = bson_encode($doc);
-is $bson, $bytes, 'successful roundtrip';
+is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Blessed reference
 $bytes = bson_encode {test => b('test')};
