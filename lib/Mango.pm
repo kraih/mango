@@ -507,7 +507,7 @@ Perform low level C<kill_cursors> operation. You can also append a callback to
 perform operation non-blocking.
 
     $mango->kill_cursors(@ids => sub {
-      my $mango = shift;
+      my ($mango, $err) = @_;
       ...
     });
     Mojo::IOLoop->start unless Mojo::IOLoop->is_running;

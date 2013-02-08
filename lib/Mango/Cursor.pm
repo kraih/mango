@@ -20,6 +20,14 @@ sub all {
   return \@all;
 }
 
+sub clone {
+  my $self  = shift;
+  my $clone = $self->new;
+  $clone->$_($self->$_)
+    for qw(batch_size limit skip collection sort fields query);
+  return $clone;
+}
+
 sub count {
   my $self = shift;
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
@@ -44,6 +52,17 @@ sub count {
   return $doc ? $doc->{n} : 0;
 }
 
+sub explain {
+  my ($self, $cb) = @_;
+
+  # Non-blocking
+  my $clone = $self->clone->query($self->_query(1))->sort(undef);
+  return $clone->next(sub { shift; $self->$cb(@_) }) if $cb;
+
+  # Blocking
+  return $clone->next;
+}
+
 sub next {
   my ($self, $cb) = @_;
   return exists $self->{results} ? $self->_continue($cb) : $self->_start($cb);
@@ -57,11 +76,11 @@ sub rewind {
   $self->id(undef);
 
   # Non-blocking
-  return $self->collection->db->mango->kill_cursors($id => sub { $self->$cb })
-    if $cb;
+  my $mango = $self->collection->db->mango;
+  return $mango->kill_cursors($id => sub { shift; $self->$cb(@_) }) if $cb;
 
   # Blocking
-  $self->collection->db->mango->kill_cursors($id);
+  $mango->kill_cursors($id);
 }
 
 sub _collect {
@@ -130,10 +149,16 @@ sub _max {
 }
 
 sub _query {
-  my $self  = shift;
+  my ($self, $explain) = @_;
+
   my $query = $self->query;
-  return $query unless my $sort = $self->sort;
-  return {'$query' => $query, '$orderby' => $sort};
+  my $sort  = $self->sort;
+  return $query unless $sort || $explain;
+  $query = {'$query' => $query};
+  $query->{'$orderby'} = $sort if $sort;
+  $query->{'$explain'} = 1     if $explain;
+
+  return $query;
 }
 
 sub _start {
@@ -254,6 +279,12 @@ non-blocking.
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
+=head2 clone
+
+  my $clone = $cursor->clone;
+
+Clone cursor.
+
 =head2 count
 
   my $count = $cursor->count;
@@ -263,6 +294,19 @@ callback to perform operation non-blocking.
 
   $cursor->count(sub {
     my ($cursor, $err, $count) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 explain
+
+  my $doc = $cursor->explain;
+
+Provide information on the query plan. You can also append a callback to
+perform operation non-blocking.
+
+  $cursor->explain(sub {
+    my ($cursor, $err, $doc) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
@@ -288,7 +332,7 @@ Rewind cursor. You can also append a callback to perform operation
 non-blocking.
 
   $cursor->rewind(sub {
-    my $cursor = shift;
+    my ($cursor, $err) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;

@@ -41,14 +41,65 @@ is scalar @$docs, 2, 'two documents';
 is $docs->[0]{test}, 1, 'right document';
 is $docs->[1]{test}, 2, 'right document';
 
+# Clone cursor
+$cursor
+  = $collection->find({test => {'$exists' => 1}})->batch_size(2)->limit(3)
+  ->skip(1)->sort({test => 1})->fields({test => 1});
+my $doc = $cursor->next;
+ok defined $cursor->id, 'has a cursor id';
+ok $doc->{test}, 'right document';
+my $clone = $cursor->clone;
+isnt $cursor, $clone, 'different objects';
+ok !defined $clone->id, 'has no cursor id';
+is $clone->batch_size, 2, 'right batch size';
+is_deeply $clone->fields, {test => 1}, 'right fields';
+is $clone->limit, 3, 'right limit';
+is_deeply $clone->query, {test => {'$exists' => 1}}, 'right query';
+is $clone->skip, 1, 'right skip value';
+is_deeply $clone->sort, {test => 1}, 'right sort value';
+
+# Explain blocking
+$cursor = $collection->find({test => 2});
+$doc = $cursor->explain;
+is $doc->{n}, 1, 'one document';
+$doc = $cursor->next;
+is $doc->{test}, 2, 'right document';
+
+# Explain non-blocking
+$cursor = $collection->find({test => 2});
+my ($fail, $n, $test);
+my $delay = Mojo::IOLoop->delay(
+  sub {
+    my $delay = shift;
+    $cursor->explain($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $doc) = @_;
+    $fail = $err;
+    $n    = $doc->{n};
+    $cursor->next($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $doc) = @_;
+    $fail ||= $err;
+    $test = $doc->{test};
+  }
+);
+$delay->wait;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $n,    1, 'one document';
+is $test, 2, 'right document';
+
 # Count documents blocking
 is $collection->find({foo => 'bar'})->count, 0, 'no documents';
 is $collection->find({})->skip(1)->limit(1)->count, 1, 'one document';
 is $collection->find({})->count, 3, 'three documents';
 
 # Count documents non-blocking
-my ($fail, @count);
-my $delay = Mojo::IOLoop->delay(
+$fail = undef;
+my @count;
+$delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
     $collection->find({})->count($delay->begin);
@@ -129,7 +180,7 @@ is_deeply $docs, [{test => 1}, {test => 2}, {test => 3}], 'right subset';
 $cursor = $collection->find({});
 ok !$cursor->id, 'no cursor id';
 $cursor->rewind;
-my $doc = $cursor->next;
+$doc = $cursor->next;
 ok $doc, 'found a document';
 $cursor->rewind;
 is_deeply $cursor->next, $doc, 'found same document again';
@@ -150,7 +201,8 @@ $delay  = Mojo::IOLoop->delay(
     $cursor->rewind($delay->begin);
   },
   sub {
-    my $delay = shift;
+    my ($delay, $err) = @_;
+    $fail ||= $err;
     $cursor->next($delay->begin);
   },
   sub {

@@ -251,7 +251,7 @@ Build packet for C<update> operation.
 
   my $err = $protocol->command_error($reply);
 
-Extract command error from reply.
+Check reply for command error.
 
 =head2 next_id
 
@@ -269,7 +269,7 @@ Extract and parse C<reply> packet.
 
   my $err = $protocol->query_failure($reply);
 
-Extract query failure from reply.
+Check reply for query failure.
 
 =head1 SEE ALSO
 

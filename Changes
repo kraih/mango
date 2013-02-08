@@ -1,6 +1,8 @@
 
 0.03  2013-02-08
+  - Added clone and explain methods to Mango::Cursor.
   - Added command_error and query_failure methods to Mango::Protocol.
+  - Improved documentation.
   - Improved tests.
   - Fixed small exception handling bugs in Mango.
 
