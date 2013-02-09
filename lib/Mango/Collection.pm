@@ -7,30 +7,23 @@ use Mango::Cursor;
 
 has [qw(db name)];
 
+sub aggregate {
+  my ($self, $pipeline) = (shift, shift);
+  return $self->_command(
+    bson_doc(aggregate => $self->name, pipeline => $pipeline),
+    'result', @_);
+}
+
 sub build_index_name { join '_', keys %{$_[1]} }
 
 sub create {
   my $self = shift;
-  my $cb   = ref $_[-1] eq 'CODE' ? pop : undef;
-  my $doc  = bson_doc create => $self->name, %{shift // {}};
-
-  # Non-blocking
-  return $self->db->command($doc => sub { shift; $self->$cb(@_) }) if $cb;
-
-  # Blocking
-  return $self->db->command($doc);
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+  return $self->_command(bson_doc(create => $self->name, %{shift // {}}),
+    undef, $cb);
 }
 
-sub drop {
-  my ($self, $cb) = @_;
-
-  # Non-blocking
-  my $doc = bson_doc drop => $self->name;
-  return $self->db->command($doc => sub { shift; $self->$cb(@_) }) if $cb;
-
-  # Blocking
-  return $self->db->command($doc);
-}
+sub drop { $_[0]->_command(bson_doc(drop => $_[0]->name), undef, $_[1]) }
 
 sub ensure_index {
   my ($self, $spec) = (shift, shift);
@@ -52,6 +45,12 @@ sub ensure_index {
 sub find {
   my ($self, $query) = @_;
   return Mango::Cursor->new(collection => $self, query => $query);
+}
+
+sub find_and_modify {
+  my ($self, $opts) = (shift, shift);
+  return $self->_command(bson_doc(findAndModify => $self->name, %$opts),
+    'value', @_);
 }
 
 sub find_one {
@@ -106,6 +105,22 @@ sub update {
   my $flags = ref $_[0] eq 'CODE' ? {} : shift // {};
   $flags->{multi_update} = delete $flags->{multi};
   return $self->_handle('update', $flags, $query, $update, @_);
+}
+
+sub _command {
+  my ($self, $command, $field, $cb) = @_;
+
+  # Non-blocking
+  return $self->db->command(
+    $command => sub {
+      my ($db, $err, $doc) = @_;
+      $self->$cb($err, $field ? $doc->{$field} : $doc);
+    }
+  ) if $cb;
+
+  # Blocking
+  my $doc = $self->db->command($command);
+  return $field ? $doc->{$field} : $doc;
 }
 
 sub _handle {
@@ -169,6 +184,21 @@ Name of this collection.
 L<Mango::Collection> inherits all methods from L<Mojo::Base> and implements
 the following new ones.
 
+=head2 aggregate
+
+  my $docs = $collection->aggregate(
+    [{'$group' => {_id => undef, total => {'$sum' => '$foo'}}}]);
+
+Aggregate collection with aggregation framework. You can also append a
+callback to perform operation non-blocking.
+
+  my $pipeline = [{'$group' => {_id => undef, total => {'$sum' => '$foo'}}}];
+  $collection->aggregate($pipeline => sub {
+    my ($collection, $err, $docs) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
 =head2 build_index_name
 
   my $name = $collection->build_index_name(bson_doc(foo => 1, bar => -1));
@@ -224,6 +254,20 @@ can also append a callback to perform operation non-blocking.
   my $cursor = $collection->find({foo => 'bar'});
 
 Get L<Mango::Cursor> object for query.
+
+=head2 find_and_modify
+
+  my $doc = $collection->find_and_modify(
+    {query => {x => 1}, update => {x => 2}});
+
+Update document atomically. You can also append a callback to perform
+operation non-blocking.
+
+  $collection->find_and_update({query => {x => 1}, update => {x => 2}} => sub {
+    my ($collection, $err, $doc) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 find_one
 

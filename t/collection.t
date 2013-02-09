@@ -50,8 +50,63 @@ ok !$collection->find_one($oids->[1]), 'no document';
 is $collection->remove->{n}, 1, 'one document removed';
 ok !$collection->find_one($oids->[0]), 'no document';
 
+# Find and modify document blocking
+my $oid = $collection->insert({atomic => 1});
+is $collection->find_one($oid)->{atomic}, 1, 'right document';
+my $doc = $collection->find_and_modify(
+  {query => {atomic => 1}, update => {'$set' => {atomic => 2}}});
+is $doc->{atomic}, 1, 'right document';
+is $collection->find_one($oid)->{atomic}, 2, 'right document';
+is $collection->remove({atomic => 2})->{n}, 1, 'removed one document';
+
+# Find and modify document non-blocking
+$oid = $collection->insert({atomic => 1});
+is $collection->find_one($oid)->{atomic}, 1, 'right document';
+my ($fail, $old) = @_;
+$collection->find_and_modify(
+  {query => {atomic => 1}, update => {'$set' => {atomic => 2}}} => sub {
+    my ($collection, $err, $doc) = @_;
+    $fail = $err;
+    $old  = $doc;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $old->{atomic}, 1, 'right document';
+is $collection->find_one($oid)->{atomic}, 2, 'right document';
+is $collection->remove({atomic => 2})->{n}, 1, 'removed one document';
+
+# Aggregate collection blocking
+$collection->insert([{more => 1}, {more => 2}, {more => 3}]);
+my $docs = $collection->aggregate(
+  [{'$group' => {_id => undef, total => {'$sum' => '$more'}}}]);
+is $docs->[0]{total}, 6, 'right result';
+is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
+  'three documents removed';
+
+# Aggregate collection non-blocking
+$collection->insert([{more => 1}, {more => 2}, {more => 3}]);
+$fail = undef;
+my $results;
+$collection->aggregate(
+  [{'$group' => {_id => undef, total => {'$sum' => '$more'}}}] => sub {
+    my ($collection, $err, $docs) = @_;
+    $fail    = $err;
+    $results = $docs;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $results->[0]{total}, 6, 'right result';
+is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
+  'three documents removed';
+
 # Drop collection blocking
-my $oid = $collection->insert({just => 'works'});
+$oid = $collection->insert({just => 'works'});
 is $collection->find_one($oid)->{just}, 'works', 'right document';
 is $collection->drop->{ns}, $collection->full_name, 'right collection';
 ok !$collection->find_one($oid), 'no document';
@@ -59,7 +114,8 @@ ok !$collection->find_one($oid), 'no document';
 # Drop collection non-blocking
 $oid = $collection->insert({just => 'works'});
 is $collection->find_one($oid)->{just}, 'works', 'right document';
-my ($fail, $ns);
+$fail = undef;
+my $ns;
 $collection->drop(
   sub {
     my ($collection, $err, $doc) = @_;
