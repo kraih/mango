@@ -73,7 +73,7 @@ ok !$collection->find_one($oid), 'no document';
 $collection->insert({test => 23, foo => 'bar'});
 $collection->insert({test => 23, foo => 'baz'});
 is $collection->find({})->count, 2, 'two documents';
-$collection->ensure_index({test => 1}, {unique => 1, drop_dups => 1});
+$collection->ensure_index({test => 1}, {unique => \1, dropDups => \1});
 is $collection->find({})->count, 1, 'one document';
 $collection->drop;
 
@@ -82,7 +82,7 @@ $collection->insert({test => 23, foo => 'bar'});
 $collection->insert({test => 23, foo => 'baz'});
 is $collection->find({})->count, 2, 'two documents';
 $collection->ensure_index(
-  ({test => 1}, {unique => 1, drop_dups => 1}) => sub {
+  ({test => 1}, {unique => \1, dropDups => \1}) => sub {
     my ($collection, $err) = @_;
     $fail = $err;
     Mojo::IOLoop->stop;

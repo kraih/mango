@@ -24,10 +24,8 @@ sub ensure_index {
   my $doc = shift // {};
 
   $doc->{name} //= join '_', keys %$spec;
-  $doc->{ns}       = $self->full_name;
-  $doc->{key}      = $spec;
-  $doc->{dropDups} = bson_true if delete $doc->{drop_dups};
-  $doc->{$_} and $doc->{$_} = bson_true for qw(background unique);
+  $doc->{ns}  = $self->full_name;
+  $doc->{key} = $spec;
 
   # Non-blocking
   my $collection = $self->db->collection('system.indexes');
@@ -174,39 +172,16 @@ non-blocking.
 
   $collection->ensure_index(bson_doc(foo => 1, bar => -1));
   $collection->ensure_index({foo => 1});
-  $collection->ensure_index({foo => 1}, {unique => 1});
+  $collection->ensure_index({foo => 1}, {unique => bson_true});
 
 Make sure an index exists, the order of keys matters for compound indexes. You
 can also append a callback to perform operation non-blocking.
 
-  $collection->ensure_index(({foo => 1}, {unique => 1}) => sub {
+  $collection->ensure_index(({foo => 1}, {unique => bson_true}) => sub {
     my ($collection, $err) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
-
-These options are currently available:
-
-=over 2
-
-=item background
-
-Build index in the background.
-
-=item drop_dups
-
-Remove documents where the values of indexed keys are the same.
-
-=item name
-
-Custom name for index.
-
-=item unique
-
-Do not accept documents where the value of the indexed key matches that of an
-existing document.
-
-=back
 
 =head2 find
 
