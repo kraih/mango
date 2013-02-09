@@ -5,7 +5,7 @@ use Mango::BSON 'bson_doc';
 use Mojo::IOLoop;
 
 has [qw(batch_size limit skip)] => 0;
-has [qw(collection hint id snapshot sort)];
+has [qw(collection hint id snapshot sort tailable)];
 has [qw(fields query)] => sub { {} };
 
 sub all {
@@ -169,8 +169,10 @@ sub _start {
 
   my $collection = $self->collection;
   my $name       = $collection->full_name;
-  my @args
-    = ($name, {}, $self->skip, $self->_max, $self->build_query, $self->fields);
+  my $flags = $self->tailable ? {tailable_cursor => 1, await_data => 1} : {};
+  my @args  = (
+    $name, $flags, $self->skip, $self->_max, $self->build_query, $self->fields
+  );
 
   # Non-blocking
   return $collection->db->mango->query(
@@ -273,6 +275,13 @@ Use snapshot mode.
   $cursor  = $cursor->sort({foo => 1});
 
 Sort documents.
+
+=head2 tailable
+
+  my $tailable = $cursor->tailable;
+  $cursor      = $cursor->tailable(1);
+
+Tailable cursor.
 
 =head1 METHODS
 

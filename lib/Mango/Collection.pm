@@ -7,6 +7,18 @@ use Mango::Cursor;
 
 has [qw(db name)];
 
+sub create {
+  my $self = shift;
+  my $cb   = ref $_[-1] eq 'CODE' ? pop : undef;
+  my $doc  = bson_doc create => $self->name, %{shift // {}};
+
+  # Non-blocking
+  return $self->db->command($doc => sub { shift; $self->$cb(@_) }) if $cb;
+
+  # Blocking
+  return $self->db->command($doc);
+}
+
 sub drop {
   my ($self, $cb) = @_;
 
@@ -15,7 +27,7 @@ sub drop {
   return $self->db->command($doc => sub { shift; $self->$cb(@_) }) if $cb;
 
   # Blocking
-  $self->db->command($doc);
+  return $self->db->command($doc);
 }
 
 sub ensure_index {
@@ -154,6 +166,20 @@ Name of this collection.
 
 L<Mango::Collection> inherits all methods from L<Mojo::Base> and implements
 the following new ones.
+
+=head2 create
+
+  $collection->create;
+  $collection->create({capped => bson_true, max => 5, size => 10000});
+
+Create collection. You can also append a callback to perform operation
+non-blocking.
+
+  $collection->create({capped => bson_true, max => 5, size => 10000} => sub {
+    my ($collection, $err) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 drop
 

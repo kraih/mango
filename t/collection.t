@@ -94,4 +94,30 @@ ok !$fail, 'no error';
 is $collection->find({})->count, 1, 'one document';
 $collection->drop;
 
+# Create capped collection blocking
+$collection->create({capped => \1, max => 2, size => 100000});
+$collection->insert([{test => 1}, {test => 2}]);
+is $collection->find({})->count, 2, 'two documents';
+$collection->insert({test => 3});
+is $collection->find({})->count, 2, 'two documents';
+$collection->drop;
+
+# Create capped collection non-blocking
+$fail = undef;
+$collection->create(
+  {capped => \1, max => 2, size => 100000} => sub {
+    my ($collection, $err) = @_;
+    $fail = $err;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+$collection->insert([{test => 1}, {test => 2}]);
+is $collection->find({})->count, 2, 'two documents';
+$collection->insert({test => 3});
+is $collection->find({})->count, 2, 'two documents';
+$collection->drop;
+
 done_testing();

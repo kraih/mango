@@ -84,10 +84,10 @@ sub build_query {
   my $vec = pack 'B*', '0' x 32;
   vec($vec, 1, 1) = 1 if $flags->{tailable_cursor};
   vec($vec, 2, 1) = 1 if $flags->{slave_ok};
-  vec($vec, 3, 1) = 1 if $flags->{no_cursor_timeout};
-  vec($vec, 4, 1) = 1 if $flags->{await_data};
-  vec($vec, 5, 1) = 1 if $flags->{exhaust};
-  vec($vec, 6, 1) = 1 if $flags->{partial};
+  vec($vec, 4, 1) = 1 if $flags->{no_cursor_timeout};
+  vec($vec, 5, 1) = 1 if $flags->{await_data};
+  vec($vec, 6, 1) = 1 if $flags->{exhaust};
+  vec($vec, 7, 1) = 1 if $flags->{partial};
   my $msg = encode_int32(unpack 'V', $vec);
 
   # Name

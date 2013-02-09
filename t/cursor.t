@@ -215,14 +215,44 @@ $delay  = Mojo::IOLoop->delay(
     my ($delay, $err, $doc) = @_;
     $fail ||= $err;
     push @docs, $doc;
-  },
+  }
 );
 $delay->wait;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is_deeply $docs[0], $docs[1], 'found same document again';
 
-# Remove all documents from collection
-is $collection->remove->{n}, 3, 'three documents removed';
+# Tailable cursor
+$collection->drop;
+$collection->create({capped => \1, max => 2, size => 100000});
+my $mango2      = Mango->new($ENV{TEST_ONLINE});
+my $collection2 = $mango2->db->collection('cursor_test');
+$collection2->insert([{test => 1}, {test => 2}]);
+$cursor = $collection->find({})->tailable(1);
+ok $cursor->next->{test}, 'right document';
+ok $cursor->next->{test}, 'right document';
+$fail = undef;
+my ($new, $old);
+$delay = Mojo::IOLoop->delay(
+  sub {
+    my $delay = shift;
+    my $end   = $delay->begin;
+    $cursor->next($delay->begin);
+    Mojo::IOLoop->timer(
+      0.5 => sub { $collection2->insert({test => 3} => $end) });
+  },
+  sub {
+    my ($delay, $err1, $oid, $err2, $doc) = @_;
+    $fail = $err1 // $err2;
+    $new  = $oid;
+    $old  = $doc;
+  }
+);
+$delay->wait;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $old->{test}, 3, 'right document';
+is $old->{_id}, $new, 'same document';
+$collection->drop;
 
 done_testing();
