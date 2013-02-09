@@ -230,8 +230,8 @@ my $mango2      = Mango->new($ENV{TEST_ONLINE});
 my $collection2 = $mango2->db->collection('cursor_test');
 $collection2->insert([{test => 1}, {test => 2}]);
 $cursor = $collection->find({})->tailable(1);
-ok $cursor->next->{test}, 'right document';
-ok $cursor->next->{test}, 'right document';
+is $cursor->next->{test}, 1, 'right document';
+is $cursor->next->{test}, 2, 'right document';
 $fail = undef;
 my ($added, $tail);
 $delay = Mojo::IOLoop->delay(
