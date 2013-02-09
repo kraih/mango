@@ -43,7 +43,8 @@ sub clone {
   my $self  = shift;
   my $clone = $self->new;
   $clone->$_($self->$_)
-    for qw(batch_size collection fields hint limit query skip snapshot sort);
+    for qw(batch_size collection fields hint limit query skip snapshot),
+    qw(sort tailable);
   return $clone;
 }
 

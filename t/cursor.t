@@ -61,7 +61,7 @@ $cursor
 my $doc = $cursor->next;
 ok defined $cursor->id, 'has a cursor id';
 ok $doc->{test}, 'right document';
-my $clone = $cursor->snapshot(1)->hint({test => 1})->clone;
+my $clone = $cursor->snapshot(1)->hint({test => 1})->tailable(1)->clone;
 isnt $cursor, $clone, 'different objects';
 ok !defined $clone->id, 'has no cursor id';
 is $clone->batch_size, 2, 'right batch size';
@@ -71,6 +71,7 @@ is $clone->limit, 3, 'right limit';
 is_deeply $clone->query, {test => {'$exists' => 1}}, 'right query';
 is $clone->skip,     1, 'right skip value';
 is $clone->snapshot, 1, 'right snapshot value';
+is $clone->tailable, 1, 'is tailable';
 is_deeply $clone->sort, {test => 1}, 'right sort value';
 
 # Explain blocking
@@ -232,7 +233,7 @@ $cursor = $collection->find({})->tailable(1);
 ok $cursor->next->{test}, 'right document';
 ok $cursor->next->{test}, 'right document';
 $fail = undef;
-my ($new, $old);
+my ($added, $tail);
 $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
@@ -243,16 +244,16 @@ $delay = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $err1, $oid, $err2, $doc) = @_;
-    $fail = $err1 // $err2;
-    $new  = $oid;
-    $old  = $doc;
+    $fail  = $err1 // $err2;
+    $added = $oid;
+    $tail  = $doc;
   }
 );
 $delay->wait;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $old->{test}, 3, 'right document';
-is $old->{_id}, $new, 'same document';
+is $tail->{test}, 3, 'right document';
+is $tail->{_id}, $added, 'same document';
 $collection->drop;
 
 done_testing();
