@@ -73,7 +73,7 @@ Get L<Mango::Collection> object for collection.
 
 =head2 command
 
-  my $doc = $db->command($doc);
+  my $doc = $db->command(bson_doc(getLastError => 1, w => 2));
   my $doc = $db->command('getLastError', {w => 2});
 
 Run command against database. You can also append a callback to run command

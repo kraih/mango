@@ -2,10 +2,40 @@ package Mango::Collection;
 use Mojo::Base -base;
 
 use Carp 'croak';
-use Mango::BSON 'bson_oid';
+use Mango::BSON qw(bson_doc bson_oid bson_true);
 use Mango::Cursor;
 
 has [qw(db name)];
+
+sub drop {
+  my ($self, $cb) = @_;
+
+  # Non-blocking
+  my $doc = bson_doc drop => $self->name;
+  return $self->db->command($doc => sub { shift; $self->$cb(@_) }) if $cb;
+
+  # Blocking
+  $self->db->command($doc);
+}
+
+sub ensure_index {
+  my ($self, $spec) = (shift, shift);
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+  my $doc = shift // {};
+
+  $doc->{name} //= join '_', keys %$spec;
+  $doc->{ns}       = $self->full_name;
+  $doc->{key}      = $spec;
+  $doc->{dropDups} = bson_true if delete $doc->{drop_dups};
+  $doc->{$_} and $doc->{$_} = bson_true for qw(background unique);
+
+  # Non-blocking
+  my $collection = $self->db->collection('system.indexes');
+  return $collection->insert($doc => sub { shift; $self->$cb(@_) }) if $cb;
+
+  # Blocking
+  $collection->insert($doc);
+}
 
 sub find {
   my ($self, $query) = @_;
@@ -52,21 +82,17 @@ sub insert {
 }
 
 sub remove {
-  my $self    = shift;
-  my $query   = ref $_[0] eq 'CODE' ? {} : shift // {};
-  my $options = ref $_[0] eq 'CODE' ? {} : shift // {};
-  my $flags   = $options->{single} ? {single_remove => 1} : {};
+  my $self  = shift;
+  my $query = ref $_[0] eq 'CODE' ? {} : shift // {};
+  my $flags = ref $_[0] eq 'CODE' ? {} : shift // {};
+  $flags->{single_remove} = delete $flags->{single};
   return $self->_handle('delete', $flags, $query, @_);
 }
 
 sub update {
   my ($self, $query, $update) = (shift, shift, shift);
-  my $options = ref $_[0] eq 'CODE' ? {} : shift // {};
-
-  my $flags = {};
-  $flags->{upsert}       = $options->{upsert};
-  $flags->{multi_update} = $options->{multi};
-
+  my $flags = ref $_[0] eq 'CODE' ? {} : shift // {};
+  $flags->{multi_update} = delete $flags->{multi};
   return $self->_handle('update', $flags, $query, $update, @_);
 }
 
@@ -130,6 +156,57 @@ Name of this collection.
 
 L<Mango::Collection> inherits all methods from L<Mojo::Base> and implements
 the following new ones.
+
+=head2 drop
+
+  my $doc = $collection->drop;
+
+Drop collection. You can also append a callback to perform operation
+non-blocking.
+
+  $collection->drop(sub {
+    my ($collection, $err, $doc) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 ensure_index
+
+  $collection->ensure_index(bson_doc(foo => 1, bar => -1));
+  $collection->ensure_index({foo => 1});
+  $collection->ensure_index({foo => 1}, {unique => 1});
+
+Make sure an index exists, the order of keys matters for compound indexes. You
+can also append a callback to perform operation non-blocking.
+
+  $collection->ensure_index(({foo => 1}, {unique => 1}) => sub {
+    my ($collection, $err) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+These options are currently available:
+
+=over 2
+
+=item background
+
+Build index in the background.
+
+=item drop_dups
+
+Remove documents where the values of indexed keys are the same.
+
+=item name
+
+Custom name for index.
+
+=item unique
+
+Do not accept documents where the value of the indexed key matches that of an
+existing document.
+
+=back
 
 =head2 find
 

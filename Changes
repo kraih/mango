@@ -1,6 +1,7 @@
 
-0.03  2013-02-08
+0.03  2013-02-09
   - Added hint and snapshot attributes to Mango::Cursor.
+  - Added drop and ensure_index methods to Mango::Collection.
   - Added build_query, clone and explain methods to Mango::Cursor.
   - Added command_error and query_failure methods to Mango::Protocol.
   - Improved documentation.

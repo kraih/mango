@@ -10,7 +10,7 @@ plan skip_all => 'set TEST_ONLINE to enable this test'
 # Add some documents to fetch
 my $mango      = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('cursor_test');
-$collection->remove;
+$collection->drop;
 my $oids = $collection->insert([{test => 3}, {test => 1}, {test => 2}]);
 is scalar @$oids, 3, 'three documents inserted';
 
@@ -82,29 +82,20 @@ is $doc->{test}, 2, 'right document';
 
 # Explain non-blocking
 $cursor = $collection->find({test => 2});
-my ($fail, $n, $test);
-my $delay = Mojo::IOLoop->delay(
+my ($fail, $n);
+$cursor->explain(
   sub {
-    my $delay = shift;
-    $cursor->explain($delay->begin);
-  },
-  sub {
-    my ($delay, $err, $doc) = @_;
+    my ($cursor, $err, $doc) = @_;
     $fail = $err;
     $n    = $doc->{n};
-    $cursor->next($delay->begin);
-  },
-  sub {
-    my ($delay, $err, $doc) = @_;
-    $fail ||= $err;
-    $test = $doc->{test};
+    Mojo::IOLoop->stop;
   }
 );
-$delay->wait;
+Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $n,    1, 'one document';
-is $test, 2, 'right document';
+is $n, 1, 'one document';
+is $cursor->next->{test}, 2, 'right document';
 
 # Count documents blocking
 is $collection->find({foo => 'bar'})->count, 0, 'no documents';
@@ -114,7 +105,7 @@ is $collection->find({})->count, 3, 'three documents';
 # Count documents non-blocking
 $fail = undef;
 my @count;
-$delay = Mojo::IOLoop->delay(
+my $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
     $collection->find({})->count($delay->begin);

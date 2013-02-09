@@ -47,7 +47,7 @@ is_deeply $mango->hosts, [['127.0.0.1'], ['127.0.0.1', 5000]], 'right hosts';
 # Blocking CRUD
 $mango = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('connection_test');
-$collection->remove;
+$collection->drop;
 my $oid = $collection->insert({foo => 'bar'});
 isa_ok $oid, 'Mango::BSON::ObjectID', 'right reference';
 my $doc = $collection->find_one({foo => 'bar'});

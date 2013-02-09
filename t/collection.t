@@ -10,7 +10,7 @@ plan skip_all => 'set TEST_ONLINE to enable this test'
 # Collection names
 my $mango      = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('collection_test');
-$collection->remove;
+$collection->drop;
 is $collection->name, 'collection_test', 'right collection name';
 is $collection->full_name, join('.', $mango->db->name, $collection->name),
   'right full collection name';
@@ -44,5 +44,54 @@ ok $collection->find_one($oids->[0]), 'document still exists';
 ok !$collection->find_one($oids->[1]), 'no document';
 is $collection->remove->{n}, 1, 'one document removed';
 ok !$collection->find_one($oids->[0]), 'no document';
+
+# Drop collection blocking
+my $oid = $collection->insert({just => 'works'});
+is $collection->find_one($oid)->{just}, 'works', 'right document';
+is $collection->drop->{ns}, $collection->full_name, 'right collection';
+ok !$collection->find_one($oid), 'no document';
+
+# Drop collection non-blocking
+$oid = $collection->insert({just => 'works'});
+is $collection->find_one($oid)->{just}, 'works', 'right document';
+my ($fail, $ns);
+$collection->drop(
+  sub {
+    my ($collection, $err, $doc) = @_;
+    $fail = $err;
+    $ns   = $doc->{ns};
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $ns, $collection->full_name, 'right collection';
+ok !$collection->find_one($oid), 'no document';
+
+# Ensure index blocking
+$collection->insert({test => 23, foo => 'bar'});
+$collection->insert({test => 23, foo => 'baz'});
+is $collection->find({})->count, 2, 'two documents';
+$collection->ensure_index({test => 1}, {unique => 1, drop_dups => 1});
+is $collection->find({})->count, 1, 'one document';
+$collection->drop;
+
+# Ensure index non-blocking
+$collection->insert({test => 23, foo => 'bar'});
+$collection->insert({test => 23, foo => 'baz'});
+is $collection->find({})->count, 2, 'two documents';
+$collection->ensure_index(
+  ({test => 1}, {unique => 1, drop_dups => 1}) => sub {
+    my ($collection, $err) = @_;
+    $fail = $err;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $collection->find({})->count, 1, 'one document';
+$collection->drop;
 
 done_testing();
