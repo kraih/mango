@@ -1,6 +1,7 @@
 use Mojo::Base -strict;
 
 use Test::More;
+use List::Util 'first';
 use Mango;
 use Mango::BSON 'bson_doc';
 use Mojo::IOLoop;
@@ -8,10 +9,13 @@ use Mojo::IOLoop;
 plan skip_all => 'set TEST_ONLINE to enable this test'
   unless $ENV{TEST_ONLINE};
 
-# Collection names
+# Cleanup before start
 my $mango      = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('collection_test');
-$collection->drop;
+$collection->drop
+  if first { $_ eq 'collection_test' } @{$mango->db->collection_names};
+
+# Collection names
 is $collection->name, 'collection_test', 'right collection name';
 is $collection->full_name, join('.', $mango->db->name, $collection->name),
   'right full collection name';

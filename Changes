@@ -1,6 +1,8 @@
 
 0.04  2013-02-10
+  - Added collection_names method to Mango::Database.
   - Added build_index_name method to Mango::Collection.
+  - Fixed exception handling for commands.
 
 0.03  2013-02-09
   - Added hint, snapshot and tailable attributes to Mango::Cursor.

@@ -1,16 +1,20 @@
 use Mojo::Base -strict;
 
 use Test::More;
+use List::Util 'first';
 use Mango;
 use Mojo::IOLoop;
 
 plan skip_all => 'set TEST_ONLINE to enable this test'
   unless $ENV{TEST_ONLINE};
 
-# Add some documents to fetch
+# Cleanup before start
 my $mango      = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('cursor_test');
-$collection->drop;
+$collection->drop
+  if first { $_ eq 'cursor_test' } @{$mango->db->collection_names};
+
+# Add some documents to fetch
 my $oids = $collection->insert([{test => 3}, {test => 1}, {test => 2}]);
 is scalar @$oids, 3, 'three documents inserted';
 
@@ -244,7 +248,7 @@ $delay = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $err1, $oid, $err2, $doc) = @_;
-    $fail  = $err1 // $err2;
+    $fail  = $err1 || $err2;
     $added = $oid;
     $tail  = $doc;
   }

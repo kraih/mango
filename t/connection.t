@@ -1,6 +1,7 @@
 use Mojo::Base -strict;
 
 use Test::More;
+use List::Util 'first';
 use Mango;
 use Mojo::IOLoop;
 
@@ -44,10 +45,13 @@ like $@, qr/Invalid MongoDB connection string/, 'right error';
 $mango = Mango->new('mongodb://127.0.0.1,127.0.0.1:5000');
 is_deeply $mango->hosts, [['127.0.0.1'], ['127.0.0.1', 5000]], 'right hosts';
 
-# Blocking CRUD
+# Cleanup before start
 $mango = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('connection_test');
-$collection->drop;
+$collection->drop
+  if first { $_ eq 'connection_test' } @{$mango->db->collection_names};
+
+# Blocking CRUD
 my $oid = $collection->insert({foo => 'bar'});
 isa_ok $oid, 'Mango::BSON::ObjectID', 'right reference';
 my $doc = $collection->find_one({foo => 'bar'});
@@ -59,8 +63,6 @@ is_deeply $doc, {_id => $oid, foo => 'yada'}, 'right document';
 is $collection->remove->{n}, 1, 'one document removed';
 
 # Non-blocking CRUD
-$mango      = Mango->new($ENV{TEST_ONLINE});
-$collection = $mango->db->collection('connection_test');
 my ($fail, $created, $updated, $found, $removed);
 my $delay = Mojo::IOLoop->delay(
   sub {

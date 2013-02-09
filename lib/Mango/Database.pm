@@ -1,6 +1,7 @@
 package Mango::Database;
 use Mojo::Base -base;
 
+use Carp 'croak';
 use Mango::BSON 'bson_doc';
 use Mango::Collection;
 
@@ -11,6 +12,25 @@ sub collection {
   return Mango::Collection->new(db => $self, name => $name);
 }
 
+sub collection_names {
+  my ($self, $cb) = @_;
+
+  my $len        = length $self->name;
+  my $collection = $self->collection('system.namespaces');
+
+  # Non-blocking
+  return $collection->find({})->all(
+    sub {
+      my ($cursor, $err, $docs) = @_;
+      $self->$cb($err, [map { substr $_->{name}, $len + 1 } @$docs]);
+    }
+  ) if $cb;
+
+  # Blocking
+  my $docs = $collection->find({})->all;
+  return [map { substr $_->{name}, $len + 1 } @$docs];
+}
+
 sub command {
   my ($self, $command) = (shift, shift);
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
@@ -18,11 +38,19 @@ sub command {
 
   # Non-blocking
   my $collection = $self->collection('$cmd');
-  return $collection->find_one($command => sub { shift; $self->$cb(@_) })
-    if $cb;
+  my $protocol   = $self->mango->protocol;
+  return $collection->find_one(
+    $command => sub {
+      my ($collection, $err, $doc) = @_;
+      $err ||= $protocol->command_error({docs => [$doc]});
+      $self->$cb($err, $doc);
+    }
+  ) if $cb;
 
   # Blocking
-  return $collection->find_one($command);
+  my $doc = $collection->find_one($command);
+  if (my $err = $protocol->command_error({docs => [$doc]})) { croak $err }
+  return $doc;
 }
 
 1;
@@ -70,6 +98,19 @@ following new ones.
   my $collection = $db->collection('foo');
 
 Get L<Mango::Collection> object for collection.
+
+=head2 collection_names
+
+  my $names = $db->collection_names;
+
+Names of all collections in this database. You can also append a callback to
+perform operation non-blocking.
+
+  $db->collection_names(sub {
+    my ($db, $err, $names) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 command
 

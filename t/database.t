@@ -1,6 +1,7 @@
 use Mojo::Base -strict;
 
 use Test::More;
+use List::Util 'first';
 use Mango;
 use Mojo::IOLoop;
 
@@ -26,6 +27,31 @@ Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 ok $nonce, 'command was successful';
+
+# Get collection names blocking
+my $collection = $mango->db->collection('database_test');
+$collection->insert({test => 1});
+ok first { $_ eq 'database_test' } @{$mango->db->collection_names},
+  'found collection';
+$collection->drop;
+
+# Get collection names non-blocking
+$collection->insert({test => 1});
+$fail = undef;
+my $found;
+$mango->db->collection_names(
+  sub {
+    my ($db, $err, $names) = @_;
+    $fail  = $err;
+    $found = $names;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+ok first { $_ eq 'database_test' } @$found, 'found collection';
+$collection->drop;
 
 # Interrupted blocking command
 my $port = Mojo::IOLoop->generate_port;
