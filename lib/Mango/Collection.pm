@@ -7,6 +7,8 @@ use Mango::Cursor;
 
 has [qw(db name)];
 
+sub build_index_name { join '_', keys %{$_[1]} }
+
 sub create {
   my $self = shift;
   my $cb   = ref $_[-1] eq 'CODE' ? pop : undef;
@@ -35,7 +37,7 @@ sub ensure_index {
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
   my $doc = shift // {};
 
-  $doc->{name} //= join '_', keys %$spec;
+  $doc->{name} //= $self->build_index_name($spec);
   $doc->{ns}  = $self->full_name;
   $doc->{key} = $spec;
 
@@ -166,6 +168,14 @@ Name of this collection.
 
 L<Mango::Collection> inherits all methods from L<Mojo::Base> and implements
 the following new ones.
+
+=head2 build_index_name
+
+  my $name = $collection->build_index_name(bson_doc(foo => 1, bar => -1));
+  my $name = $collection->build_index_name({foo => 1});
+
+Build name for index specification, the order of keys matters for compound
+indexes.
 
 =head2 create
 

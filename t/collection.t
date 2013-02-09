@@ -2,6 +2,7 @@ use Mojo::Base -strict;
 
 use Test::More;
 use Mango;
+use Mango::BSON 'bson_doc';
 use Mojo::IOLoop;
 
 plan skip_all => 'set TEST_ONLINE to enable this test'
@@ -68,6 +69,15 @@ ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $ns, $collection->full_name, 'right collection';
 ok !$collection->find_one($oid), 'no document';
+
+# Index names
+is $collection->build_index_name({foo => 1}), 'foo', 'right index name';
+is $collection->build_index_name(bson_doc(foo => 1, bar => -1)), 'foo_bar',
+  'right index name';
+is $collection->build_index_name(bson_doc(foo => 1, 'bar.baz' => -1)),
+  'foo_bar.baz', 'right index name';
+is $collection->build_index_name(bson_doc(foo => 1, bar => -1, baz => '2d')),
+  'foo_bar_baz', 'right index name';
 
 # Ensure index blocking
 $collection->insert({test => 23, foo => 'bar'});
