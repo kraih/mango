@@ -258,12 +258,13 @@ Get L<Mango::Cursor> object for query.
 =head2 find_and_modify
 
   my $doc = $collection->find_and_modify(
-    {query => {x => 1}, update => {x => 2}});
+    {query => {foo => 1}, update => {'$set' => {foo => 2}}});
 
 Update document atomically. You can also append a callback to perform
 operation non-blocking.
 
-  $collection->find_and_update({query => {x => 1}, update => {x => 2}} => sub {
+  my $opts = {query => {foo => 1}, update => {'$set' => {foo => 2}}};
+  $collection->find_and_modify($opts => sub {
     my ($collection, $err, $doc) = @_;
     ...
   });
