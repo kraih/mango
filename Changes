@@ -4,6 +4,8 @@
   - Added aggregate, build_index_name, find_and_modify and save methods to
     Mango::Collection.
   - Added distinct method to Mango::Cursor.
+  - Changed remove and update methods in Mango::Collection to return the
+    number of documents affected.
   - Fixed exception handling for commands.
 
 0.03  2013-02-09

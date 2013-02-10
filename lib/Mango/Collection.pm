@@ -148,14 +148,14 @@ sub _handle {
     ($self->full_name, @_) => sub {
       my ($mango, $err, $reply) = @_;
       $err ||= $mango->protocol->command_error($reply);
-      $self->$cb($err, $reply->{docs}[0]);
+      $self->$cb($err, $reply->{docs}[0]{n});
     }
   ) if $cb;
 
   # Blocking
   my $reply = $mango->$method($self->full_name, @_);
   if (my $err = $mango->protocol->command_error($reply)) { croak $err }
-  return $reply->{docs}[0];
+  return $reply->{docs}[0]{n};
 }
 
 1;
@@ -321,15 +321,15 @@ to perform operation non-blocking.
 
 =head2 remove
 
-  my $doc = $collection->remove;
-  my $doc = $collection->remove({foo => 'bar'});
-  my $doc = $collection->remove({foo => 'bar'}, {single => 1});
+  my $num = $collection->remove;
+  my $num = $collection->remove({foo => 'bar'});
+  my $num = $collection->remove({foo => 'bar'}, {single => 1});
 
 Remove documents from collection. You can also append a callback to perform
 operation non-blocking.
 
   $collection->remove(({foo => 'bar'}, {single => 1}) => sub {
-    my ($collection, $err, $doc) = @_;
+    my ($collection, $err, $num) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
@@ -359,14 +359,14 @@ operation non-blocking.
 
 =head2 update
 
-  my $doc = $collection->update({foo => 'bar'}, {foo => 'baz'});
-  my $doc = $collection->update({foo => 'bar'}, {foo => 'baz'}, {multi => 1});
+  my $num = $collection->update({foo => 'bar'}, {foo => 'baz'});
+  my $num = $collection->update({foo => 'bar'}, {foo => 'baz'}, {multi => 1});
 
 Update document in collection. You can also append a callback to perform
 operation non-blocking.
 
   $collection->update(({foo => 'bar'}, {foo => 'baz'}, {multi => 1}) => sub {
-    my ($collection, $err, $doc) = @_;
+    my ($collection, $err, $num) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;

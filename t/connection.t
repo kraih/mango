@@ -57,10 +57,10 @@ isa_ok $oid, 'Mango::BSON::ObjectID', 'right reference';
 my $doc = $collection->find_one({foo => 'bar'});
 is_deeply $doc, {_id => $oid, foo => 'bar'}, 'right document';
 $doc->{foo} = 'yada';
-is $collection->update({foo => 'bar'}, $doc)->{n}, 1, 'one document updated';
+is $collection->update({foo => 'bar'}, $doc), 1, 'one document updated';
 $doc = $collection->find_one($oid);
 is_deeply $doc, {_id => $oid, foo => 'yada'}, 'right document';
-is $collection->remove->{n}, 1, 'one document removed';
+is $collection->remove, 1, 'one document removed';
 
 # Non-blocking CRUD
 my ($fail, $created, $updated, $found, $removed);
@@ -82,9 +82,9 @@ my $delay = Mojo::IOLoop->delay(
     $collection->update(({foo => 'bar'}, $doc) => $delay->begin);
   },
   sub {
-    my ($delay, $err, $doc) = @_;
+    my ($delay, $err, $num) = @_;
     $fail ||= $err;
-    $updated = $doc->{n};
+    $updated = $num;
     $collection->find_one($created => $delay->begin);
   },
   sub {
@@ -94,9 +94,9 @@ my $delay = Mojo::IOLoop->delay(
     $collection->remove($delay->begin);
   },
   sub {
-    my ($delay, $err, $doc) = @_;
+    my ($delay, $err, $num) = @_;
     $fail ||= $err;
-    $removed = $doc->{n};
+    $removed = $num;
   }
 );
 $delay->wait;
