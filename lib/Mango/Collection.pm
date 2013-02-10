@@ -281,7 +281,7 @@ non-blocking.
   $collection->ensure_index({foo => 1}, {unique => bson_true});
 
 Make sure an index exists, the order of keys matters for compound indexes,
-additional option will be passed along to the server verbatim. You can also
+additional options will be passed along to the server verbatim. You can also
 append a callback to perform operation non-blocking.
 
   $collection->ensure_index(({foo => 1}, {unique => bson_true}) => sub {
@@ -352,7 +352,7 @@ to perform operation non-blocking.
   my $docs = $collection->map_reduce(
     bson_code($map), bson_code($reduce), {out => {inline => 1}});
 
-Perform map/reduce operation on this collection, additional option will be
+Perform map/reduce operation on this collection, additional options will be
 passed along to the server verbatim. You can also append a callback to perform
 operation non-blocking.
 

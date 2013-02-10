@@ -1,4 +1,7 @@
 
+0.05  2013-02-11
+  - Improved documentation.
+
 0.04  2013-02-10
   - Added collection_names method to Mango::Database.
   - Added aggregate, build_index_name, find_and_modify map_reduce and save
