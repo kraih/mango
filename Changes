@@ -3,6 +3,7 @@
   - Added collection_names method to Mango::Database.
   - Added aggregate, build_index_name, find_and_modify and save methods to
     Mango::Collection.
+  - Added distinct method to Mango::Cursor.
   - Fixed exception handling for commands.
 
 0.03  2013-02-09

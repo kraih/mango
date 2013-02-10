@@ -72,6 +72,25 @@ sub count {
   return $doc ? $doc->{n} : 0;
 }
 
+sub distinct {
+  my ($self, $key) = (shift, shift);
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+
+  my $collection = $self->collection;
+  my $distinct   = bson_doc
+    distinct => $collection->name,
+    key      => $key,
+    query    => $self->build_query;
+
+  # Non-blocking
+  return $collection->db->command(
+    $distinct => sub { shift; $self->$cb(shift, shift->{values}) })
+    if $cb;
+
+  # Blocking
+  return $collection->db->command($distinct)->{values};
+}
+
 sub explain {
   my ($self, $cb) = @_;
 
@@ -324,6 +343,19 @@ callback to perform operation non-blocking.
 
   $cursor->count(sub {
     my ($cursor, $err, $count) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 distinct
+
+  my $values = $cursor->distinct('foo');
+
+Get all distinct values for key. You can also append a callback to perform
+operation non-blocking.
+
+  $cursor->distinct(foo => sub {
+    my ($cursor, $err, $values) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;

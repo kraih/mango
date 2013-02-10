@@ -102,6 +102,27 @@ ok !$fail, 'no error';
 is $n, 1, 'one document';
 is $cursor->next->{test}, 2, 'right document';
 
+# Get distinct values blocking
+is_deeply [
+  sort @{$collection->find({test => {'$gt' => 1}})->distinct('test')}
+], [2, 3], 'right values';
+
+# Get distinct values non-blocking
+$fail = undef;
+my $result;
+$collection->find({test => {'$gt' => 1}})->distinct(
+  test => sub {
+    my ($cursor, $err, $values) = @_;
+    $fail   = $err;
+    $result = $values;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is_deeply [sort @$result], [2, 3], 'right values';
+
 # Count documents blocking
 is $collection->find({foo => 'bar'})->count, 0, 'no documents';
 is $collection->find({})->skip(1)->limit(1)->count, 1, 'one document';
