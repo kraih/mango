@@ -92,6 +92,18 @@ sub insert {
   return @ids > 1 ? \@ids : $ids[0];
 }
 
+sub map_reduce {
+  my ($self, $map, $reduce) = (shift, shift, shift);
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+  my $doc = bson_doc
+    mapreduce => $self->name,
+    map       => $map,
+    reduce    => $reduce,
+    %{shift // {}};
+
+  return $self->_command($doc, undef, $cb);
+}
+
 sub remove {
   my $self  = shift;
   my $query = ref $_[0] eq 'CODE' ? {} : shift // {};
@@ -255,8 +267,9 @@ non-blocking.
   $collection->ensure_index({foo => 1});
   $collection->ensure_index({foo => 1}, {unique => bson_true});
 
-Make sure an index exists, the order of keys matters for compound indexes. You
-can also append a callback to perform operation non-blocking.
+Make sure an index exists, the order of keys matters for compound indexes,
+additional option will be passed along to the server verbatim. You can also
+append a callback to perform operation non-blocking.
 
   $collection->ensure_index(({foo => 1}, {unique => bson_true}) => sub {
     my ($collection, $err) = @_;
@@ -315,6 +328,22 @@ to perform operation non-blocking.
 
   $collection->insert({foo => 'bar'} => sub {
     my ($collection, $err, $oid) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 map_reduce
+
+  my $doc = $collection->map_reduce(bson_code($map), bson_code($reduce));
+  my $doc = $collection->map_reduce(
+    bson_code($map), bson_code($reduce), {out => 'myresults'});
+
+Perform map/reduce operation on this collection, additional option will be
+passed along to the server verbatim. You can also append a callback to perform
+operation non-blocking.
+
+  $collection->map_reduce((bson_code($map), bson_code($reduce)) => sub {
+    my ($collection, $err, $doc) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
