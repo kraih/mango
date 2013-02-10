@@ -136,12 +136,31 @@ my $unknown = {
     {errmsg => 'no such cmd: whatever', 'bad cmd' => {whatever => 1}, ok => 0}
   ]
 };
+my $gle = {
+  to     => 9,
+  cursor => 0,
+  flags  => {await_capable => 1, query_failure => 0, cursor_not_found => 0},
+  from   => 0,
+  id     => 462265,
+  docs   => [
+    {
+      err          => 'E11000 duplicate key error index...',
+      code         => 11000,
+      n            => 0,
+      connectionId => 41981,
+      ok           => 1
+    }
+  ]
+};
 is $protocol->query_failure(undef), undef, 'no query failure';
 is $protocol->query_failure($unknown), undef, 'no query failure';
+is $protocol->query_failure($gle),     undef, 'no query failure';
 is $protocol->query_failure($query), '$or requires nonempty array',
   'right query failure';
 is $protocol->command_error($unknown), 'no such cmd: whatever', 'right error';
-is $protocol->command_error($query),   undef,                   'no error';
-is $protocol->command_error($nonce),   undef,                   'no error';
+is $protocol->command_error($gle), 'E11000 duplicate key error index...',
+  'right error';
+is $protocol->command_error($query), undef, 'no error';
+is $protocol->command_error($nonce), undef, 'no error';
 
 done_testing();
