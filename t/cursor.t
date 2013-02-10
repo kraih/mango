@@ -87,19 +87,19 @@ is $doc->{test}, 2, 'right document';
 
 # Explain non-blocking
 $cursor = $collection->find({test => 2});
-my ($fail, $n);
+my ($fail, $result);
 $cursor->explain(
   sub {
     my ($cursor, $err, $doc) = @_;
-    $fail = $err;
-    $n    = $doc->{n};
+    $fail   = $err;
+    $result = $doc->{n};
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $n, 1, 'one document';
+is $result, 1, 'one document';
 is $cursor->next->{test}, 2, 'right document';
 
 # Get distinct values blocking
@@ -108,8 +108,7 @@ is_deeply [
 ], [2, 3], 'right values';
 
 # Get distinct values non-blocking
-$fail = undef;
-my $result;
+$fail = $result = undef;
 $collection->find({test => {'$gt' => 1}})->distinct(
   test => sub {
     my ($cursor, $err, $values) = @_;
@@ -130,7 +129,7 @@ is $collection->find({})->count, 3, 'three documents';
 
 # Count documents non-blocking
 $fail = undef;
-my @count;
+my @results;
 my $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
@@ -139,19 +138,19 @@ my $delay = Mojo::IOLoop->delay(
   sub {
     my ($delay, $err, $count) = @_;
     $fail = $err;
-    push @count, $count;
+    push @results, $count;
     $collection->find({foo => 'bar'})->count($delay->begin);
   },
   sub {
     my ($delay, $err, $count) = @_;
     $fail ||= $err;
-    push @count, $count;
+    push @results, $count;
   }
 );
 $delay->wait;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is_deeply \@count, [3, 0], 'right number of documents';
+is_deeply \@results, [3, 0], 'right number of documents';
 
 # Fetch documents non-blocking
 $cursor = $collection->find({})->batch_size(2);
@@ -257,8 +256,8 @@ $collection2->insert([{test => 1}, {test => 2}]);
 $cursor = $collection->find({})->tailable(1);
 is $cursor->next->{test}, 1, 'right document';
 is $cursor->next->{test}, 2, 'right document';
-$fail = undef;
-my ($added, $tail);
+$fail = $result = undef;
+my $tail;
 $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
@@ -269,16 +268,16 @@ $delay = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $err1, $oid, $err2, $doc) = @_;
-    $fail  = $err1 || $err2;
-    $added = $oid;
-    $tail  = $doc;
+    $fail   = $err1 || $err2;
+    $result = $oid;
+    $tail   = $doc;
   }
 );
 $delay->wait;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $tail->{test}, 3, 'right document';
-is $tail->{_id}, $added, 'same document';
+is $tail->{_id}, $result, 'same document';
 $collection->drop;
 
 done_testing();

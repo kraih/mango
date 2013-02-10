@@ -14,19 +14,19 @@ ok $mango->db->command('getnonce')->{nonce}, 'command was successful';
 ok !$mango->is_active, 'no operations in progress';
 
 # Run command non-blocking
-my ($fail, $nonce);
+my ($fail, $result);
 $mango->db->command(
   'getnonce' => sub {
     my ($db, $err, $doc) = @_;
-    $fail  = $err;
-    $nonce = $doc->{nonce};
+    $fail   = $err;
+    $result = $doc->{nonce};
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-ok $nonce, 'command was successful';
+ok $result, 'command was successful';
 
 # Get collection names blocking
 my $collection = $mango->db->collection('database_test');
@@ -37,20 +37,19 @@ $collection->drop;
 
 # Get collection names non-blocking
 $collection->insert({test => 1});
-$fail = undef;
-my $found;
+$fail = $result = undef;
 $mango->db->collection_names(
   sub {
     my ($db, $err, $names) = @_;
-    $fail  = $err;
-    $found = $names;
+    $fail   = $err;
+    $result = $names;
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-ok first { $_ eq 'database_test' } @$found, 'found collection';
+ok first { $_ eq 'database_test' } @$result, 'found collection';
 $collection->drop;
 
 # Interrupted blocking command
@@ -65,18 +64,18 @@ $mango->ioloop->remove($id);
 Mojo::IOLoop->generate_port;
 $mango = Mango->new("mongodb://localhost:$port");
 $id    = Mojo::IOLoop->server((port => $port) => sub { $_[1]->close });
-$fail  = $nonce = undef;
+$fail  = $result = undef;
 $mango->db->command(
   'getnonce' => sub {
     my ($db, $err, $doc) = @_;
-    $fail  = $err;
-    $nonce = $doc;
+    $fail   = $err;
+    $result = $doc;
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 Mojo::IOLoop->remove($id);
 like $fail, qr/Premature connection close/, 'right error';
-ok !$nonce, 'command was not successful';
+ok !$result, 'command was not successful';
 
 done_testing();

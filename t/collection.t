@@ -62,19 +62,19 @@ is $collection->remove({atomic => 2})->{n}, 1, 'removed one document';
 # Find and modify document non-blocking
 $oid = $collection->insert({atomic => 1});
 is $collection->find_one($oid)->{atomic}, 1, 'right document';
-my ($fail, $old) = @_;
+my ($fail, $result) = @_;
 $collection->find_and_modify(
   {query => {atomic => 1}, update => {'$set' => {atomic => 2}}} => sub {
     my ($collection, $err, $doc) = @_;
-    $fail = $err;
-    $old  = $doc;
+    $fail   = $err;
+    $result = $doc;
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $old->{atomic}, 1, 'right document';
+is $result->{atomic}, 1, 'right document';
 is $collection->find_one($oid)->{atomic}, 2, 'right document';
 is $collection->remove({atomic => 2})->{n}, 1, 'removed one document';
 
@@ -88,20 +88,19 @@ is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
 
 # Aggregate collection non-blocking
 $collection->insert([{more => 1}, {more => 2}, {more => 3}]);
-$fail = undef;
-my $results;
+$fail = $result = undef;
 $collection->aggregate(
   [{'$group' => {_id => undef, total => {'$sum' => '$more'}}}] => sub {
     my ($collection, $err, $docs) = @_;
-    $fail    = $err;
-    $results = $docs;
+    $fail   = $err;
+    $result = $docs;
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $results->[0]{total}, 6, 'right result';
+is $result->[0]{total}, 6, 'right result';
 is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
   'three documents removed';
 
@@ -122,57 +121,56 @@ is $doc->{save}, 'me', 'right document';
 is $collection->remove({_id => $oid})->{n}, 1, 'one document removed';
 
 # Save document non-blocking
-$fail = undef;
-my $new;
+$fail = $result = undef;
 $collection->save(
   {update => 'me'} => sub {
     my ($collection, $err, $oid) = @_;
-    $fail = $err;
-    $new  = $oid;
+    $fail   = $err;
+    $result = $oid;
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-$doc = $collection->find_one($new);
+$doc = $collection->find_one($result);
 is $doc->{update}, 'me', 'right document';
 $doc->{update} = 'too';
-$old = $new;
-$new = $fail = undef;
+$oid = $result;
+$fail = $result = undef;
 $collection->save(
   $doc => sub {
     my ($collection, $err, $oid) = @_;
-    $fail = $err;
-    $new  = $oid;
+    $fail   = $err;
+    $result = $oid;
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $old, $new, 'same object id';
-$doc = $collection->find_one($old);
+is $oid, $result, 'same object id';
+$doc = $collection->find_one($oid);
 is $doc->{update}, 'too', 'right document';
-is $collection->remove({_id => $old})->{n}, 1, 'one document removed';
-$old = bson_oid;
-$doc = bson_doc _id => $old, save => 'me';
-$new = $fail = undef;
+is $collection->remove({_id => $oid})->{n}, 1, 'one document removed';
+$oid  = bson_oid;
+$doc  = bson_doc _id => $oid, save => 'me';
+$fail = $result = undef;
 $collection->save(
   $doc => sub {
     my ($collection, $err, $oid) = @_;
-    $fail = $err;
-    $new  = $oid;
+    $fail   = $err;
+    $result = $oid;
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $old, $new, 'same object id';
-$doc = $collection->find_one($old);
+is $oid, $result, 'same object id';
+$doc = $collection->find_one($oid);
 is $doc->{save}, 'me', 'right document';
-is $collection->remove({_id => $old})->{n}, 1, 'one document removed';
+is $collection->remove({_id => $oid})->{n}, 1, 'one document removed';
 
 # Drop collection blocking
 $oid = $collection->insert({just => 'works'});
@@ -183,20 +181,19 @@ ok !$collection->find_one($oid), 'no document';
 # Drop collection non-blocking
 $oid = $collection->insert({just => 'works'});
 is $collection->find_one($oid)->{just}, 'works', 'right document';
-$fail = undef;
-my $ns;
+$fail = $result = undef;
 $collection->drop(
   sub {
     my ($collection, $err, $doc) = @_;
-    $fail = $err;
-    $ns   = $doc->{ns};
+    $fail   = $err;
+    $result = $doc->{ns};
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $ns, $collection->full_name, 'right collection';
+is $result, $collection->full_name, 'right collection';
 ok !$collection->find_one($oid), 'no document';
 
 # Index names
