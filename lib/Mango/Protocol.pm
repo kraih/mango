@@ -128,7 +128,7 @@ sub build_update {
 sub command_error {
   my ($self, $reply) = @_;
   my $doc = $reply->{docs}[0];
-  return $doc->{ok} ? $doc->{err} : $doc->{errmsg};
+  return $doc->{ok} ? undef : $doc->{errmsg};
 }
 
 sub next_id { $_[1] > 2147483646 ? 1 : $_[1] + 1 }
