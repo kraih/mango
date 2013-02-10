@@ -275,18 +275,16 @@ $collection->insert({x => 1, tags => [qw(dog cat)]});
 $collection->insert({x => 2, tags => ['cat']});
 $collection->insert({x => 3, tags => [qw(mouse cat dog)]});
 $collection->insert({x => 4, tags => []});
-$doc
+my $out
   = $collection->map_reduce($map, $reduce, {out => 'collection_test_results'});
 $collection->drop;
-$collection = $mango->db->collection($doc->{result});
-$docs = $collection->find({})->sort({value => -1})->all;
+$docs = $out->find({})->sort({value => -1})->all;
 is_deeply $docs->[0], {_id => 'cat',   value => 3}, 'right document';
 is_deeply $docs->[1], {_id => 'dog',   value => 2}, 'right document';
 is_deeply $docs->[2], {_id => 'mouse', value => 1}, 'right document';
-$collection->drop;
+$out->drop;
 
 # Perform map/reduce non-blocking
-$collection = $mango->db->collection('collection_test');
 $collection->insert({x => 1, tags => [qw(dog cat)]});
 $collection->insert({x => 2, tags => ['cat']});
 $collection->insert({x => 3, tags => [qw(mouse cat dog)]});
@@ -294,9 +292,9 @@ $collection->insert({x => 4, tags => []});
 $fail = $result = undef;
 $collection->map_reduce(
   ($map, $reduce, {out => 'collection_test_results'}) => sub {
-    my ($collection, $err, $doc) = @_;
+    my ($collection, $err, $out) = @_;
     $fail   = $err;
-    $result = $doc;
+    $result = $out;
     Mojo::IOLoop->stop;
   }
 );
@@ -304,11 +302,43 @@ Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 $collection->drop;
-$collection = $mango->db->collection($result->{result});
-$docs = $collection->find({})->sort({value => -1})->all;
+$docs = $result->find({})->sort({value => -1})->all;
 is_deeply $docs->[0], {_id => 'cat',   value => 3}, 'right document';
 is_deeply $docs->[1], {_id => 'dog',   value => 2}, 'right document';
 is_deeply $docs->[2], {_id => 'mouse', value => 1}, 'right document';
+$result->drop;
+
+# Perform inline map/reduce blocking
+$collection->insert({x => 1, tags => [qw(dog cat)]});
+$collection->insert({x => 2, tags => ['cat']});
+$collection->insert({x => 3, tags => [qw(mouse cat dog)]});
+$collection->insert({x => 4, tags => []});
+$docs = $collection->map_reduce($map, $reduce, {out => {inline => 1}});
 $collection->drop;
+is_deeply $docs->[0], {_id => 'cat',   value => 3}, 'right document';
+is_deeply $docs->[1], {_id => 'dog',   value => 2}, 'right document';
+is_deeply $docs->[2], {_id => 'mouse', value => 1}, 'right document';
+
+# Perform inline map/reduce non-blocking
+$collection->insert({x => 1, tags => [qw(dog cat)]});
+$collection->insert({x => 2, tags => ['cat']});
+$collection->insert({x => 3, tags => [qw(mouse cat dog)]});
+$collection->insert({x => 4, tags => []});
+$fail = $result = undef;
+$collection->map_reduce(
+  ($map, $reduce, {out => {inline => 1}}) => sub {
+    my ($collection, $err, $docs) = @_;
+    $fail   = $err;
+    $result = $docs;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+$collection->drop;
+is_deeply $result->[0], {_id => 'cat',   value => 3}, 'right document';
+is_deeply $result->[1], {_id => 'dog',   value => 2}, 'right document';
+is_deeply $result->[2], {_id => 'mouse', value => 1}, 'right document';
 
 done_testing();

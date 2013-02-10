@@ -95,13 +95,26 @@ sub insert {
 sub map_reduce {
   my ($self, $map, $reduce) = (shift, shift, shift);
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-  my $doc = bson_doc
+  my $command = bson_doc
     mapreduce => $self->name,
     map       => $map,
     reduce    => $reduce,
     %{shift // {}};
 
-  return $self->_command($doc, undef, $cb);
+  # Non-blocking
+  my $db = $self->db;
+  return $db->command(
+    $command => sub {
+      my ($db, $err, $doc) = @_;
+      my $result
+        = $doc->{results} ? $doc->{results} : $db->collection($doc->{result});
+      $self->$cb($err, $result);
+    }
+  ) if $cb;
+
+  # Blocking
+  my $doc = $db->command($command);
+  return $doc->{results} ? $doc->{results} : $db->collection($doc->{result});
 }
 
 sub remove {
@@ -334,18 +347,21 @@ to perform operation non-blocking.
 
 =head2 map_reduce
 
-  my $doc = $collection->map_reduce(bson_code($map), bson_code($reduce));
-  my $doc = $collection->map_reduce(
+  my $myresults = $collection->map_reduce(
     bson_code($map), bson_code($reduce), {out => 'myresults'});
+  my $docs = $collection->map_reduce(
+    bson_code($map), bson_code($reduce), {out => {inline => 1}});
 
 Perform map/reduce operation on this collection, additional option will be
 passed along to the server verbatim. You can also append a callback to perform
 operation non-blocking.
 
-  $collection->map_reduce((bson_code($map), bson_code($reduce)) => sub {
-    my ($collection, $err, $doc) = @_;
-    ...
-  });
+  my $out = {out => {inline => 1}};
+  $collection->map_reduce((bson_code($map), bson_code($reduce), $out) => sub {
+      my ($collection, $err, $docs) = @_;
+      ...
+    }
+  );
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 remove
