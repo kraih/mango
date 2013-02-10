@@ -3,7 +3,7 @@ use Mojo::Base -strict;
 use Test::More;
 use List::Util 'first';
 use Mango;
-use Mango::BSON 'bson_doc';
+use Mango::BSON qw(bson_doc bson_oid);
 use Mojo::IOLoop;
 
 plan skip_all => 'set TEST_ONLINE to enable this test'
@@ -104,6 +104,75 @@ ok !$fail, 'no error';
 is $results->[0]{total}, 6, 'right result';
 is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
   'three documents removed';
+
+# Save document blocking
+$oid = $collection->save({update => 'me'});
+$doc = $collection->find_one($oid);
+is $doc->{update}, 'me', 'right document';
+$doc->{update} = 'too';
+is $collection->save($doc), $oid, 'same object id';
+$doc = $collection->find_one($oid);
+is $doc->{update}, 'too', 'right document';
+is $collection->remove({_id => $oid})->{n}, 1, 'one document removed';
+$oid = bson_oid;
+$doc = bson_doc _id => $oid, save => 'me';
+is $collection->save($doc), $oid, 'same object id';
+$doc = $collection->find_one($oid);
+is $doc->{save}, 'me', 'right document';
+is $collection->remove({_id => $oid})->{n}, 1, 'one document removed';
+
+# Save document non-blocking
+$fail = undef;
+my $new;
+$collection->save(
+  {update => 'me'} => sub {
+    my ($collection, $err, $oid) = @_;
+    $fail = $err;
+    $new  = $oid;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+$doc = $collection->find_one($new);
+is $doc->{update}, 'me', 'right document';
+$doc->{update} = 'too';
+$old = $new;
+$new = $fail = undef;
+$collection->save(
+  $doc => sub {
+    my ($collection, $err, $oid) = @_;
+    $fail = $err;
+    $new  = $oid;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $old, $new, 'same object id';
+$doc = $collection->find_one($old);
+is $doc->{update}, 'too', 'right document';
+is $collection->remove({_id => $old})->{n}, 1, 'one document removed';
+$old = bson_oid;
+$doc = bson_doc _id => $old, save => 'me';
+$new = $fail = undef;
+$collection->save(
+  $doc => sub {
+    my ($collection, $err, $oid) = @_;
+    $fail = $err;
+    $new  = $oid;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $old, $new, 'same object id';
+$doc = $collection->find_one($old);
+is $doc->{save}, 'me', 'right document';
+is $collection->remove({_id => $old})->{n}, 1, 'one document removed';
 
 # Drop collection blocking
 $oid = $collection->insert({just => 'works'});

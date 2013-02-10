@@ -100,6 +100,21 @@ sub remove {
   return $self->_handle('delete', $flags, $query, @_);
 }
 
+sub save {
+  my ($self, $doc, $cb) = @_;
+
+  # New document
+  return $self->insert($doc, $cb) unless $doc->{_id};
+
+  # Update non-blocking
+  my @args = ({_id => $doc->{_id}}, $doc, {upsert => 1});
+  return $self->update(@args => sub { shift->$cb(shift, $doc->{_id}) }) if $cb;
+
+  # Update blocking
+  $self->update(@args);
+  return $doc->{_id};
+}
+
 sub update {
   my ($self, $query, $update) = (shift, shift, shift);
   my $flags = ref $_[0] eq 'CODE' ? {} : shift // {};
@@ -328,6 +343,19 @@ These options are currently available:
 Remove only one document.
 
 =back
+
+=head2 save
+
+  my $oid = $collection->save({foo => 'bar'});
+
+Save document to collection. You can also append a callback to perform
+operation non-blocking.
+
+  $collection->save({foo => 'bar'} => sub {
+    my ($collection, $err, $oid) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 update
 
