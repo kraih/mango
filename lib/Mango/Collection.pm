@@ -107,14 +107,14 @@ sub map_reduce {
     $command => sub {
       my ($db, $err, $doc) = @_;
       my $result
-        = $doc->{results} ? $doc->{results} : $db->collection($doc->{result});
+        = $doc->{result} ? $db->collection($doc->{result}) : $doc->{results};
       $self->$cb($err, $result);
     }
   ) if $cb;
 
   # Blocking
   my $doc = $db->command($command);
-  return $doc->{results} ? $doc->{results} : $db->collection($doc->{result});
+  return $doc->{result} ? $db->collection($doc->{result}) : $doc->{results};
 }
 
 sub remove {
