@@ -238,13 +238,13 @@ non-blocking.
 
 =head2 drop
 
-  my $doc = $collection->drop;
+  $collection->drop;
 
 Drop collection. You can also append a callback to perform operation
 non-blocking.
 
   $collection->drop(sub {
-    my ($collection, $err, $doc) = @_;
+    my ($collection, $err) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;

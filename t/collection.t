@@ -175,25 +175,23 @@ is $collection->remove({_id => $oid}), 1, 'one document removed';
 # Drop collection blocking
 $oid = $collection->insert({just => 'works'});
 is $collection->find_one($oid)->{just}, 'works', 'right document';
-is $collection->drop->{ns}, $collection->full_name, 'right collection';
+$collection->drop;
 ok !$collection->find_one($oid), 'no document';
 
 # Drop collection non-blocking
 $oid = $collection->insert({just => 'works'});
 is $collection->find_one($oid)->{just}, 'works', 'right document';
-$fail = $result = undef;
+$fail = undef;
 $collection->drop(
   sub {
-    my ($collection, $err, $doc) = @_;
-    $fail   = $err;
-    $result = $doc->{ns};
+    my ($collection, $err) = @_;
+    $fail = $err;
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $result, $collection->full_name, 'right collection';
 ok !$collection->find_one($oid), 'no document';
 
 # Index names
