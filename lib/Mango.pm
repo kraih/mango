@@ -347,6 +347,9 @@ L<Mango> is a pure-Perl non-blocking I/O MongoDB client, optimized for use
 with the L<Mojolicious> real-time web framework, and with multiple event loop
 support.
 
+To learn more about MongoDB you should take a look at the
+L<official documentation|http://docs.mongodb.org>.
+
 Note that this whole distribution is EXPERIMENTAL and will change without
 warning!
 
