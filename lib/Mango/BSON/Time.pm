@@ -6,10 +6,10 @@ use Time::HiRes 'time';
 
 sub new {
   my ($class, $time) = @_;
-  return bless \($time //= int(time * 1000)), ref $class || $class;
+  return bless \($time //= (int(time * 1000)) / 1000), ref $class || $class;
 }
 
-sub to_epoch { int(${$_[0]} / 1000) }
+sub TO_JSON { ${$_[0]} }
 
 1;
 
@@ -21,7 +21,7 @@ Mango::BSON::Time - Datetime type
 
   use Mango::BSON::Time;
 
-  my $time = Mango::BSON::Time->new(time * 1000);
+  my $time = Mango::BSON::Time->new(1360626536.748);
   say $time->to_epoch;
 
 =head1 DESCRIPTION
@@ -37,15 +37,9 @@ the following new ones.
 =head2 new
 
   my $time = Mango::BSON::Time->new;
-  my $time = Mango::BSON::Time->new(time * 1000);
+  my $time = Mango::BSON::Time->new(1360626536.748);
 
 Construct a new scalar-based L<Mango::BSON::Time> object.
-
-=head2 to_epoch
-
-  my $epoch = $time->to_epoch;
-
-Convert time to epoch seconds.
 
 =head1 SEE ALSO
 

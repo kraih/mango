@@ -196,7 +196,7 @@ sub _decode_value {
   return undef if $type eq NULL;
 
   # Time
-  return bson_time(decode_int64(substr $$bsonref, 0, 8, ''))
+  return bson_time(decode_int64(substr $$bsonref, 0, 8, '') / 1000)
     if $type eq DATETIME;
 
   # Regex
@@ -240,7 +240,8 @@ sub _encode_object {
     if $class eq 'Mango::BSON::ObjectID';
 
   # Time
-  return DATETIME . $e . encode_int64($value) if $class eq 'Mango::BSON::Time';
+  return DATETIME . $e . encode_int64(int($value * 1000))
+    if $class eq 'Mango::BSON::Time';
 
   # Regex
   if ($class eq 'Regexp') {
@@ -461,7 +462,7 @@ Create new BSON element of the object id type.
 =head2 bson_time
 
   my $now  = bson_time;
-  my $time = bson_time time * 1000;
+  my $time = bson_time 1360626536.748;
 
 Create new BSON element of the UTC datetime type.
 
