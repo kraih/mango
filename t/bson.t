@@ -217,7 +217,7 @@ is_deeply $doc, {today => bson_time(12345.678)}, 'right document';
 is bson_encode($doc), $bytes, 'successful roundtrip';
 is_deeply bson_decode(bson_encode({time => bson_time(1360627440.2695)})),
   {time => 1360627440.269}, 'successful roundtrip';
-ok bson_decode(bson_encode({time => bson_time}))->{time},
+like bson_decode(bson_encode({time => bson_time}))->{time}, qr/^\d+\.\d+$/,
   'successful roundtrip';
 
 # Generic binary roundtrip
