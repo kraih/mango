@@ -6,7 +6,7 @@ use Time::HiRes 'time';
 
 sub new {
   my ($class, $time) = @_;
-  return bless \($time //= (int(time * 1000)) / 1000), ref $class || $class;
+  return bless \($time //= time), ref $class || $class;
 }
 
 sub TO_JSON { ${$_[0]} }

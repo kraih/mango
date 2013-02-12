@@ -44,6 +44,7 @@ is substr(bson_time, 0, 5), substr(time, 0, 5), 'same start';
 ok time < bson_time, 'epoch time is always less';
 is int bson_time(1360626536.748), 1360626536, 'right epoch time';
 is bson_time(1360626536.748), 1360626536.748, 'right time';
+is int bson_time(1360626536), 1360626536, 'right time';
 
 # Empty document
 my $bson = bson_encode {};
@@ -216,6 +217,8 @@ is_deeply $doc, {today => bson_time(12345.678)}, 'right document';
 is bson_encode($doc), $bytes, 'successful roundtrip';
 is_deeply bson_decode(bson_encode({time => bson_time(1360627440.2695)})),
   {time => 1360627440.269}, 'successful roundtrip';
+ok bson_decode(bson_encode({time => bson_time}))->{time},
+  'successful roundtrip';
 
 # Generic binary roundtrip
 $bytes = "\x14\x00\x00\x00\x05\x66\x6f\x6f\x00\x05\x00\x00\x00\x00\x31\x32\x33"
