@@ -53,7 +53,7 @@ $collection->drop
 
 # Blocking CRUD
 my $oid = $collection->insert({foo => 'bar'});
-isa_ok $oid, 'Mango::BSON::ObjectID', 'right reference';
+isa_ok $oid, 'Mango::BSON::ObjectID', 'right class';
 my $doc = $collection->find_one({foo => 'bar'});
 is_deeply $doc, {_id => $oid, foo => 'bar'}, 'right document';
 $doc->{foo} = 'yada';
@@ -101,7 +101,7 @@ my $delay = Mojo::IOLoop->delay(
 );
 $delay->wait;
 ok !$fail, 'no error';
-isa_ok $created, 'Mango::BSON::ObjectID', 'right reference';
+isa_ok $created, 'Mango::BSON::ObjectID', 'right class';
 is $updated, 1, 'one document updated';
 is_deeply $found, {_id => $created, foo => 'yada'}, 'right document';
 is $removed, 1, 'one document removed';

@@ -22,8 +22,8 @@ is $collection->full_name, join('.', $mango->db->name, $collection->name),
 
 # Insert documents blocking
 my $oids = $collection->insert([{foo => 'bar'}, {foo => 'baz'}]);
-isa_ok $oids->[0], 'Mango::BSON::ObjectID', 'right reference';
-isa_ok $oids->[1], 'Mango::BSON::ObjectID', 'right reference';
+isa_ok $oids->[0], 'Mango::BSON::ObjectID', 'right class';
+isa_ok $oids->[1], 'Mango::BSON::ObjectID', 'right class';
 is $collection->find_one($oids->[0])->{foo}, 'bar', 'right value';
 is $collection->find_one($oids->[1])->{foo}, 'baz', 'right value';
 
