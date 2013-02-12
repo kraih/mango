@@ -38,13 +38,11 @@ is bson_oid('510d83915867b405b9000000')->to_epoch, 1359840145,
   'right epoch time';
 
 # Generate Time
-like bson_time, qr/^\d+\.\d+$/, 'has milliseconds';
-is length int bson_time, length time, 'same length';
+is length bson_time, length(time) + 3, 'right length';
+is length bson_time->to_epoch, length time, 'right length';
 is substr(bson_time, 0, 5), substr(time, 0, 5), 'same start';
-ok time < bson_time, 'epoch time is always less';
-is int bson_time(1360626536.748), 1360626536, 'right epoch time';
-is bson_time(1360626536.748), 1360626536.748, 'right time';
-is int bson_time(1360626536), 1360626536, 'right time';
+is bson_time(1360626536748), 1360626536748, 'right epoch milliseconds';
+is bson_time(1360626536748)->to_epoch, 1360626536, 'right epoch seconds';
 
 # Empty document
 my $bson = bson_encode {};
@@ -213,13 +211,10 @@ $bytes = "\x14\x00\x00\x00\x09\x74\x6f\x64\x61\x79\x00\x4e\x61\xbc\x00\x00\x00"
   . "\x00\x00\x00";
 $doc = bson_decode($bytes);
 isa_ok $doc->{today}, 'Mango::BSON::Time', 'right class';
-is_deeply $doc, {today => bson_time(12345.678)}, 'right document';
+is_deeply $doc, {today => bson_time(12345678)}, 'right document';
 is bson_encode($doc), $bytes, 'successful roundtrip';
-is_deeply bson_decode(bson_encode({time => bson_time(1360627440.2695)})),
-  {time => 1360627440.269}, 'successful roundtrip';
-my $time = bson_decode(bson_encode({time => bson_time}))->{time};
-isa_ok $time, 'Mango::BSON::Time', 'right class';
-like $time,   qr/^\d+\.\d+$/,      'successful roundtrip';
+is_deeply bson_decode(bson_encode({time => bson_time(1360627440269)})),
+  {time => 1360627440269}, 'successful roundtrip';
 
 # Generic binary roundtrip
 $bytes = "\x14\x00\x00\x00\x05\x66\x6f\x6f\x00\x05\x00\x00\x00\x00\x31\x32\x33"
@@ -302,7 +297,7 @@ is_deeply bson_decode(bson_encode({false => \$bytes})), {false => bson_false},
   'encode false boolean from reference';
 
 # Time to JSON
-is j({time => bson_time(1360626536.748)}), '{"time":1360626536.748}',
+is j({time => bson_time(1360626536748)}), '{"time":1360626536748}',
   'right JSON';
 
 done_testing();

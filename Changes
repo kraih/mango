@@ -1,8 +1,6 @@
 
 0.05  2013-02-12
   - Added TO_JSON method to Mango::BSON::Time.
-  - Removed to_epoch method from Mango::BSON::Time.
-  - Changed time format in Mango::BSON::Time.
   - Improved documentation.
 
 0.04  2013-02-10
