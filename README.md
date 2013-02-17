@@ -4,53 +4,39 @@
   Pure-Perl non-blocking I/O MongoDB client, optimized for use with the
   [Mojolicious](http://mojolicio.us) real-time web framework.
 
+    use Mojolicious::Lite;
     use Mango;
-    my $mango = Mango->new('mongodb://localhost:27017');
-
-    # Insert document
-    my $oid = $mango->db('test')->collection('foo')->insert({bar => 'baz'});
-
-    # Find document
-    my $doc = $mango->db('test')->collection('foo')->find_one({bar => 'baz'});
-    say $doc->{bar};
-
-    # Update document
-    $mango->db('test')->collection('foo')
-      ->update({bar => 'baz'}, {bar => 'yada'});
-
-    # Remove document
-    $mango->db('test')->collection('foo')->remove({bar => 'yada'});
-
-    # Insert document with special BSON types
     use Mango::BSON ':bson';
-    my $oid = $mango->db('test')->collection('foo')
-      ->insert({data => bson_bin("\x00\x01"), now => bson_time});
 
-    # Blocking parallel find (does not work inside a running event loop)
-    my $delay = Mojo::IOLoop->delay;
-    for my $name (qw(sri marty)) {
-      $delay->begin;
-      $mango->db('test')->collection('users')->find({name => $name})->all(sub {
-        my ($cursor, $err, $docs) = @_;
-        $delay->end(@$docs);
+    my $uri = 'mongodb://<user>:<pass>@<server>/<database>';
+    helper mango => sub { state $mango = Mango->new($uri) };
+
+    # Store and retrieve information non-blocking
+    get '/' => sub {
+      my $self = shift;
+
+      my $collection = $self->mango->db->collection('visitors');
+      my $ip         = $self->tx->remote_address;
+
+      # Store information about current visitor
+      $collection->insert({when => bson_time, from => $ip} => sub {
+        my ($collection, $err, $oid) = @_;
+
+        return $self->render_exception if $err;
+
+        # Retrieve information about previous visitors
+        $collection->find({})->sort({when => -1})->fields({_id => 0})->all(sub {
+          my ($collection, $err, $docs) = @_;
+
+          return $self->render_exception if $err;
+
+          # And show it to current visitor
+          $self->render(json => $docs);
+        });
       });
-    }
-    my @docs = $delay->wait;
+    };
 
-    # Non-blocking parallel find (does work inside a running event loop)
-    my $delay = Mojo::IOLoop->delay(sub {
-      my ($delay, @docs) = @_;
-      ...
-    });
-    for my $name (qw(sri marty)) {
-      $delay->begin;
-      $mango->db('test')->collection('users')->find({name => $name})->all(sub {
-        my ($cursor, $err, $docs) = @_;
-        $delay->end(@$docs);
-      });
-    }
-    $delay->wait unless Mojo::IOLoop->is_running;
-
+    app->start;
 
 ## Installation
 
