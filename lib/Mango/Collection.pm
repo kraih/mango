@@ -44,7 +44,7 @@ sub ensure_index {
 
 sub find {
   my ($self, $query) = @_;
-  return Mango::Cursor->new(collection => $self, query => $query);
+  return Mango::Cursor->new(collection => $self, query => $query // {});
 }
 
 sub find_and_modify {
@@ -294,6 +294,7 @@ append a callback to perform operation non-blocking.
 
 =head2 find
 
+  my $cursor = $collection->find;
   my $cursor = $collection->find({foo => 'bar'});
 
 Get L<Mango::Cursor> object for query.

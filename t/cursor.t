@@ -19,7 +19,7 @@ my $oids = $collection->insert([{test => 3}, {test => 1}, {test => 2}]);
 is scalar @$oids, 3, 'three documents inserted';
 
 # Fetch documents blocking
-my $cursor = $collection->find({})->batch_size(2);
+my $cursor = $collection->find->batch_size(2);
 my @docs;
 ok !$cursor->id, 'no cursor id';
 push @docs, $cursor->next;
@@ -33,14 +33,14 @@ is $docs[1]{test}, 2, 'right document';
 is $docs[2]{test}, 3, 'right document';
 
 # Fetch all documents blocking
-my $docs = $collection->find({})->batch_size(2)->all;
+my $docs = $collection->find->batch_size(2)->all;
 @$docs = sort { $a->{test} <=> $b->{test} } @$docs;
 is $docs->[0]{test}, 1, 'right document';
 is $docs->[1]{test}, 2, 'right document';
 is $docs->[2]{test}, 3, 'right document';
 
 # Fetch two documents blocking
-$docs = $collection->find({})->limit(2)->sort({test => 1})->all;
+$docs = $collection->find->limit(2)->sort({test => 1})->all;
 is scalar @$docs, 2, 'two documents';
 is $docs->[0]{test}, 1, 'right document';
 is $docs->[1]{test}, 2, 'right document';
@@ -124,8 +124,8 @@ is_deeply [sort @$result], [2, 3], 'right values';
 
 # Count documents blocking
 is $collection->find({foo => 'bar'})->count, 0, 'no documents';
-is $collection->find({})->skip(1)->limit(1)->count, 1, 'one document';
-is $collection->find({})->count, 3, 'three documents';
+is $collection->find->skip(1)->limit(1)->count, 1, 'one document';
+is $collection->find->count, 3, 'three documents';
 
 # Count documents non-blocking
 $fail = undef;
@@ -133,7 +133,7 @@ my @results;
 my $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
-    $collection->find({})->count($delay->begin);
+    $collection->find->count($delay->begin);
   },
   sub {
     my ($delay, $err, $count) = @_;
@@ -153,7 +153,7 @@ ok !$fail, 'no error';
 is_deeply \@results, [3, 0], 'right number of documents';
 
 # Fetch documents non-blocking
-$cursor = $collection->find({})->batch_size(2);
+$cursor = $collection->find->batch_size(2);
 @docs   = ();
 $fail   = undef;
 $delay  = Mojo::IOLoop->delay(
@@ -189,7 +189,7 @@ is $docs[2]{test}, 3, 'right document';
 
 # Fetch all documents non-blocking
 @docs = ();
-$collection->find({})->batch_size(2)->all(
+$collection->find->batch_size(2)->all(
   sub {
     my ($collection, $err, $docs) = @_;
     @docs = @$docs;
@@ -204,11 +204,11 @@ is $docs[1]{test}, 2, 'right document';
 is $docs[2]{test}, 3, 'right document';
 
 # Fetch subset of documents sorted
-$docs = $collection->find({})->fields({_id => 0})->sort({test => 1})->all;
+$docs = $collection->find->fields({_id => 0})->sort({test => 1})->all;
 is_deeply $docs, [{test => 1}, {test => 2}, {test => 3}], 'right subset';
 
 # Rewind cursor blocking
-$cursor = $collection->find({});
+$cursor = $collection->find;
 ok !$cursor->id, 'no cursor id';
 $cursor->rewind;
 $doc = $cursor->next;
@@ -219,7 +219,7 @@ is_deeply $cursor->next, $doc, 'found same document again';
 # Rewind cursor non-blocking
 $fail   = undef;
 @docs   = ();
-$cursor = $collection->find({});
+$cursor = $collection->find;
 $delay  = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
@@ -253,7 +253,7 @@ $collection->create({capped => \1, max => 2, size => 100000});
 my $mango2      = Mango->new($ENV{TEST_ONLINE});
 my $collection2 = $mango2->db->collection('cursor_test');
 $collection2->insert([{test => 1}, {test => 2}]);
-$cursor = $collection->find({})->tailable(1);
+$cursor = $collection->find->tailable(1);
 is $cursor->next->{test}, 1, 'right document';
 is $cursor->next->{test}, 2, 'right document';
 $fail = $result = undef;

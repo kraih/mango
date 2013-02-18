@@ -224,15 +224,15 @@ is $collection->build_index_name(bson_doc(foo => 1, bar => -1, baz => '2d')),
 # Ensure index blocking
 $collection->insert({test => 23, foo => 'bar'});
 $collection->insert({test => 23, foo => 'baz'});
-is $collection->find({})->count, 2, 'two documents';
+is $collection->find->count, 2, 'two documents';
 $collection->ensure_index({test => 1}, {unique => \1, dropDups => \1});
-is $collection->find({})->count, 1, 'one document';
+is $collection->find->count, 1, 'one document';
 $collection->drop;
 
 # Ensure index non-blocking
 $collection->insert({test => 23, foo => 'bar'});
 $collection->insert({test => 23, foo => 'baz'});
-is $collection->find({})->count, 2, 'two documents';
+is $collection->find->count, 2, 'two documents';
 $collection->ensure_index(
   ({test => 1}, {unique => \1, dropDups => \1}) => sub {
     my ($collection, $err) = @_;
@@ -243,7 +243,7 @@ $collection->ensure_index(
 Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $collection->find({})->count, 1, 'one document';
+is $collection->find->count, 1, 'one document';
 $collection->drop;
 
 # Create capped collection blocking
@@ -251,7 +251,7 @@ $collection->create({capped => \1, max => 2, size => 100000});
 $collection->insert([{test => 1}, {test => 2}]);
 is $collection->find({})->count, 2, 'two documents';
 $collection->insert({test => 3});
-is $collection->find({})->count, 2, 'two documents';
+is $collection->find->count, 2, 'two documents';
 $collection->drop;
 
 # Create capped collection non-blocking
@@ -269,7 +269,7 @@ ok !$fail, 'no error';
 $collection->insert([{test => 1}, {test => 2}]);
 is $collection->find({})->count, 2, 'two documents';
 $collection->insert({test => 3});
-is $collection->find({})->count, 2, 'two documents';
+is $collection->find->count, 2, 'two documents';
 $collection->drop;
 
 # Perform map/reduce blocking
@@ -296,7 +296,7 @@ $collection->insert({x => 4, tags => []});
 my $out
   = $collection->map_reduce($map, $reduce, {out => 'collection_test_results'});
 $collection->drop;
-$docs = $out->find({})->sort({value => -1})->all;
+$docs = $out->find->sort({value => -1})->all;
 is_deeply $docs->[0], {_id => 'cat',   value => 3}, 'right document';
 is_deeply $docs->[1], {_id => 'dog',   value => 2}, 'right document';
 is_deeply $docs->[2], {_id => 'mouse', value => 1}, 'right document';
@@ -320,7 +320,7 @@ Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 $collection->drop;
-$docs = $result->find({})->sort({value => -1})->all;
+$docs = $result->find->sort({value => -1})->all;
 is_deeply $docs->[0], {_id => 'cat',   value => 3}, 'right document';
 is_deeply $docs->[1], {_id => 'dog',   value => 2}, 'right document';
 is_deeply $docs->[2], {_id => 'mouse', value => 1}, 'right document';

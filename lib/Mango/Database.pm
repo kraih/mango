@@ -19,7 +19,7 @@ sub collection_names {
   my $collection = $self->collection('system.namespaces');
 
   # Non-blocking
-  return $collection->find({})->all(
+  return $collection->find->all(
     sub {
       my ($cursor, $err, $docs) = @_;
       $self->$cb($err, [map { substr $_->{name}, $len + 1 } @$docs]);
@@ -27,7 +27,7 @@ sub collection_names {
   ) if $cb;
 
   # Blocking
-  my $docs = $collection->find({})->all;
+  my $docs = $collection->find->all;
   return [map { substr $_->{name}, $len + 1 } @$docs];
 }
 
