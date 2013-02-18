@@ -43,7 +43,7 @@ sub command {
     $command => sub {
       my ($collection, $err, $doc) = @_;
       $err ||= $protocol->command_error({docs => [$doc]});
-      $self->$cb($err, $doc);
+      $self->$cb($err, $doc // {});
     }
   ) if $cb;
 

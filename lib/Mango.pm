@@ -174,7 +174,7 @@ sub _connect {
       my ($loop, $err, $stream) = @_;
 
       # Connection error
-      return $self->_error($err) if $err;
+      return $self && $self->_error($err) if $err;
 
       # Connection established
       $stream->timeout(0);

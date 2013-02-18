@@ -3,6 +3,7 @@
   - Added stats method to Mango::Collection.
   - Added eval and stats methods to Mango::Database.
   - Added TO_JSON method to Mango::BSON::Time.
+  - Improved exception handling for commands.
   - Improved documentation.
 
 0.04  2013-02-10
