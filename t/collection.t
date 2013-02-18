@@ -27,6 +27,24 @@ isa_ok $oids->[1], 'Mango::BSON::ObjectID', 'right class';
 is $collection->find_one($oids->[0])->{foo}, 'bar', 'right value';
 is $collection->find_one($oids->[1])->{foo}, 'baz', 'right value';
 
+# Get collection statistics blocking
+is $collection->stats->{count}, 2, 'right number of documents';
+
+# Get collection statistics non-blocking
+my ($fail, $result) = @_;
+$collection->stats(
+  sub {
+    my ($collection, $err, $stats) = @_;
+    $fail   = $err;
+    $result = $stats;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $result->{count}, 2, 'right number of documents';
+
 # Update documents blocking
 is $collection->update({}, {'$set' => {bar => 'works'}}, {multi => 1}), 2,
   'two documents updated';
@@ -62,7 +80,7 @@ is $collection->remove({atomic => 2}), 1, 'removed one document';
 # Find and modify document non-blocking
 $oid = $collection->insert({atomic => 1});
 is $collection->find_one($oid)->{atomic}, 1, 'right document';
-my ($fail, $result) = @_;
+$fail = $result = undef;
 $collection->find_and_modify(
   {query => {atomic => 1}, update => {'$set' => {atomic => 2}}} => sub {
     my ($collection, $err, $doc) = @_;

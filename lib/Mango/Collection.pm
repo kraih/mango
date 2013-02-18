@@ -140,6 +140,8 @@ sub save {
   return $doc->{_id};
 }
 
+sub stats { $_[0]->_command(bson_doc(collstats => $_[0]->name), undef, $_[1]) }
+
 sub update {
   my ($self, $query, $update) = (shift, shift, shift);
   my $flags = ref $_[0] eq 'CODE' ? {} : shift // {};
@@ -398,6 +400,19 @@ operation non-blocking.
 
   $collection->save({foo => 'bar'} => sub {
     my ($collection, $err, $oid) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 stats
+
+  my $stats = $collection->stats;
+
+Get collection statistics. You can also append a callback to perform operation
+non-blocking.
+
+  $collection->stats(sub {
+    my ($collection, $err, $stats) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;

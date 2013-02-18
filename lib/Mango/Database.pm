@@ -53,6 +53,8 @@ sub command {
   return $doc;
 }
 
+sub stats { shift->command(bson_doc(dbstats => 1), @_) }
+
 1;
 
 =head1 NAME
@@ -122,6 +124,19 @@ non-blocking.
 
   $db->command(('getLastError', {w => 2}) => sub {
     my ($db, $err, $doc) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 stats
+
+  my $stats = $db->stats;
+
+Get database statistics. You can also append a callback to perform operation
+non-blocking.
+
+  $db->stats(sub {
+    my ($db, $err, $stats) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;

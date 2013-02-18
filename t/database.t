@@ -10,12 +10,13 @@ plan skip_all => 'set TEST_ONLINE to enable this test'
 
 # Run command blocking
 my $mango = Mango->new($ENV{TEST_ONLINE});
-ok $mango->db->command('getnonce')->{nonce}, 'command was successful';
+my $db    = $mango->db;
+ok $db->command('getnonce')->{nonce}, 'command was successful';
 ok !$mango->is_active, 'no operations in progress';
 
 # Run command non-blocking
 my ($fail, $result);
-$mango->db->command(
+$db->command(
   'getnonce' => sub {
     my ($db, $err, $doc) = @_;
     $fail   = $err;
@@ -28,17 +29,35 @@ ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 ok $result, 'command was successful';
 
+# Get database statistics blocking
+is $db->stats->{db}, $db->name, 'right name';
+
+# Get database statistics non-blocking
+$fail = $result = undef;
+$db->stats(
+  sub {
+    my ($db, $err, $stats) = @_;
+    $fail   = $err;
+    $result = $stats;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $result->{db}, $db->name, 'right name';
+
 # Get collection names blocking
-my $collection = $mango->db->collection('database_test');
+my $collection = $db->collection('database_test');
 $collection->insert({test => 1});
-ok first { $_ eq 'database_test' } @{$mango->db->collection_names},
+ok first { $_ eq 'database_test' } @{$db->collection_names},
   'found collection';
 $collection->drop;
 
 # Get collection names non-blocking
 $collection->insert({test => 1});
 $fail = $result = undef;
-$mango->db->collection_names(
+$db->collection_names(
   sub {
     my ($db, $err, $names) = @_;
     $fail   = $err;
