@@ -2,7 +2,7 @@ package Mango::Collection;
 use Mojo::Base -base;
 
 use Carp 'croak';
-use Mango::BSON qw(bson_doc bson_oid bson_true);
+use Mango::BSON qw(bson_code bson_doc bson_oid bson_true);
 use Mango::Cursor;
 
 has [qw(db name)];
@@ -97,8 +97,8 @@ sub map_reduce {
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
   my $command = bson_doc
     mapreduce => $self->name,
-    map       => $map,
-    reduce    => $reduce,
+    map       => ref $map ? $map : bson_code($map),
+    reduce    => ref $reduce ? $reduce : bson_code($reduce),
     %{shift // {}};
 
   # Non-blocking
@@ -350,8 +350,8 @@ to perform operation non-blocking.
 
 =head2 map_reduce
 
-  my $myresults = $collection->map_reduce(
-    bson_code($map), bson_code($reduce), {out => 'myresults'});
+  my $foo  = $collection->map_reduce($map, $reduce, {out => 'foo'});
+  my $docs = $collection->map_reduce($map, $reduce, {out => {inline => 1}});
   my $docs = $collection->map_reduce(
     bson_code($map), bson_code($reduce), {out => {inline => 1}});
 
@@ -359,8 +359,7 @@ Perform map/reduce operation on this collection, additional options will be
 passed along to the server verbatim. You can also append a callback to perform
 operation non-blocking.
 
-  my $out = {out => {inline => 1}};
-  $collection->map_reduce((bson_code($map), bson_code($reduce), $out) => sub {
+  $collection->map_reduce(($map, $reduce, {out => {inline => 1}}) => sub {
       my ($collection, $err, $docs) = @_;
       ...
     }

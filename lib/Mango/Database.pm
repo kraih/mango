@@ -2,7 +2,7 @@ package Mango::Database;
 use Mojo::Base -base;
 
 use Carp 'croak';
-use Mango::BSON 'bson_doc';
+use Mango::BSON qw(bson_code bson_doc);
 use Mango::Collection;
 
 has [qw(mango name)];
@@ -56,6 +56,7 @@ sub command {
 sub eval {
   my ($self, $code) = (shift, shift);
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+  $code = ref $code ? $code : bson_code($code);
   my $command = bson_doc '$eval' => $code, args => shift;
 
   # Non-blocking
@@ -143,13 +144,15 @@ non-blocking.
 
 =head2 eval
 
+  my $val = $db->eval($code);
   my $val = $db->eval(bson_code($code));
+  my $val = $db->eval($code, $args);
   my $val = $db->eval(bson_code($code), $args);
 
 Evaluate JavaScript on the server. You can also append a callback to perform
 operation non-blocking.
 
-  $db->eval(bson_code($code) => sub {
+  $db->eval($code => sub {
     my ($db, $err, $val) = @_;
     ...
   });

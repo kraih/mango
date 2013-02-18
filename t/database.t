@@ -73,8 +73,9 @@ ok first { $_ eq 'database_test' } @$result, 'found collection';
 $collection->drop;
 
 # Evaluate JavaScript blocking
-my $code = bson_code('function(foo) { return "Hello " + foo; }');
-is $db->eval($code, ['World!']), 'Hello World!', 'right result';
+my $code = 'function(foo) { return "Hello " + foo; }';
+is $db->eval($code,            ['World!']), 'Hello World!', 'right result';
+is $db->eval(bson_code($code), ['World!']), 'Hello World!', 'right result';
 
 # Evaluate JavaScript non-blocking
 $fail = $result = undef;
