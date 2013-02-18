@@ -76,6 +76,7 @@ $collection->drop;
 my $code = 'function(foo) { return "Hello " + foo; }';
 is $db->eval($code,            ['World!']), 'Hello World!', 'right result';
 is $db->eval(bson_code($code), ['World!']), 'Hello World!', 'right result';
+is $db->eval('function() { return "works"; }'), 'works', 'right result';
 
 # Evaluate JavaScript non-blocking
 $fail = $result = undef;
