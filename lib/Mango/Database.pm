@@ -53,6 +53,19 @@ sub command {
   return $doc;
 }
 
+sub eval {
+  my ($self, $code) = (shift, shift);
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+  my $command = bson_doc '$eval' => $code, args => shift;
+
+  # Non-blocking
+  return $self->command($command => sub { shift->$cb(shift, shift->{retval}) })
+    if $cb;
+
+  # Blocking
+  return $self->command($command)->{retval};
+}
+
 sub stats { shift->command(bson_doc(dbstats => 1), @_) }
 
 1;
@@ -124,6 +137,20 @@ non-blocking.
 
   $db->command(('getLastError', {w => 2}) => sub {
     my ($db, $err, $doc) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 eval
+
+  my $val = $db->eval(bson_code($code));
+  my $val = $db->eval(bson_code($code), $args);
+
+Evaluate JavaScript on the server. You can also append a callback to perform
+operation non-blocking.
+
+  $db->eval(bson_code($code) => sub {
+    my ($db, $err, $val) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;

@@ -3,6 +3,7 @@ use Mojo::Base -strict;
 use Test::More;
 use List::Util 'first';
 use Mango;
+use Mango::BSON 'bson_code';
 use Mojo::IOLoop;
 
 plan skip_all => 'set TEST_ONLINE to enable this test'
@@ -70,6 +71,25 @@ ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 ok first { $_ eq 'database_test' } @$result, 'found collection';
 $collection->drop;
+
+# Evaluate JavaScript blocking
+my $code = bson_code('function(foo) { return "Hello " + foo; }');
+is $db->eval($code, ['World!']), 'Hello World!', 'right result';
+
+# Evaluate JavaScript non-blocking
+$fail = $result = undef;
+$db->eval(
+  ($code, ['World!']) => sub {
+    my ($db, $err, $val) = @_;
+    $fail   = $err;
+    $result = $val;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $result, 'Hello World!', 'right result';
 
 # Interrupted blocking command
 my $port = Mojo::IOLoop->generate_port;
