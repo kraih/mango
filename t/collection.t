@@ -360,4 +360,23 @@ is_deeply $result->[0], {_id => 'cat',   value => 3}, 'right document';
 is_deeply $result->[1], {_id => 'dog',   value => 2}, 'right document';
 is_deeply $result->[2], {_id => 'mouse', value => 1}, 'right document';
 
+# Interrupted non-blocking remove
+my $port = Mojo::IOLoop->generate_port;
+$mango = Mango->new("mongodb://localhost:$port");
+my $id = Mojo::IOLoop->server((port => $port) => sub { $_[1]->close });
+$fail = $result = undef;
+$mango->db->collection('collection_test')->remove(
+  sub {
+    my ($collection, $err, $num) = @_;
+    $fail   = $err;
+    $result = $num;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+Mojo::IOLoop->remove($id);
+ok !$mango->is_active, 'no operations in progress';
+like $fail, qr/Premature connection close/, 'right error';
+ok !$result, 'remove was not successful';
+
 done_testing();

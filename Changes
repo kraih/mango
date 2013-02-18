@@ -5,6 +5,7 @@
   - Added TO_JSON method to Mango::BSON::Time.
   - Improved exception handling for commands.
   - Improved documentation.
+  - Improved tests.
 
 0.04  2013-02-10
   - Added collection_names method to Mango::Database.

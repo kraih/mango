@@ -102,7 +102,7 @@ like $@, qr/Premature connection close/, 'right error';
 $mango->ioloop->remove($id);
 
 # Interrupted non-blocking command
-Mojo::IOLoop->generate_port;
+$port  = Mojo::IOLoop->generate_port;
 $mango = Mango->new("mongodb://localhost:$port");
 $id    = Mojo::IOLoop->server((port => $port) => sub { $_[1]->close });
 $fail  = $result = undef;
@@ -116,11 +116,12 @@ $mango->db->command(
 );
 Mojo::IOLoop->start;
 Mojo::IOLoop->remove($id);
+ok !$mango->is_active, 'no operations in progress';
 like $fail, qr/Premature connection close/, 'right error';
 is_deeply $result, {}, 'command was not successful';
 
 # Interrupted non-blocking eval
-Mojo::IOLoop->generate_port;
+$port  = Mojo::IOLoop->generate_port;
 $mango = Mango->new("mongodb://localhost:$port");
 $id    = Mojo::IOLoop->server((port => $port) => sub { $_[1]->close });
 $fail  = $result = undef;
@@ -134,6 +135,7 @@ $mango->db->eval(
 );
 Mojo::IOLoop->start;
 Mojo::IOLoop->remove($id);
+ok !$mango->is_active, 'no operations in progress';
 like $fail, qr/Premature connection close/, 'right error';
 ok !$result, 'eval was not successful';
 
