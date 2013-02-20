@@ -3,7 +3,7 @@ use Mojo::Base -strict;
 use Test::More;
 use List::Util 'first';
 use Mango;
-use Mango::BSON qw(bson_code bson_doc bson_oid);
+use Mango::BSON qw(bson_code bson_doc bson_oid bson_true);
 use Mojo::IOLoop;
 
 plan skip_all => 'set TEST_ONLINE to enable this test'
@@ -19,6 +19,15 @@ $collection->drop
 is $collection->name, 'collection_test', 'right collection name';
 is $collection->full_name, join('.', $mango->db->name, $collection->name),
   'right full collection name';
+
+# Index names
+is $collection->build_index_name({foo => 1}), 'foo', 'right index name';
+is $collection->build_index_name(bson_doc(foo => 1, bar => -1)), 'foo_bar',
+  'right index name';
+is $collection->build_index_name(bson_doc(foo => 1, 'bar.baz' => -1)),
+  'foo_bar.baz', 'right index name';
+is $collection->build_index_name(bson_doc(foo => 1, bar => -1, baz => '2d')),
+  'foo_bar_baz', 'right index name';
 
 # Insert documents blocking
 my $oids = $collection->insert([{foo => 'bar'}, {foo => 'baz'}]);
@@ -212,38 +221,66 @@ ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 ok !$collection->find_one($oid), 'no document';
 
-# Index names
-is $collection->build_index_name({foo => 1}), 'foo', 'right index name';
-is $collection->build_index_name(bson_doc(foo => 1, bar => -1)), 'foo_bar',
-  'right index name';
-is $collection->build_index_name(bson_doc(foo => 1, 'bar.baz' => -1)),
-  'foo_bar.baz', 'right index name';
-is $collection->build_index_name(bson_doc(foo => 1, bar => -1, baz => '2d')),
-  'foo_bar_baz', 'right index name';
-
-# Ensure index blocking
+# Ensure and drop index blocking
 $collection->insert({test => 23, foo => 'bar'});
 $collection->insert({test => 23, foo => 'baz'});
 is $collection->find->count, 2, 'two documents';
 $collection->ensure_index({test => 1}, {unique => \1, dropDups => \1});
 is $collection->find->count, 1, 'one document';
+is $collection->index_information->{test}{unique}, bson_true,
+  'index is unique';
+$collection->drop_index('test');
+is $collection->index_information->{test}, undef, 'no index';
 $collection->drop;
 
-# Ensure index non-blocking
+# Ensure and drop index non-blocking
 $collection->insert({test => 23, foo => 'bar'});
 $collection->insert({test => 23, foo => 'baz'});
 is $collection->find->count, 2, 'two documents';
-$collection->ensure_index(
-  ({test => 1}, {unique => \1, dropDups => \1}) => sub {
-    my ($collection, $err) = @_;
+$fail = $result = undef;
+my $delay = Mojo::IOLoop->delay(
+  sub {
+    my $delay = shift;
+    $collection->ensure_index(
+      ({test => 1}, {unique => \1, dropDups => \1}) => $delay->begin);
+  },
+  sub {
+    my ($delay, $err) = @_;
     $fail = $err;
-    Mojo::IOLoop->stop;
+    $collection->index_information($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $info) = @_;
+    $fail ||= $err;
+    $result = $info;
   }
 );
-Mojo::IOLoop->start;
+$delay->wait;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $collection->find->count, 1, 'one document';
+is $result->{test}{unique}, bson_true, 'index is unique';
+$fail = $result = undef;
+$delay = Mojo::IOLoop->delay(
+  sub {
+    my $delay = shift;
+    $collection->drop_index(test => $delay->begin);
+  },
+  sub {
+    my ($delay, $err) = @_;
+    $fail = $err;
+    $collection->index_information($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $info) = @_;
+    $fail ||= $err;
+    $result = $info;
+  }
+);
+$delay->wait;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $result->{test}, undef, 'no index';
 $collection->drop;
 
 # Create capped collection blocking

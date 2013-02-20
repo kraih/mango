@@ -25,6 +25,12 @@ sub create {
 
 sub drop { $_[0]->_command(bson_doc(drop => $_[0]->name), undef, $_[1]) }
 
+sub drop_index {
+  my ($self, $name) = (shift, shift);
+  return $self->_command(bson_doc(dropIndexes => $self->name, index => $name),
+    undef, @_);
+}
+
 sub ensure_index {
   my ($self, $spec) = (shift, shift);
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
@@ -67,6 +73,20 @@ sub find_one {
 }
 
 sub full_name { join '.', $_[0]->db->name, $_[0]->name }
+
+sub index_information {
+  my ($self, $cb) = @_;
+
+  my $collection = $self->db->collection('system.indexes');
+  my $cursor = $collection->find({ns => $self->full_name})->fields({ns => 0});
+
+  # Non-blocking
+  return $cursor->all(sub { shift; $self->$cb(shift, _indexes(shift)) })
+    if $cb;
+
+  # Blocking
+  return _indexes($cursor->all);
+}
 
 sub insert {
   my ($self, $docs) = @_;
@@ -185,6 +205,12 @@ sub _handle {
   return $reply->{docs}[0]{n};
 }
 
+sub _indexes {
+  my $indexes = bson_doc;
+  if (my $docs = shift) { $indexes->{delete $_->{name}} = $_ for @$docs }
+  return $indexes;
+}
+
 1;
 
 =head1 NAME
@@ -276,6 +302,18 @@ non-blocking.
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
+=head2 drop_index
+
+  $collection->drop_index('foo');
+
+Drop index. You can also append a callback to perform operation non-blocking.
+
+  $collection->drop_index(foo => sub {
+    my ($collection, $err) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
 =head2 ensure_index
 
   $collection->ensure_index(bson_doc(foo => 1, bar => -1));
@@ -333,6 +371,19 @@ non-blocking.
   my $name = $collection->full_name;
 
 Full name of this collection.
+
+=head2 index_information
+
+  my $info = $collection->index_information;
+
+Get index information for collection. You can also append a callback to
+perform operation non-blocking.
+
+  $collection->index_information(sub {
+    my ($collection, $err, $info) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 insert
 
