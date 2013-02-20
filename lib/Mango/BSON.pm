@@ -383,9 +383,10 @@ L<Mango::BSON> implements the following functions.
 
 =head2 bson_bin
 
-  my $generic = bson_bin $bytes;
+  my $bin = bson_bin $bytes;
 
-Create new BSON element of the binary type.
+Create new BSON element of the binary type, defaults to the C<generic> binary
+subtype.
 
   # Function
   bson_bin($bytes)->type('function');
@@ -416,9 +417,10 @@ Decode BSON into Perl data structures.
 
 =head2 bson_doc
 
+  my $doc = bson_doc;
   my $doc = bson_doc foo => 'bar', baz => 23;
 
-Create new BSON document.
+Create new BSON document, defaults to an empty ordered hash.
 
 =head2 bson_encode
 
@@ -456,14 +458,16 @@ Create new BSON element of the min key type.
   my $oid = bson_oid;
   my $oid = bson_oid '1a2b3c4e5f60718293a4b5c6';
 
-Create new BSON element of the object id type.
+Create new BSON element of the object id type, defaults to generating a new
+unique object id.
 
 =head2 bson_time
 
   my $now  = bson_time;
   my $time = bson_time time * 1000;
 
-Create new BSON element of the UTC datetime type.
+Create new BSON element of the UTC datetime type, defaults to milliseconds
+since the UNIX epoch.
 
 =head2 bson_true
 

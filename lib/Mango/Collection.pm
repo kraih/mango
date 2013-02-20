@@ -77,10 +77,9 @@ sub full_name { join '.', $_[0]->db->name, $_[0]->name }
 sub index_information {
   my ($self, $cb) = @_;
 
+  # Non-blocking
   my $collection = $self->db->collection('system.indexes');
   my $cursor = $collection->find({ns => $self->full_name})->fields({ns => 0});
-
-  # Non-blocking
   return $cursor->all(sub { shift; $self->$cb(shift, _indexes(shift)) })
     if $cb;
 

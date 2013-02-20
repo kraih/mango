@@ -13,18 +13,18 @@ use Mango::BSON ':bson';
 use Mojo::ByteStream 'b';
 use Mojo::JSON 'j';
 
-# Sorted document
+# Ordered document
 my $doc = bson_doc(a => 1, c => 2, b => 3);
 $doc->{d} = 4;
 $doc->{e} = 5;
-is_deeply [keys %$doc],   [qw(a c b d e)], 'sorted keys';
-is_deeply [values %$doc], [qw(1 2 3 4 5)], 'sorted values';
+is_deeply [keys %$doc],   [qw(a c b d e)], 'ordered keys';
+is_deeply [values %$doc], [qw(1 2 3 4 5)], 'ordered values';
 delete $doc->{c};
-is_deeply [keys %$doc],   [qw(a b d e)], 'sorted keys';
-is_deeply [values %$doc], [qw(1 3 4 5)], 'sorted values';
+is_deeply [keys %$doc],   [qw(a b d e)], 'ordered keys';
+is_deeply [values %$doc], [qw(1 3 4 5)], 'ordered values';
 $doc->{d} = 6;
-is_deeply [keys %$doc],   [qw(a b d e)], 'sorted keys';
-is_deeply [values %$doc], [qw(1 3 6 5)], 'sorted values';
+is_deeply [keys %$doc],   [qw(a b d e)], 'ordered keys';
+is_deeply [values %$doc], [qw(1 3 6 5)], 'ordered values';
 
 # Document length prefix
 is bson_length("\x05"),                     undef, 'no length';
