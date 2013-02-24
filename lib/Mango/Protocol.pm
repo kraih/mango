@@ -148,7 +148,7 @@ sub parse_reply {
   my $op = decode_int32(substr $msg, 0, 4, '');
   return undef unless $op == REPLY;
 
-  # FLags
+  # Flags
   my $flags = {};
   my $vec = substr $msg, 0, 4, '';
   $flags->{cursor_not_found} = vec $vec, 0, 1;
