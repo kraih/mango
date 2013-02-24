@@ -3,6 +3,7 @@
   - Added drop_index, index_information and stats methods to
     Mango::Collection.
   - Added eval and stats methods to Mango::Database.
+  - Added TO_JSON method to Mango::BSON::Binary.
   - Added TO_JSON method to Mango::BSON::Time.
   - Improved exception handling for commands.
   - Improved documentation.

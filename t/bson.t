@@ -300,4 +300,8 @@ is_deeply bson_decode(bson_encode({false => \$bytes})), {false => bson_false},
 is j({time => bson_time(1360626536748)}), '{"time":1360626536748}',
   'right JSON';
 
+# Binary to JSON
+is j({bin => bson_bin('Hello World!')}), '{"bin":"SGVsbG8gV29ybGQh"}',
+  'right JSON';
+
 done_testing();

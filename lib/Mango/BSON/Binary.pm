@@ -2,7 +2,11 @@ package Mango::BSON::Binary;
 use Mojo::Base -base;
 use overload '""' => sub { shift->data }, fallback => 1;
 
+use Mojo::Util 'b64_encode';
+
 has [qw(data type)];
+
+sub TO_JSON { b64_encode shift->data, '' }
 
 1;
 
