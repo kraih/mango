@@ -93,7 +93,9 @@ sub new {
 sub db {
   my ($self, $name) = @_;
   $name //= $self->default_db;
-  return Mango::Database->new(mango => $self, name => $name);
+  my $db = Mango::Database->new(mango => $self, name => $name);
+  weaken $db->{mango};
+  return $db;
 }
 
 sub is_active { !!(scalar @{$_[0]{queue} || []} || $_[0]{current}) }

@@ -1,9 +1,9 @@
 package Mango::BSON;
 use Mojo::Base -strict;
 
-use Carp 'croak';
 use re 'regexp_pattern';
 use B;
+use Carp 'croak';
 use Exporter 'import';
 use Mango::BSON::Binary;
 use Mango::BSON::Code;

@@ -1,5 +1,5 @@
 
-0.05  2013-02-23
+0.05  2013-02-26
   - Added drop_index, index_information and stats methods to
     Mango::Collection.
   - Added eval and stats methods to Mango::Database.
@@ -8,6 +8,7 @@
   - Improved exception handling for commands.
   - Improved documentation.
   - Improved tests.
+  - Fixed a few memory leaks.
 
 0.04  2013-02-10
   - Added collection_names method to Mango::Database.
