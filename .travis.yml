@@ -5,7 +5,9 @@ perl:
   - "5.12"
   - "5.10"
 env:
-  - "HARNESS_OPTIONS=j9 TEST_POD=1"
+  - "HARNESS_OPTIONS=j9 TEST_POD=1 TEST_ONLINE=mongodb://127.0.0.1/mango"
+services:
+  - mongodb
 install:
   - "cpanm -n Test::Pod Test::Pod::Coverage"
   - "cpanm -n --installdeps ."
