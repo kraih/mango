@@ -1,5 +1,5 @@
 
-0.05  2013-02-26
+0.05  2013-02-28
   - Added drop_index, index_information and stats methods to
     Mango::Collection.
   - Added eval and stats methods to Mango::Database.
