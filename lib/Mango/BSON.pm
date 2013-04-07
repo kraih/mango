@@ -224,7 +224,7 @@ sub _decode_value {
     if $type eq TIMESTAMP;
 
   # Unknown
-  return undef;
+  croak 'Unknown BSON type';
 }
 
 sub _encode_binary {
