@@ -32,7 +32,7 @@ is bson_length("\x05\x00\x00\x00"),         5,     'right length';
 is bson_length("\x05\x00\x00\x00\x00"),     5,     'right length';
 is bson_length("\x05\x00\x00\x00\x00\x00"), 5,     'right length';
 
-# Generate Object ID
+# Generate object id
 is length bson_oid, 24, 'right length';
 is bson_oid('510d83915867b405b9000000')->to_epoch, 1359840145,
   'right epoch time';
@@ -167,7 +167,7 @@ $doc   = bson_decode($bytes);
 is_deeply $doc, {test => bson_min()}, 'right document';
 is bson_encode($doc), $bytes, 'successful roundtrip';
 
-# Object ID roundtrip
+# Object id roundtrip
 my $id = '000102030405060708090a0b';
 $bytes = "\x16\x00\x00\x00\x07\x6F\x69\x64\x00\x00"
   . "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x00";
@@ -303,5 +303,19 @@ is j({time => bson_time(1360626536748)}), '{"time":1360626536748}',
 # Binary to JSON
 is j({bin => bson_bin('Hello World!')}), '{"bin":"SGVsbG8gV29ybGQh"}',
   'right JSON';
+
+# Validate object id
+is bson_oid('123456789012345678abcdef'), '123456789012345678abcdef',
+  'valid object id';
+is bson_oid('123456789012345678ABCDEF'), '123456789012345678ABCDEF',
+  'valid object id';
+eval { bson_oid('123456789012345678abcde') };
+like $@, qr/Invalid object id "123456789012345678abcde"/,
+  'object id too short';
+eval { bson_oid('123456789012345678abcdeff') };
+like $@, qr/Invalid object id "123456789012345678abcdeff"/,
+  'object id too long';
+eval { bson_oid('123456789012345678abcdgf') };
+like $@, qr/Invalid object id "123456789012345678abcdgf"/, 'invalid object id';
 
 done_testing();

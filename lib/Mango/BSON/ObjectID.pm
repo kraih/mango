@@ -2,6 +2,7 @@ package Mango::BSON::ObjectID;
 use Mojo::Base -base;
 use overload '""' => sub { ${$_[0]} }, fallback => 1;
 
+use Carp 'croak';
 use Mojo::Util 'md5_bytes';
 use Sys::Hostname 'hostname';
 
@@ -13,7 +14,8 @@ my $COUNTER = 0;
 
 sub new {
   my ($class, $oid) = @_;
-  return bless \($oid //= _generate()), ref $class || $class;
+  croak qq{Invalid object id "$oid"} if $oid && $oid !~ /^[[:xdigit:]]{24}$/;
+  return bless \($oid ||= _generate()), ref $class || $class;
 }
 
 sub to_epoch { unpack 'N', substr(pack('H*', ${$_[0]}), 0, 4) }
