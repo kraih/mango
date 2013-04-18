@@ -14,8 +14,9 @@ my $COUNTER = 0;
 
 sub new {
   my ($class, $oid) = @_;
-  croak qq{Invalid object id "$oid"} if $oid && $oid !~ /^[[:xdigit:]]{24}$/;
-  return bless \($oid ||= _generate()), ref $class || $class;
+  croak qq{Invalid object id "$oid"}
+    if defined $oid && $oid !~ /^[[:xdigit:]]{24}$/;
+  return bless \($oid //= _generate()), ref $class || $class;
 }
 
 sub to_epoch { unpack 'N', substr(pack('H*', ${$_[0]}), 0, 4) }

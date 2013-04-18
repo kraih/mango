@@ -317,5 +317,7 @@ like $@, qr/Invalid object id "123456789012345678abcdeff"/,
   'object id too long';
 eval { bson_oid('123456789012345678abcdgf') };
 like $@, qr/Invalid object id "123456789012345678abcdgf"/, 'invalid object id';
+eval { bson_oid(0) };
+like $@, qr/Invalid object id "0"/, 'invalid object id';
 
 done_testing();
