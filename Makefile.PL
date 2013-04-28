@@ -26,6 +26,6 @@ WriteMakefile(
     },
     no_index => {directory => ['t']}
   },
-  PREREQ_PM => {Mojolicious => '3.84'},
+  PREREQ_PM => {Mojolicious => '3.97'},
   test      => {TESTS       => 't/*.t t/*/*.t'}
 );

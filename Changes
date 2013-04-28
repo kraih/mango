@@ -1,10 +1,11 @@
 
-0.05  2013-02-28
+0.05  2013-04-28
   - Added drop_index, index_information and stats methods to
     Mango::Collection.
   - Added eval and stats methods to Mango::Database.
   - Added TO_JSON method to Mango::BSON::Binary.
   - Added TO_JSON method to Mango::BSON::Time.
+  - Improved support for Mojolicious 3.97.
   - Improved exception handling for commands.
   - Improved documentation.
   - Improved tests.

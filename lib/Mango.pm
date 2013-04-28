@@ -67,6 +67,7 @@ sub new {
   my $url = Mojo::URL->new($string);
   croak qq{Invalid MongoDB connection string "$string"}
     unless $url->protocol eq 'mongodb';
+  $url = $url->new($url->scheme('http'));
 
   # Hosts
   my @hosts;
