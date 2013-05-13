@@ -1,6 +1,6 @@
 package Mango::BSON::ObjectID;
 use Mojo::Base -base;
-use overload '""' => sub { ${$_[0]} }, fallback => 1;
+use overload '""' => sub { shift->to_string }, fallback => 1;
 
 use Carp 'croak';
 use Mojo::Util 'md5_bytes';
@@ -20,6 +20,8 @@ sub new {
 }
 
 sub to_epoch { unpack 'N', substr(pack('H*', ${$_[0]}), 0, 4) }
+
+sub to_string { ${$_[0]} }
 
 sub _generate {
 
@@ -66,6 +68,13 @@ Construct a new scalar-based L<Mango::BSON::ObjectID> object.
   my $epoch = $oid->to_epoch;
 
 Extract epoch seconds from object id.
+
+=head2 to_string
+
+  my $str = $oid->to_string;
+  my $str = "$oid";
+
+Stringify object id.
 
 =head1 SEE ALSO
 
