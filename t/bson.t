@@ -296,6 +296,20 @@ is_deeply bson_decode(bson_encode({false => \!!$bytes})),
 is_deeply bson_decode(bson_encode({false => \$bytes})), {false => bson_false},
   'encode false boolean from reference';
 
+# Upgraded numbers
+my $num = 3;
+my $str = "$num";
+is_deeply bson_decode(bson_encode {test => [$num, $str]}), {test => [3, "3"]},
+  'upgraded number detected';
+$num = 3.21;
+$str = "$num";
+is_deeply bson_decode(bson_encode {test => [$num, $str]}),
+  {test => [3.21, "3.21"]}, 'upgraded number detected';
+$str = '0 but true';
+$num = 1 + $str;
+is_deeply bson_decode(bson_encode {test => [$num, $str]}), {test => [1, 0]},
+  'upgraded number detected';
+
 # Time to JSON
 is j({time => bson_time(1360626536748)}), '{"time":1360626536748}',
   'right JSON';

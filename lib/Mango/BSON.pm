@@ -138,8 +138,8 @@ sub _decode_binary {
 
 sub _decode_cstring {
   my $bsonref = shift;
-  (my $string, $$bsonref) = unpack 'Z*a*', $$bsonref;
-  return decode 'UTF-8', $string;
+  (my $str, $$bsonref) = unpack 'Z*a*', $$bsonref;
+  return decode 'UTF-8', $str;
 }
 
 sub _decode_doc {
@@ -288,8 +288,8 @@ sub _encode_object {
 }
 
 sub _encode_string {
-  my $string = encode('UTF-8', shift) . "\x00";
-  return encode_int32(length $string) . $string;
+  my $str = encode('UTF-8', shift) . "\x00";
+  return encode_int32(length $str) . $str;
 }
 
 sub _encode_value {
@@ -337,11 +337,9 @@ sub _encode_value {
 
   # Double
   my $flags = B::svref_2object(\$value)->FLAGS;
-  if ($flags & B::SVp_NOK && !($flags & B::SVp_POK)) {
-    return DOUBLE . $e . pack('d<', $value);
-  }
+  return DOUBLE . $e . pack('d<', $value) if $flags & B::SVp_NOK;
 
-  elsif ($flags & B::SVp_IOK && !($flags & B::SVp_POK)) {
+  if ($flags & B::SVp_IOK) {
 
     # Int32
     return INT32 . $e . encode_int32($value)
