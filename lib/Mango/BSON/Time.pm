@@ -1,6 +1,6 @@
 package Mango::BSON::Time;
 use Mojo::Base -base;
-use overload '""' => sub { ${$_[0]} }, fallback => 1;
+use overload '""' => sub { shift->to_string }, fallback => 1;
 
 use Time::HiRes 'time';
 
@@ -9,7 +9,9 @@ sub new {
   return bless \($time //= int(time * 1000)), ref $class || $class;
 }
 
-sub to_epoch { int(${$_[0]} / 1000) }
+sub to_epoch { ${$_[0]} / 1000 }
+
+sub to_string { ${$_[0]} }
 
 sub TO_JSON { ${$_[0]} }
 
@@ -47,7 +49,14 @@ Construct a new scalar-based L<Mango::BSON::Time> object.
 
   my $epoch = $time->to_epoch;
 
-Convert time to epoch seconds.
+Convert time to floating seconds since the epoch.
+
+=head2 to_string
+
+  my $str = $time->to_string;
+  my $str = "$time";
+
+Stringify time.
 
 =head1 SEE ALSO
 
