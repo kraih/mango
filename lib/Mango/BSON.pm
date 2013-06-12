@@ -138,7 +138,7 @@ sub _decode_binary {
 
 sub _decode_cstring {
   my $bsonref = shift;
-  $$bsonref =~ s/^([^\0]*)\0//;
+  $$bsonref =~ s/^([^\x00]*)\x00//;
   return decode 'UTF-8', $1;
 }
 
