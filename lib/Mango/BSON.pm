@@ -138,8 +138,8 @@ sub _decode_binary {
 
 sub _decode_cstring {
   my $bsonref = shift;
-  (my $str, $$bsonref) = unpack 'Z*a*', $$bsonref;
-  return decode 'UTF-8', $str;
+  $$bsonref =~ s/^([^\x{00}]*)\x{00}?//;
+  return decode 'UTF-8', $1;
 }
 
 sub _decode_doc {
