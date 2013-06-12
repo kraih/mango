@@ -55,6 +55,12 @@ is_deeply [keys %$doc], [], 'empty document';
 is_deeply $doc, {}, 'empty document';
 is bson_encode($doc), $bytes, 'successful roundtrip';
 
+# Empty key and value
+$bytes = "\x0c\x00\x00\x00\x02\x00\x01\x00\x00\x00\x00\x00";
+$doc   = bson_decode($bytes);
+is_deeply $doc, {'' => ''}, 'right document';
+is bson_encode($doc), $bytes, 'successful roundtrip';
+
 # Incomplete document
 is bson_decode("\x05\x00\x00\x00"), undef, 'no result';
 is bson_decode("\x05\x00\x00"),     undef, 'no result';

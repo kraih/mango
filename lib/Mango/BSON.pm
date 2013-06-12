@@ -138,8 +138,8 @@ sub _decode_binary {
 
 sub _decode_cstring {
   my $bsonref = shift;
-  (my $str, $$bsonref) = unpack 'Z*a*', $$bsonref;
-  return decode 'UTF-8', $str;
+  $$bsonref =~ s/^([^\0]*)\0//;
+  return decode 'UTF-8', $1;
 }
 
 sub _decode_doc {
@@ -153,10 +153,8 @@ sub _decode_doc {
     # Null byte (end of document)
     last if $type eq "\x00";
 
-    # Value with valid name
     my $name = _decode_cstring($bsonref);
-    my $value = _decode_value($type, $bsonref);
-    $doc->{$name} = $value if length $name;
+    $doc->{$name} = _decode_value($type, $bsonref);
   }
 
   return $doc;
