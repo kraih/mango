@@ -316,6 +316,12 @@ $num = 1 + $str;
 is_deeply bson_decode(bson_encode {test => [$num, $str]}), {test => [1, 0]},
   'upgraded number detected';
 
+# "inf" and "nan"
+is_deeply bson_decode(bson_encode {test => [9**9**9]}), {test => [9**9**9]},
+  'successful roundtrip';
+is_deeply bson_decode(bson_encode {test => [-sin(9**9**9)]}),
+  {test => [-sin(9**9**9)]}, 'successful roundtrip';
+
 # Time to JSON
 is j({time => bson_time(1360626536748)}), '{"time":1360626536748}',
   'right JSON';
