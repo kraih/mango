@@ -44,7 +44,7 @@ for my $name (qw(delete insert update)) {
 
     # Make sure both operations can be written together
     my ($next, $msg) = $self->_build($name, $ns, @_);
-    $next = $self->_next_id;
+    $next = $self->_id;
     $ns =~ s/\..+$/\.\$cmd/;
     my $command = bson_doc
       getLastError => 1,
@@ -101,9 +101,8 @@ sub db {
 
 sub is_active {
   my $self = shift;
-  return 1 if scalar @{$self->{queue} || []};
-  return 1 if grep { $_->{current} } values %{$self->{connections} || {}};
-  return undef;
+  return 1 if @{$self->{queue} || []};
+  return !!grep { $_->{current} } values %{$self->{connections} || {}};
 }
 
 sub kill_cursors {
@@ -129,7 +128,7 @@ sub _auth {
 
 sub _build {
   my ($self, $name) = (shift, shift);
-  my $next   = $self->_next_id;
+  my $next   = $self->_id;
   my $method = "build_$name";
   return ($next, $self->protocol->$method($next, @_));
 }
@@ -166,7 +165,7 @@ sub _command {
   };
 
   # Skip the queue and run command right away
-  my $next = $self->_next_id;
+  my $next = $self->_id;
   my $msg
     = $protocol->build_query($next, "$db.\$cmd", {}, 0, -1, $command, {});
   $self->{connections}{$id}{priority}
@@ -225,6 +224,8 @@ sub _finish {
   $self->$cb($err || $self->protocol->query_failure($reply), $reply);
 }
 
+sub _id { $_[0]{id} = $_[0]->protocol->next_id($_[0]{id} // 0) }
+
 sub _loop { $_[0]{nb} ? Mojo::IOLoop->singleton : $_[0]->ioloop }
 
 sub _next {
@@ -237,8 +238,6 @@ sub _next {
   $self->_connect
     if $op && !$priority && @{$self->{queue}} && @ids < $self->max_connections;
 }
-
-sub _next_id { $_[0]{id} = $_[0]->protocol->next_id($_[0]{id} // 0) }
 
 sub _read {
   my ($self, $id, $chunk) = @_;
