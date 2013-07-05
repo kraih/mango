@@ -175,8 +175,8 @@ is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Object id roundtrip
 my $id = '000102030405060708090a0b';
-$bytes = "\x16\x00\x00\x00\x07\x6F\x69\x64\x00\x00"
-  . "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x00";
+$bytes = "\x16\x00\x00\x00\x07\x6f\x69\x64\x00\x00"
+  . "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x00";
 $doc = bson_decode($bytes);
 isa_ok $doc->{oid}, 'Mango::BSON::ObjectID', 'right class';
 is $doc->{oid}->to_epoch, 66051, 'right epoch time';
@@ -185,7 +185,7 @@ is bson_encode($doc), $bytes, 'successful roundtrip';
 
 # Regex roundtrip
 $bytes
-  = "\x12\x00\x00\x00\x0B\x72\x65\x67\x65\x78\x00\x61\x2A\x62\x00\x69\x00\x00";
+  = "\x12\x00\x00\x00\x0b\x72\x65\x67\x65\x78\x00\x61\x2a\x62\x00\x69\x00\x00";
 $doc = bson_decode($bytes);
 is_deeply $doc, {regex => qr/a*b/i}, 'right document';
 like 'AAB',  $doc->{regex}, 'regex works';

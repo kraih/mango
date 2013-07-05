@@ -358,6 +358,8 @@ package Mango::BSON::_MinKey;
 
 1;
 
+=encoding utf8
+
 =head1 NAME
 
 Mango::BSON - BSON

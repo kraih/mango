@@ -17,6 +17,8 @@ sub TO_JSON { ${$_[0]} }
 
 1;
 
+=encoding utf8
+
 =head1 NAME
 
 Mango::BSON::Time - Datetime type

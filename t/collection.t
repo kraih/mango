@@ -89,7 +89,7 @@ is $collection->remove({atomic => 2}), 1, 'removed one document';
 # Find and modify document non-blocking
 $oid = $collection->insert({atomic => 1});
 is $collection->find_one($oid)->{atomic}, 1, 'right document';
-$fail = $result = undef;
+($fail, $result) = ();
 $collection->find_and_modify(
   {query => {atomic => 1}, update => {'$set' => {atomic => 2}}} => sub {
     my ($collection, $err, $doc) = @_;
@@ -115,7 +115,7 @@ is $collection->remove({more => {'$exists' => 1}}), 3,
 
 # Aggregate collection non-blocking
 $collection->insert([{more => 1}, {more => 2}, {more => 3}]);
-$fail = $result = undef;
+($fail, $result) = ();
 $collection->aggregate(
   [{'$group' => {_id => undef, total => {'$sum' => '$more'}}}] => sub {
     my ($collection, $err, $docs) = @_;
@@ -148,7 +148,7 @@ is $doc->{save}, 'me', 'right document';
 is $collection->remove({_id => $oid}), 1, 'one document removed';
 
 # Save document non-blocking
-$fail = $result = undef;
+($fail, $result) = ();
 $collection->save(
   {update => 'me'} => sub {
     my ($collection, $err, $oid) = @_;
@@ -164,7 +164,7 @@ $doc = $collection->find_one($result);
 is $doc->{update}, 'me', 'right document';
 $doc->{update} = 'too';
 $oid = $result;
-$fail = $result = undef;
+($fail, $result) = ();
 $collection->save(
   $doc => sub {
     my ($collection, $err, $oid) = @_;
@@ -180,9 +180,9 @@ is $oid, $result, 'same object id';
 $doc = $collection->find_one($oid);
 is $doc->{update}, 'too', 'right document';
 is $collection->remove({_id => $oid}), 1, 'one document removed';
-$oid  = bson_oid;
-$doc  = bson_doc _id => $oid, save => 'me';
-$fail = $result = undef;
+$oid = bson_oid;
+$doc = bson_doc _id => $oid, save => 'me';
+($fail, $result) = ();
 $collection->save(
   $doc => sub {
     my ($collection, $err, $oid) = @_;
@@ -237,7 +237,7 @@ $collection->drop;
 $collection->insert({test => 23, foo => 'bar'});
 $collection->insert({test => 23, foo => 'baz'});
 is $collection->find->count, 2, 'two documents';
-$fail = $result = undef;
+($fail, $result) = ();
 my $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
@@ -260,7 +260,7 @@ ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $collection->find->count, 1, 'one document';
 is $result->{test}{unique}, bson_true, 'index is unique';
-$fail = $result = undef;
+($fail, $result) = ();
 $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
@@ -344,7 +344,7 @@ $collection->insert({x => 1, tags => [qw(dog cat)]});
 $collection->insert({x => 2, tags => ['cat']});
 $collection->insert({x => 3, tags => [qw(mouse cat dog)]});
 $collection->insert({x => 4, tags => []});
-$fail = $result = undef;
+($fail, $result) = ();
 $collection->map_reduce(
   ($map, $reduce, {out => 'collection_test_results'}) => sub {
     my ($collection, $err, $out) = @_;
@@ -380,7 +380,7 @@ $collection->insert({x => 1, tags => [qw(dog cat)]});
 $collection->insert({x => 2, tags => ['cat']});
 $collection->insert({x => 3, tags => [qw(mouse cat dog)]});
 $collection->insert({x => 4, tags => []});
-$fail = $result = undef;
+($fail, $result) = ();
 $collection->map_reduce(
   (bson_code($map), bson_code($reduce), {out => {inline => 1}}) => sub {
     my ($collection, $err, $docs) = @_;
@@ -401,7 +401,7 @@ is_deeply $result->[2], {_id => 'mouse', value => 1}, 'right document';
 my $port = Mojo::IOLoop->generate_port;
 $mango = Mango->new("mongodb://localhost:$port");
 my $id = Mojo::IOLoop->server((port => $port) => sub { $_[1]->close });
-$fail = $result = undef;
+($fail, $result) = ();
 $mango->db->collection('collection_test')->remove(
   sub {
     my ($collection, $err, $num) = @_;

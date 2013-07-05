@@ -15,7 +15,7 @@ my $COUNTER = 0;
 sub new {
   my ($class, $oid) = @_;
   croak qq{Invalid object id "$oid"}
-    if defined $oid && $oid !~ /^[[:xdigit:]]{24}$/;
+    if defined $oid && $oid !~ /^[0-9a-fA-F]{24}$/;
   return bless \($oid //= _generate()), ref $class || $class;
 }
 
@@ -26,14 +26,16 @@ sub to_string { ${$_[0]} }
 sub _generate {
 
   # 4 byte time, 3 byte machine identifier and 2 byte process id
-  my $oid = pack('N', time) . $MACHINE . pack('n', $$ % 0xFFFF);
+  my $oid = pack('N', time) . $MACHINE . pack('n', $$ % 0xffff);
 
   # 3 byte counter
-  $COUNTER = ($COUNTER + 1) % 0xFFFFFF;
+  $COUNTER = ($COUNTER + 1) % 0xffffff;
   return unpack 'H*', $oid . substr(pack('V', $COUNTER), 0, 3);
 }
 
 1;
+
+=encoding utf8
 
 =head1 NAME
 

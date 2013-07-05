@@ -5,6 +5,8 @@ has [qw(seconds increment)];
 
 1;
 
+=encoding utf8
+
 =head1 NAME
 
 Mango::BSON::Timestamp - Timestamp type

@@ -106,4 +106,17 @@ is $updated, 1, 'one document updated';
 is_deeply $found, {_id => $created, foo => 'yada'}, 'right document';
 is $removed, 1, 'one document removed';
 
+# Mixed parallel operations
+$collection->insert({test => $_}) for 1 .. 3;
+$delay = Mojo::IOLoop->delay;
+$collection->find_one({test => $_} => $delay->begin) for 1 .. 3;
+my @results = $delay->wait;
+ok !$results[0], 'no error';
+is $results[1]{test}, 1, 'right result';
+ok !$results[2], 'no error';
+is $results[3]{test}, 2, 'right result';
+ok !$results[4], 'no error';
+is $results[5]{test}, 3, 'right result';
+is $collection->remove, 3, 'three documents removed';
+
 done_testing();

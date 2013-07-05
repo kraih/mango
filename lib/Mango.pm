@@ -18,9 +18,10 @@ has default_db  => 'admin';
 has hosts       => sub { [['localhost']] };
 has ioloop      => sub { Mojo::IOLoop->new };
 has j           => 0;
-has protocol    => sub { Mango::Protocol->new };
-has w           => 1;
-has wtimeout    => 1000;
+has max_connections => 5;
+has protocol        => sub { Mango::Protocol->new };
+has w               => 1;
+has wtimeout        => 1000;
 
 our $VERSION = '0.05';
 
@@ -29,9 +30,9 @@ for my $name (qw(get_more query)) {
   monkey_patch __PACKAGE__, $name, sub {
     my $self = shift;
     my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-    my ($id, $msg) = $self->_build($name, @_);
-    warn "-- Operation $id ($name)\n" if DEBUG;
-    $self->_start({id => $id, safe => 1, msg => $msg, cb => $cb});
+    my ($next, $msg) = $self->_build($name, @_);
+    warn "-- Operation $next ($name)\n" if DEBUG;
+    $self->_start({id => $next, safe => 1, msg => $msg, cb => $cb});
   };
 }
 
@@ -42,18 +43,18 @@ for my $name (qw(delete insert update)) {
     my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
 
     # Make sure both operations can be written together
-    my ($id, $msg) = $self->_build($name, $ns, @_);
-    $id = $self->_id;
+    my ($next, $msg) = $self->_build($name, $ns, @_);
+    $next = $self->_next_id;
     $ns =~ s/\..+$/\.\$cmd/;
     my $command = bson_doc
       getLastError => 1,
       j            => $self->j ? bson_true : bson_false,
       w            => $self->w,
       wtimeout     => $self->wtimeout;
-    $msg .= $self->protocol->build_query($id, $ns, {}, 0, -1, $command, {});
+    $msg .= $self->protocol->build_query($next, $ns, {}, 0, -1, $command, {});
 
-    warn "-- Operation $id ($name)\n" if DEBUG;
-    $self->_start({id => $id, safe => 1, msg => $msg, cb => $cb});
+    warn "-- Operation $next ($name)\n" if DEBUG;
+    $self->_start({id => $next, safe => 1, msg => $msg, cb => $cb});
   };
 }
 
@@ -63,11 +64,10 @@ sub new {
   my $self = shift->SUPER::new;
 
   # Protocol
-  return $self unless my $string = shift;
-  my $url = Mojo::URL->new($string);
-  croak qq{Invalid MongoDB connection string "$string"}
+  return $self unless my $str = shift;
+  my $url = Mojo::URL->new($str);
+  croak qq{Invalid MongoDB connection string "$str"}
     unless $url->protocol eq 'mongodb';
-  $url = $url->new($url->scheme('http'));
 
   # Hosts
   my @hosts;
@@ -99,18 +99,23 @@ sub db {
   return $db;
 }
 
-sub is_active { !!(scalar @{$_[0]{queue} || []} || $_[0]{current}) }
+sub is_active {
+  my $self = shift;
+  return 1 if scalar @{$self->{queue} || []};
+  return 1 if grep { $_->{current} } values %{$self->{connections} || {}};
+  return undef;
+}
 
 sub kill_cursors {
   my $self = shift;
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-  my ($id, $msg) = $self->_build('kill_cursors', @_);
-  warn "-- Unsafe operation $id (kill_cursors)\n" if DEBUG;
-  $self->_start({id => $id, safe => 0, msg => $msg, cb => $cb});
+  my ($next, $msg) = $self->_build('kill_cursors', @_);
+  warn "-- Unsafe operation $next (kill_cursors)\n" if DEBUG;
+  $self->_start({id => $next, safe => 0, msg => $msg, cb => $cb});
 }
 
 sub _auth {
-  my ($self, $credentials, $auth, $err, $reply) = @_;
+  my ($self, $id, $credentials, $auth, $err, $reply) = @_;
   my ($db, $user, $pass) = @$auth;
 
   # Authenticate
@@ -118,53 +123,56 @@ sub _auth {
   my $key = md5_sum $nonce . $user . md5_sum "${user}:mongo:${pass}";
   my $command
     = bson_doc(authenticate => 1, user => $user, nonce => $nonce, key => $key);
-  $self->_command($db, $command, sub { shift->_connected($credentials) });
+  $self->_command($id, $db, $command,
+    sub { shift->_connected($id, $credentials) });
 }
 
 sub _build {
   my ($self, $name) = (shift, shift);
-  my $id     = $self->_id;
+  my $next   = $self->_next_id;
   my $method = "build_$name";
-  return ($id, $self->protocol->$method($id, @_));
+  return ($next, $self->protocol->$method($next, @_));
 }
 
 sub _cleanup {
   my $self = shift;
   return unless my $loop = $self->_loop;
 
-  # Clean up connection
-  $loop->remove(delete $self->{connection}) if $self->{connection};
+  # Clean up connections
+  my $connections = delete $self->{connections};
+  $loop->remove($_) for keys %$connections;
 
   # Clean up all operations
   my $queue = delete $self->{queue} || [];
-  unshift @$queue, $self->{current} if $self->{current};
+  $_->{current} and unshift @$queue, $_->{current} for values %$connections;
   $self->_finish(undef, $_->{cb}, 'Premature connection close') for @$queue;
 }
 
 sub _close {
-  my $self = shift;
-  $self->_error;
-  $self->_connect;
+  my ($self, $id) = @_;
+  $self->_error($id);
+  $self->_connect if delete $self->{connections}{$id};
 }
 
 sub _command {
-  my ($self, $db, $command, $cb) = @_;
+  my ($self, $id, $db, $command, $cb) = @_;
 
   # Handle errors
   my $protocol = $self->protocol;
   my $wrapper  = sub {
     my ($self, $err, $reply) = @_;
     $err ||= $protocol->command_error($reply);
-    return $err ? $self->_error($err) : $self->$cb($err, $reply);
+    return $err ? $self->_error($id, $err) : $self->$cb($err, $reply);
   };
 
   # Skip the queue and run command right away
-  my $id = $self->_id;
-  my $msg = $protocol->build_query($id, "$db.\$cmd", {}, 0, -1, $command, {});
-  unshift @{$self->{queue}},
-    {id => $id, safe => 1, msg => $msg, cb => $wrapper};
-  warn "-- Fast operation $id (query)\n" if DEBUG;
-  $self->_write;
+  my $next = $self->_next_id;
+  my $msg
+    = $protocol->build_query($next, "$db.\$cmd", {}, 0, -1, $command, {});
+  $self->{connections}{$id}{priority}
+    = {id => $next, safe => 1, msg => $msg, cb => $wrapper};
+  warn "-- Fast operation $next (query)\n" if DEBUG;
+  $self->_next;
 }
 
 sub _connect {
@@ -172,37 +180,41 @@ sub _connect {
 
   weaken $self;
   my ($host, $port) = @{$self->hosts->[0]};
-  $self->{connection} = $self->_loop->client(
+  my $id;
+  $id = $self->_loop->client(
     {address => $host, port => $port // DEFAULT_PORT} => sub {
       my ($loop, $err, $stream) = @_;
 
       # Connection error
-      return $self && $self->_error($err) if $err;
+      return $self && $self->_error($id, $err) if $err;
 
       # Connection established
       $stream->timeout(0);
-      $stream->on(close => sub { $self->_close });
-      $stream->on(error => sub { $self && $self->_error(pop) });
-      $stream->on(read  => sub { $self->_read(pop) });
-      $self->_connected([@{$self->credentials}]);
+      $stream->on(close => sub { $self->_close($id) });
+      $stream->on(error => sub { $self && $self->_error($id, pop) });
+      $stream->on(read => sub { $self->_read($id, pop) });
+      $self->_connected($id, [@{$self->credentials}]);
     }
   );
+  $self->{connections}{$id} = {};
 }
 
 sub _connected {
-  my ($self, $credentials) = @_;
+  my ($self, $id, $credentials) = @_;
 
   # No authentication
-  return $self->_write unless my $auth = shift @$credentials;
+  return $self->_next unless my $auth = shift @$credentials;
 
   # Get nonce value and authenticate
-  my $cb = sub { shift->_auth($credentials, $auth, @_) };
-  $self->_command($auth->[0], {getnonce => 1}, $cb);
+  my $cb = sub { shift->_auth($id, $credentials, $auth, @_) };
+  $self->_command($id, $auth->[0], {getnonce => 1}, $cb);
 }
 
 sub _error {
-  my ($self, $err) = @_;
-  my $current = delete $self->{current};
+  my ($self, $id, $err) = @_;
+
+  my $c       = delete $self->{connections}{$id};
+  my $current = $c->{current};
   $current //= shift @{$self->{queue}} if $err;
   return $err ? $self->emit(error => $err) : undef unless $current;
   $self->_finish(undef, $current->{cb}, $err || 'Premature connection close');
@@ -213,26 +225,32 @@ sub _finish {
   $self->$cb($err || $self->protocol->query_failure($reply), $reply);
 }
 
-sub _id { $_[0]->{id} = $_[0]->protocol->next_id($_[0]->{id} // 0) }
-
 sub _loop { $_[0]{nb} ? Mojo::IOLoop->singleton : $_[0]->ioloop }
 
-sub _queue {
+sub _next {
   my ($self, $op) = @_;
-  push @{$self->{queue} ||= []}, $op;
-  $self->{connection} ? $self->_write : $self->_connect;
+
+  push @{$self->{queue} ||= []}, $op if $op;
+  my @ids = keys %{$self->{connections}};
+  my $priority;
+  $self->_write($_) and $priority++ for @ids;
+  $self->_connect
+    if $op && !$priority && @{$self->{queue}} && @ids < $self->max_connections;
 }
 
+sub _next_id { $_[0]{id} = $_[0]->protocol->next_id($_[0]{id} // 0) }
+
 sub _read {
-  my ($self, $chunk) = @_;
+  my ($self, $id, $chunk) = @_;
 
   $self->{buffer} .= $chunk;
+  my $c = $self->{connections}{$id};
   while (my $reply = $self->protocol->parse_reply(\$self->{buffer})) {
     warn "-- Client <<< Server ($reply->{to})\n" if DEBUG;
-    next unless $reply->{to} == $self->{current}{id};
-    $self->_finish($reply, (delete $self->{current})->{cb});
+    next unless $reply->{to} == $c->{current}{id};
+    $self->_finish($reply, (delete $c->{current})->{cb});
   }
-  $self->_write;
+  $self->_next;
 }
 
 sub _start {
@@ -244,16 +262,18 @@ sub _start {
     # Start non-blocking
     unless ($self->{nb}) {
       croak 'Blocking operation in progress' if $self->is_active;
+      warn "-- Switching to non-blocking mode\n" if DEBUG;
       $self->_cleanup;
       $self->{nb}++;
     }
 
-    return $self->_queue($op);
+    return $self->_next($op);
   }
 
   # Start blocking
   if ($self->{nb}) {
     croak 'Non-blocking operations in progress' if $self->is_active;
+    warn "-- Switching to blocking mode\n" if DEBUG;
     $self->_cleanup;
     delete $self->{nb};
   }
@@ -263,7 +283,7 @@ sub _start {
     (my $self, $err, $reply) = @_;
     $self->ioloop->stop;
   };
-  $self->_queue($op);
+  $self->_next($op);
   $self->ioloop->start;
 
   # Throw blocking errors
@@ -273,23 +293,30 @@ sub _start {
 }
 
 sub _write {
-  my $self = shift;
+  my ($self, $id) = @_;
 
-  return if $self->{current};
-  return unless my $stream = $self->_loop->stream($self->{connection});
-  return unless my $current = $self->{current} = shift @{$self->{queue}};
+  my $priority;
+  my $c = $self->{connections}{$id};
+  return $priority if $c->{current};
+  return $priority unless my $stream = $self->_loop->stream($id);
+  $priority++ if my $current = delete $c->{priority};
+  return $priority unless $current ||= shift @{$self->{queue}};
 
   warn "-- Client >>> Server ($current->{id})\n" if DEBUG;
+  $c->{current} = $current;
   $stream->write(delete $current->{msg});
 
   # Unsafe operations are done when they are written
-  return if $current->{safe};
+  return $priority if $current->{safe};
   weaken $self;
   $stream->write(
-    '' => sub { $self->_finish(undef, delete($self->{current})->{cb}) });
+    '' => sub { $self->_finish(undef, delete($c->{current})->{cb}) });
+  return $priority;
 }
 
 1;
+
+=encoding utf8
 
 =head1 NAME
 
@@ -322,10 +349,10 @@ Mango - Pure-Perl non-blocking I/O MongoDB client
   # Blocking parallel find (does not work inside a running event loop)
   my $delay = Mojo::IOLoop->delay;
   for my $name (qw(sri marty)) {
-    $delay->begin;
+    my $end $delay->begin(0);
     $mango->db('test')->collection('users')->find({name => $name})->all(sub {
       my ($cursor, $err, $docs) = @_;
-      $delay->end(@$docs);
+      $end->(@$docs);
     });
   }
   my @docs = $delay->wait;
@@ -336,10 +363,10 @@ Mango - Pure-Perl non-blocking I/O MongoDB client
     ...
   });
   for my $name (qw(sri marty)) {
-    $delay->begin;
+    my $end = $delay->begin(0);
     $mango->db('test')->collection('users')->find({name => $name})->all(sub {
       my ($cursor, $err, $docs) = @_;
-      $delay->end(@$docs);
+      $end->(@$docs);
     });
   }
   $delay->wait unless Mojo::IOLoop->is_running;
@@ -361,13 +388,11 @@ Many features are still incomplete or missing, so you should wait for a stable
 production environment. Unsafe operations are not supported, so far this is
 considered a feature.
 
-This is a L<Mojolicious> spin-off project, so we follow the
-L<same rules|Mojolicious::Guides::Contributing>.
-
-Optional modules L<EV> (4.0+), L<IO::Socket::IP> (0.16+) and
-L<IO::Socket::SSL> (1.75+) are supported transparently through
-L<Mojo::IOLoop>, and used if installed. Individual features can also be
-disabled with the C<MOJO_NO_IPV6> and C<MOJO_NO_TLS> environment variables.
+For better scalability (epoll, kqueue) and to provide IPv6 as well as TLS
+support, the optional modules L<EV> (4.0+), L<IO::Socket::IP> (0.16+) and
+L<IO::Socket::SSL> (1.75+) will be used automatically by L<Mojo::IOLoop> if
+they are installed. Individual features can also be disabled with the
+MOJO_NO_IPV6 and MOJO_NO_TLS environment variables.
 
 =head1 EVENTS
 
@@ -427,6 +452,14 @@ L<Mojo::IOLoop> object.
   $mango = $mango->j(1);
 
 Wait for all operations to have reached the journal, defaults to C<0>.
+
+=head2 max_connections
+
+  my $max = $mango->max_connections;
+  $mango  = $mango->max_connections(5);
+
+Maximum number of connections to use for non-blocking operations, defaults to
+C<5>.
 
 =head2 protocol
 
@@ -564,8 +597,8 @@ diagnostics information printed to C<STDERR>.
 
 =head1 SPONSORS
 
-Some of the work on this distribution has been sponsored by an anonymous
-donor, thank you!
+Some of the work on this distribution has been sponsored by
+L<Drip Depot|http://www.dripdepot.com>, thank you!
 
 =head1 AUTHOR
 

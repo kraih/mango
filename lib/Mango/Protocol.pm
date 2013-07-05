@@ -189,6 +189,8 @@ sub _build_header {
 
 1;
 
+=encoding utf8
+
 =head1 NAME
 
 Mango::Protocol - The MongoDB wire protocol
@@ -261,7 +263,7 @@ Generate next id.
 
 =head2 parse_reply
 
-  my $reply = $protocol->parse_reply(\$string);
+  my $reply = $protocol->parse_reply(\$str);
 
 Extract and parse C<reply> message.
 

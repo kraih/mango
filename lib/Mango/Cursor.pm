@@ -160,7 +160,7 @@ sub _dequeue {
   return shift @{$self->{results}};
 }
 
-sub _enough { $_[0]->_finished ? 1 : !!@{$_[0]->{results}} }
+sub _enough { $_[0]->_finished ? 1 : !!@{$_[0]{results}} }
 
 sub _finished {
   my $self = shift;
@@ -206,6 +206,8 @@ sub _start {
 }
 
 1;
+
+=encoding utf8
 
 =head1 NAME
 

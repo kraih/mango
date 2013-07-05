@@ -212,6 +212,8 @@ sub _indexes {
 
 1;
 
+=encoding utf8
+
 =head1 NAME
 
 Mango::Collection - MongoDB collection

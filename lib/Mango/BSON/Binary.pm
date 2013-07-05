@@ -10,6 +10,8 @@ sub TO_JSON { b64_encode shift->data, '' }
 
 1;
 
+=encoding utf8
+
 =head1 NAME
 
 Mango::BSON::Binary - Binary type

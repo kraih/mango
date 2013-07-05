@@ -1,14 +1,22 @@
 
-0.05  2013-04-28
+0.05  2013-07-06
+  - Changed heuristics for number detection in Mango::BSON to better line up
+    with user expectations.
+  - Changed to_epoch in Mango::BSON::Time to return a high resolution time.
+  - Added connection pool support for non-blocking operations.
+  - Added max_connections attribute to Mango.
   - Added drop_index, index_information and stats methods to
     Mango::Collection.
-  - Added eval and stats methods to Mango::Database.
+  - Added to_string method to Mango::BSON::ObjectID.
+  - Added to_string method to Mango::BSON::Time.
+  - Added stats method to Mango::Database.
   - Added TO_JSON method to Mango::BSON::Binary.
   - Added TO_JSON method to Mango::BSON::Time.
-  - Improved support for Mojolicious 3.97.
+  - Improved compatibility with Mojolicious 4.0.
+  - Improved Mango::BSON performance.
+  - Improved Mango::BSON::ObjectID to validate object ids.
   - Improved exception handling for commands.
-  - Improved documentation.
-  - Improved tests.
+  - Fixed support for empty keys in Mango::BSON.
   - Fixed a few memory leaks.
 
 0.04  2013-02-10
@@ -25,8 +33,6 @@
   - Added create, drop and ensure_index methods to Mango::Collection.
   - Added build_query, clone and explain methods to Mango::Cursor.
   - Added command_error and query_failure methods to Mango::Protocol.
-  - Improved documentation.
-  - Improved tests.
   - Fixed array encoding in Mango::BSON.
   - Fixed small exception handling bugs in Mango.
 
@@ -37,8 +43,6 @@
   - Added multi and upsert options to update method in Mango::Collection.
   - Added single option to remove method in Mango::Collection.
   - Changed reply format from array to hash.
-  - Improved documentation.
-  - Improved tests.
   - Fixed a few exception handling bugs.
   - Fixed limit functionality in Mango::Cursor.
   - Fixed a few small timing bugs in Mango::Cursor.

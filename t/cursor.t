@@ -108,7 +108,7 @@ is_deeply [
 ], [2, 3], 'right values';
 
 # Get distinct values non-blocking
-$fail = $result = undef;
+($fail, $result) = ();
 $collection->find({test => {'$gt' => 1}})->distinct(
   test => sub {
     my ($cursor, $err, $values) = @_;
@@ -250,13 +250,12 @@ is_deeply $docs[0], $docs[1], 'found same document again';
 # Tailable cursor
 $collection->drop;
 $collection->create({capped => \1, max => 2, size => 100000});
-my $mango2      = Mango->new($ENV{TEST_ONLINE});
-my $collection2 = $mango2->db->collection('cursor_test');
+my $collection2 = $mango->db->collection('cursor_test');
 $collection2->insert([{test => 1}, {test => 2}]);
 $cursor = $collection->find->tailable(1);
 is $cursor->next->{test}, 1, 'right document';
 is $cursor->next->{test}, 2, 'right document';
-$fail = $result = undef;
+($fail, $result) = ();
 my $tail;
 $delay = Mojo::IOLoop->delay(
   sub {
