@@ -101,8 +101,8 @@ sub db {
 
 sub is_active {
   my $self = shift;
-  return 1 if @{$self->{queue} || []};
-  return !!grep { $_->{last} } values %{$self->{connections} || {}};
+  return !!(@{$self->{queue} || []}
+    || grep { $_->{last} } values %{$self->{connections} || {}});
 }
 
 sub kill_cursors {
@@ -117,13 +117,13 @@ sub _auth {
   my ($self, $id, $credentials, $auth, $err, $reply) = @_;
   my ($db, $user, $pass) = @$auth;
 
-  # Authenticate
+  # Run "authenticate" command with "nonce" value
   my $nonce = $reply->{docs}[0]{nonce} // '';
-  my $key = md5_sum $nonce . $user . md5_sum "${user}:mongo:${pass}";
+  my $key = md5_sum $nonce . $user . md5_sum "$user:mongo:$pass";
   my $command
     = bson_doc(authenticate => 1, user => $user, nonce => $nonce, key => $key);
-  $self->_command($id, $db, $command,
-    sub { shift->_connected($id, $credentials) });
+  my $cb = sub { shift->_connected($id, $credentials) };
+  $self->_fast($id, $db, $command, $cb);
 }
 
 sub _build {
@@ -141,7 +141,7 @@ sub _cleanup {
   my $connections = delete $self->{connections};
   $loop->remove($_) for keys %$connections;
 
-  # Clean up all operations
+  # Clean up active operations
   my $queue = delete $self->{queue} || [];
   $_->{last} and unshift @$queue, $_->{last} for values %$connections;
   $self->_finish(undef, $_->{cb}, 'Premature connection close') for @$queue;
@@ -151,27 +151,6 @@ sub _close {
   my ($self, $id) = @_;
   $self->_error($id);
   $self->_connect if delete $self->{connections}{$id};
-}
-
-sub _command {
-  my ($self, $id, $db, $command, $cb) = @_;
-
-  # Handle errors
-  my $protocol = $self->protocol;
-  my $wrapper  = sub {
-    my ($self, $err, $reply) = @_;
-    $err ||= $protocol->command_error($reply);
-    return $err ? $self->_error($id, $err) : $self->$cb($err, $reply);
-  };
-
-  # Skip the queue and run command right away
-  my $next = $self->_id;
-  my $msg
-    = $protocol->build_query($next, "$db.\$cmd", {}, 0, -1, $command, {});
-  $self->{connections}{$id}{priority}
-    = {id => $next, safe => 1, msg => $msg, cb => $wrapper};
-  warn "-- Fast operation $next (query)\n" if DEBUG;
-  $self->_next;
 }
 
 sub _connect {
@@ -207,9 +186,9 @@ sub _connected {
   # No authentication
   return $self->_next unless my $auth = shift @$credentials;
 
-  # Get nonce value and authenticate
+  # Run "getnonce" command followed by "authenticate"
   my $cb = sub { shift->_auth($id, $credentials, $auth, @_) };
-  $self->_command($id, $auth->[0], {getnonce => 1}, $cb);
+  $self->_fast($id, $auth->[0], {getnonce => 1}, $cb);
 }
 
 sub _error {
@@ -220,6 +199,27 @@ sub _error {
   $last //= shift @{$self->{queue}} if $err;
   return $err ? $self->emit(error => $err) : undef unless $last;
   $self->_finish(undef, $last->{cb}, $err || 'Premature connection close');
+}
+
+sub _fast {
+  my ($self, $id, $db, $command, $cb) = @_;
+
+  # Handle errors
+  my $protocol = $self->protocol;
+  my $wrapper  = sub {
+    my ($self, $err, $reply) = @_;
+    $err ||= $protocol->command_error($reply);
+    return $err ? $self->_error($id, $err) : $self->$cb($err, $reply);
+  };
+
+  # Skip the queue and run command right away
+  my $next = $self->_id;
+  my $msg
+    = $protocol->build_query($next, "$db.\$cmd", {}, 0, -1, $command, {});
+  $self->{connections}{$id}{fast}
+    = {id => $next, safe => 1, msg => $msg, cb => $wrapper};
+  warn "-- Fast operation $next (query)\n" if DEBUG;
+  $self->_next;
 }
 
 sub _finish {
@@ -301,7 +301,7 @@ sub _write {
   my $c = $self->{connections}{$id};
   return $c->{start} if $c->{last};
   return undef       unless my $stream = $self->_loop->stream($id);
-  delete $c->{start} unless my $last   = delete $c->{priority};
+  delete $c->{start} unless my $last   = delete $c->{fast};
   return $c->{start} unless $c->{last} = $last ||= shift @{$self->{queue}};
   warn "-- Client >>> Server ($last->{id})\n" if DEBUG;
   $stream->write(delete $last->{msg});
