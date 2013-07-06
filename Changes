@@ -13,7 +13,7 @@
   - Added TO_JSON method to Mango::BSON::Binary.
   - Added TO_JSON method to Mango::BSON::Time.
   - Improved compatibility with Mojolicious 4.0.
-  - Improved Mango::BSON performance.
+  - Improved Mango::BSON performance. (avkhozov)
   - Improved Mango::BSON::ObjectID to validate object ids.
   - Improved exception handling for commands.
   - Fixed support for empty keys in Mango::BSON.

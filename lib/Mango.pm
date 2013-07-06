@@ -603,6 +603,16 @@ L<Drip Depot|http://www.dripdepot.com>, thank you!
 
 Sebastian Riedel, C<sri@cpan.org>.
 
+=head1 CREDITS
+
+In alphabetical order:
+
+=over 2
+
+Andrey Khozov
+
+=back
+
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (C) 2013, Sebastian Riedel.
