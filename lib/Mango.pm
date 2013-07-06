@@ -195,7 +195,7 @@ sub _connect {
       $self->_connected($id, [@{$self->credentials}]);
     }
   );
-  $self->{connections}{$id} = {};
+  $self->{connections}{$id} = {start => 1};
 }
 
 sub _connected {
@@ -232,11 +232,12 @@ sub _next {
   my ($self, $op) = @_;
 
   push @{$self->{queue} ||= []}, $op if $op;
+
   my @ids = keys %{$self->{connections}};
-  my $priority;
-  $self->_write($_) and $priority++ for @ids;
+  my $start;
+  $self->_write($_) and $start++ for @ids;
   $self->_connect
-    if $op && !$priority && @{$self->{queue}} && @ids < $self->max_connections;
+    if $op && !$start && @{$self->{queue}} && @ids < $self->max_connections;
 }
 
 sub _read {
@@ -294,23 +295,21 @@ sub _start {
 sub _write {
   my ($self, $id) = @_;
 
-  my $priority;
   my $c = $self->{connections}{$id};
-  return $priority if $c->{current};
-  return $priority unless my $stream = $self->_loop->stream($id);
-  $priority++ if my $current = delete $c->{priority};
-  return $priority unless $current ||= shift @{$self->{queue}};
-
-  warn "-- Client >>> Server ($current->{id})\n" if DEBUG;
+  return $c->{start} if $c->{current};
+  return undef       unless my $stream  = $self->_loop->stream($id);
+  delete $c->{start} unless my $current = delete $c->{priority};
+  return $c->{start} unless $current ||= shift @{$self->{queue}};
   $c->{current} = $current;
+  warn "-- Client >>> Server ($current->{id})\n" if DEBUG;
   $stream->write(delete $current->{msg});
 
   # Unsafe operations are done when they are written
-  return $priority if $current->{safe};
+  return $c->{start} if $current->{safe};
   weaken $self;
   $stream->write(
     '' => sub { $self->_finish(undef, delete($c->{current})->{cb}) });
-  return $priority;
+  return $c->{start};
 }
 
 1;
