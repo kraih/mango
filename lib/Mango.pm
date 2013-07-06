@@ -102,7 +102,7 @@ sub db {
 sub is_active {
   my $self = shift;
   return 1 if @{$self->{queue} || []};
-  return !!grep { $_->{current} } values %{$self->{connections} || {}};
+  return !!grep { $_->{last} } values %{$self->{connections} || {}};
 }
 
 sub kill_cursors {
@@ -143,7 +143,7 @@ sub _cleanup {
 
   # Clean up all operations
   my $queue = delete $self->{queue} || [];
-  $_->{current} and unshift @$queue, $_->{current} for values %$connections;
+  $_->{last} and unshift @$queue, $_->{last} for values %$connections;
   $self->_finish(undef, $_->{cb}, 'Premature connection close') for @$queue;
 }
 
@@ -196,6 +196,9 @@ sub _connect {
     }
   );
   $self->{connections}{$id} = {start => 1};
+
+  my $num = scalar keys %{$self->{connections}};
+  warn "-- New connection ($host:$port:$num)\n" if DEBUG;
 }
 
 sub _connected {
@@ -212,11 +215,11 @@ sub _connected {
 sub _error {
   my ($self, $id, $err) = @_;
 
-  my $c       = delete $self->{connections}{$id};
-  my $current = $c->{current};
-  $current //= shift @{$self->{queue}} if $err;
-  return $err ? $self->emit(error => $err) : undef unless $current;
-  $self->_finish(undef, $current->{cb}, $err || 'Premature connection close');
+  my $c    = delete $self->{connections}{$id};
+  my $last = $c->{last};
+  $last //= shift @{$self->{queue}} if $err;
+  return $err ? $self->emit(error => $err) : undef unless $last;
+  $self->_finish(undef, $last->{cb}, $err || 'Premature connection close');
 }
 
 sub _finish {
@@ -247,8 +250,8 @@ sub _read {
   my $c = $self->{connections}{$id};
   while (my $reply = $self->protocol->parse_reply(\$self->{buffer})) {
     warn "-- Client <<< Server ($reply->{to})\n" if DEBUG;
-    next unless $reply->{to} == $c->{current}{id};
-    $self->_finish($reply, (delete $c->{current})->{cb});
+    next unless $reply->{to} == $c->{last}{id};
+    $self->_finish($reply, (delete $c->{last})->{cb});
   }
   $self->_next;
 }
@@ -296,19 +299,17 @@ sub _write {
   my ($self, $id) = @_;
 
   my $c = $self->{connections}{$id};
-  return $c->{start} if $c->{current};
-  return undef       unless my $stream  = $self->_loop->stream($id);
-  delete $c->{start} unless my $current = delete $c->{priority};
-  return $c->{start} unless $current ||= shift @{$self->{queue}};
-  $c->{current} = $current;
-  warn "-- Client >>> Server ($current->{id})\n" if DEBUG;
-  $stream->write(delete $current->{msg});
+  return $c->{start} if $c->{last};
+  return undef       unless my $stream = $self->_loop->stream($id);
+  delete $c->{start} unless my $last   = delete $c->{priority};
+  return $c->{start} unless $c->{last} = $last ||= shift @{$self->{queue}};
+  warn "-- Client >>> Server ($last->{id})\n" if DEBUG;
+  $stream->write(delete $last->{msg});
 
   # Unsafe operations are done when they are written
-  return $c->{start} if $current->{safe};
+  return $c->{start} if $last->{safe};
   weaken $self;
-  $stream->write(
-    '' => sub { $self->_finish(undef, delete($c->{current})->{cb}) });
+  $stream->write('', sub { $self->_finish(undef, delete($c->{last})->{cb}) });
   return $c->{start};
 }
 
