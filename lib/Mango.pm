@@ -348,7 +348,7 @@ Mango - Pure-Perl non-blocking I/O MongoDB client
   # Blocking parallel find (does not work inside a running event loop)
   my $delay = Mojo::IOLoop->delay;
   for my $name (qw(sri marty)) {
-    my $end $delay->begin(0);
+    my $end = $delay->begin(0);
     $mango->db('test')->collection('users')->find({name => $name})->all(sub {
       my ($cursor, $err, $docs) = @_;
       $end->(@$docs);
