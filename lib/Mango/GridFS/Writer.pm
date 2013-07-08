@@ -13,7 +13,8 @@ sub close {
   $self->_chunk;
 
   my $gridfs = $self->gridfs;
-  $gridfs->files->ensure_index({filename => 1});
+  my $files  = $gridfs->files;
+  $files->ensure_index({filename => 1});
   $gridfs->chunks->ensure_index(bson_doc(files_id => 1, n => 1),
     {unique => bson_true});
 
@@ -22,7 +23,7 @@ sub close {
     root    => $gridfs->prefix;
   my $md5 = $gridfs->db->command($command)->{md5};
 
-  $gridfs->files->insert(
+  $files->insert(
     {
       _id        => $self->id,
       length     => $self->{len},

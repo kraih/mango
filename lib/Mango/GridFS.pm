@@ -4,11 +4,10 @@ use Mojo::Base -base;
 use Mango::GridFS::Reader;
 use Mango::GridFS::Writer;
 
+has chunks => sub { $_[0]->db->collection($_[0]->prefix . '.chunks') };
 has 'db';
+has files => sub { $_[0]->db->collection($_[0]->prefix . '.files') };
 has prefix => 'fs';
-
-sub chunks { $_[0]->db->collection($_[0]->prefix . '.chunks') }
-sub files  { $_[0]->db->collection($_[0]->prefix . '.files') }
 
 sub reader { Mango::GridFS::Reader->new(gridfs => shift) }
 sub writer { Mango::GridFS::Writer->new(gridfs => shift) }
@@ -35,12 +34,28 @@ L<Mango::GridFS> is an interface for MongoDB GridFS access.
 
 L<Mango::GridFS> implements the following attributes.
 
+=head2 chunks
+
+  my $chunks = $gridfs->chunks;
+  $gridfs    = $gridfs->chunks(Mango::Collection->new);
+
+L<Mango::Collection> object for C<chunks> collection, defaults to one based on
+C<prefix>.
+
 =head2 db
 
   my $db  = $gridfs->db;
   $gridfs = $gridfs->db(Mango::Database->new);
 
 L<Mango::Database> object GridFS belongs to.
+
+=head2 files
+
+  my $files = $gridfs->files;
+  $gridfs   = $gridfs->files(Mango::Collection->new);
+
+L<Mango::Collection> object for C<files> collection, defaults to one based on
+C<prefix>.
 
 =head2 prefix
 
@@ -53,18 +68,6 @@ Prefix for GridFS collections, defaults to C<fs>.
 
 L<Mango::GridFS> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
-
-=head2 chunks
-
-  my $chunks = $gridfs->chunks;
-
-Get L<Mango::Collection> object for C<chunks> collection.
-
-=head2 files
-
-  my $files = $gridfs->files;
-
-Get L<Mango::Collection> object for C<files> collection.
 
 =head2 reader
 
