@@ -135,7 +135,7 @@ non-blocking.
 
 =head2 gridfs
 
-  my $gridf = $db->gridfs;
+  my $gridfs = $db->gridfs;
 
 Get L<Mango::GridFS> object.
 
