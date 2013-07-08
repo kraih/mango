@@ -1,4 +1,10 @@
 
+0.06  2013-07-09
+  - Added GridFS support.
+  - Added modules Mango::GridFS, Mango::GridFS::Reader and
+    Mango::GridFS::Writer.
+  - Added gridfs method to Mango::Database.
+
 0.05  2013-07-06
   - Changed heuristics for number detection in Mango::BSON to better line up
     with user expectations.

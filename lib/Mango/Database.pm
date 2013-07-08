@@ -4,6 +4,7 @@ use Mojo::Base -base;
 use Carp 'croak';
 use Mango::BSON qw(bson_code bson_doc);
 use Mango::Collection;
+use Mango::GridFS;
 
 has [qw(mango name)];
 
@@ -52,6 +53,8 @@ sub command {
   if (my $err = $protocol->command_error({docs => [$doc]})) { croak $err }
   return $doc;
 }
+
+sub gridfs { Mango::GridFS->new(db => shift) }
 
 sub stats { shift->command(bson_doc(dbstats => 1), @_) }
 
@@ -129,6 +132,12 @@ non-blocking.
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 gridfs
+
+  my $gridf = $db->gridfs;
+
+Get L<Mango::GridFS> object.
 
 =head2 stats
 
