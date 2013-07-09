@@ -9,6 +9,14 @@ has 'db';
 has files => sub { $_[0]->db->collection($_[0]->prefix . '.files') };
 has prefix => 'fs';
 
+sub delete {
+  my ($self, $oid) = @_;
+  $self->files->remove({_id      => $oid});
+  $self->files->remove({files_id => $oid});
+}
+
+sub list { shift->files->find->distinct('filename') }
+
 sub reader { Mango::GridFS::Reader->new(gridfs => shift) }
 sub writer { Mango::GridFS::Writer->new(gridfs => shift) }
 
@@ -68,6 +76,18 @@ Prefix for GridFS collections, defaults to C<fs>.
 
 L<Mango::GridFS> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
+
+=head2 delete
+
+  $gridfs->delete(bson_oid '1a2b3c4e5f60718293a4b5c6');
+
+Delete file.
+
+=head2 list
+
+  my $names = $gridfs->list;
+
+List files.
 
 =head2 reader
 

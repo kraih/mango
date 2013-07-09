@@ -27,6 +27,9 @@ is length $reader->upload_date, length(time) + 3, 'right time format';
 my $data;
 while (defined(my $chunk = $reader->read)) { $data .= $chunk }
 is $data, 'hello world!', 'right content';
+is_deeply $gridfs->list, ['foo.txt'], 'right files';
+$gridfs->delete($oid);
+is_deeply $gridfs->list, [], 'files';
 $gridfs->$_->drop for qw(files chunks);
 
 done_testing();
