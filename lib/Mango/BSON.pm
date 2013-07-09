@@ -389,8 +389,8 @@ L<Mango::BSON> implements the following functions.
 
   my $bin = bson_bin $bytes;
 
-Create new BSON element of the binary type, defaults to the C<generic> binary
-subtype.
+Create new BSON element of the binary type with L<Mango::BSON::Binary>,
+defaults to the C<generic> binary subtype.
 
   # Function
   bson_bin($bytes)->type('function');
@@ -408,7 +408,7 @@ subtype.
 
   my $code = bson_code 'function () {}';
 
-Create new BSON element of the code type.
+Create new BSON element of the code type with L<Mango::BSON::Code>.
 
   # With scope
   bson_code('function () {}')->scope({foo => 'bar'});
@@ -424,7 +424,8 @@ Decode BSON into Perl data structures.
   my $doc = bson_doc;
   my $doc = bson_doc foo => 'bar', baz => 23;
 
-Create new BSON document, defaults to an empty ordered hash.
+Create new BSON document with L<Mango::BSON::Document>, defaults to an empty
+ordered hash.
 
 =head2 bson_encode
 
@@ -462,16 +463,16 @@ Create new BSON element of the min key type.
   my $oid = bson_oid;
   my $oid = bson_oid '1a2b3c4e5f60718293a4b5c6';
 
-Create new BSON element of the object id type, defaults to generating a new
-unique object id.
+Create new BSON element of the object id type with L<Mango::BSON::ObjectID>,
+defaults to generating a new unique object id.
 
 =head2 bson_time
 
   my $now  = bson_time;
   my $time = bson_time time * 1000;
 
-Create new BSON element of the UTC datetime type, defaults to milliseconds
-since the UNIX epoch.
+Create new BSON element of the UTC datetime type with L<Mango::BSON::Time>,
+defaults to milliseconds since the UNIX epoch.
 
 =head2 bson_true
 
@@ -483,7 +484,7 @@ Create new BSON element of the boolean type true.
 
   my $timestamp = bson_ts 23, 24;
 
-Create new BSON element of the timestamp type.
+Create new BSON element of the timestamp type with L<Mango::BSON::Timestamp>.
 
 =head2 decode_int32
 
