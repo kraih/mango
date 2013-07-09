@@ -11,8 +11,8 @@ has prefix => 'fs';
 
 sub delete {
   my ($self, $oid) = @_;
-  $self->files->remove({_id      => $oid});
-  $self->files->remove({files_id => $oid});
+  $self->files->remove({_id => $oid});
+  $self->chunks->remove({files_id => $oid});
 }
 
 sub list { shift->files->find->distinct('filename') }
