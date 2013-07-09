@@ -4,7 +4,7 @@ use Mojo::Base -base;
 use Mango::BSON qw(bson_bin bson_doc bson_oid bson_time bson_true);
 
 has chunk_size => 262144;
-has [qw(filename gridfs)];
+has [qw(content_type filename gridfs)];
 has id => sub {bson_oid};
 
 sub close {
@@ -30,7 +30,8 @@ sub close {
     uploadDate => bson_time,
     md5        => $md5
   };
-  if (my $name = $self->filename) { $doc->{filename} = $name }
+  if (my $name = $self->filename)     { $doc->{filename}    = $name }
+  if (my $type = $self->content_type) { $doc->{contentType} = $type }
   $files->insert($doc);
 }
 
@@ -80,6 +81,13 @@ L<Mango::GridFS::Writer> implements the following attributes.
   $writer  = $writer->chunk_size(1024);
 
 Chunk size in bytes, defaults to C<262144>.
+
+=head2 content_type
+
+  my $type = $writer->content_type;
+  $writer  = $writer->content_type('text/plain');
+
+Content type of file.
 
 =head2 filename
 

@@ -3,8 +3,9 @@ use Mojo::Base -base;
 
 has 'gridfs';
 
-sub chunk_size { shift->{meta}{chunkSize} }
-sub filename   { shift->{meta}{filename} }
+sub chunk_size   { shift->{meta}{chunkSize} }
+sub content_type { shift->{meta}{contentType} }
+sub filename     { shift->{meta}{filename} }
 
 sub open {
   my ($self, $oid) = @_;
@@ -66,6 +67,12 @@ implements the following new ones.
   my $size = $reader->chunk_size;
 
 Chunk size in bytes.
+
+=head2 content_type
+
+  my $type = $reader->content_type;
+
+Content type of file.
 
 =head2 filename
 
