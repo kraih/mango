@@ -3,26 +3,28 @@ use Mojo::Base -base;
 
 has 'gridfs';
 
+sub chunk_size { shift->{meta}{chunkSize} }
+
 sub open {
   my ($self, $oid) = @_;
-  my $file = $self->gridfs->files->find_one($oid);
-  $self->{id}         = $oid;
-  $self->{chunk_size} = $file->{chunkSize};
-  $self->{len}        = $file->{length};
+  $self->{meta} = $self->gridfs->files->find_one($oid);
 }
 
 sub read {
   my $self = shift;
 
   $self->{pos} //= 0;
-  return undef if $self->{pos} >= $self->{len};
-  my $n = $self->{pos} / $self->{chunk_size};
-  my $chunk
-    = $self->gridfs->chunks->find_one({files_id => $self->{id}, n => $n});
+  return undef if $self->{pos} >= $self->size;
+  my $n     = $self->{pos} / $self->chunk_size;
+  my $chunk = $self->gridfs->chunks->find_one(
+    {files_id => $self->{meta}{_id}, n => $n});
   my $data = $chunk->{data};
   $self->{pos} += length $data;
   return $data;
 }
+
+sub size     { shift->{meta}{length} }
+sub uploaded { shift->{meta}{uploadDate} }
 
 1;
 
@@ -58,6 +60,12 @@ L<Mango::GridFS> object this reader belongs to.
 L<Mango::GridFS::Reader> inherits all methods from L<Mojo::Base> and
 implements the following new ones.
 
+=head2 chunk_size
+
+  my $size = $reader->chunk_size;
+
+Chunk size in bytes.
+
 =head2 open
 
   $reader->open(bson_oid '1a2b3c4e5f60718293a4b5c6');
@@ -69,6 +77,18 @@ Open file.
   my $chunk = $reader->read;
 
 Read chunk.
+
+=head2 size
+
+  my $size = $reader->size;
+
+Size of entire file in bytes.
+
+=head2 uploaded
+
+  my $time = $reader->uploaded;
+
+Time file was uploaded.
 
 =head1 SEE ALSO
 

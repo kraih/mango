@@ -20,6 +20,9 @@ $writer->write('world!');
 $writer->close;
 my $reader = $gridfs->reader;
 $reader->open($oid);
+is $reader->size,       12,     'right size';
+is $reader->chunk_size, 262144, 'right chunk size';
+is length $reader->uploaded, length(time) + 3, 'right length';
 my $data;
 while (defined(my $chunk = $reader->read)) { $data .= $chunk }
 is $data, 'hello world!', 'right content';
