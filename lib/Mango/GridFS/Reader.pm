@@ -4,6 +4,7 @@ use Mojo::Base -base;
 has 'gridfs';
 
 sub chunk_size { shift->{meta}{chunkSize} }
+sub filename   { shift->{meta}{filename} }
 
 sub open {
   my ($self, $oid) = @_;
@@ -23,8 +24,8 @@ sub read {
   return $data;
 }
 
-sub size     { shift->{meta}{length} }
-sub uploaded { shift->{meta}{uploadDate} }
+sub size        { shift->{meta}{length} }
+sub upload_date { shift->{meta}{uploadDate} }
 
 1;
 
@@ -66,6 +67,12 @@ implements the following new ones.
 
 Chunk size in bytes.
 
+=head2 filename
+
+  my $name = $reader->filename;
+
+Name of file.
+
 =head2 open
 
   $reader->open(bson_oid '1a2b3c4e5f60718293a4b5c6');
@@ -84,11 +91,11 @@ Read chunk.
 
 Size of entire file in bytes.
 
-=head2 uploaded
+=head2 upload_date
 
-  my $time = $reader->uploaded;
+  my $time = $reader->upload_date;
 
-Time file was uploaded.
+Date file was uploaded.
 
 =head1 SEE ALSO
 

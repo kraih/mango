@@ -12,7 +12,7 @@ my $gridfs = $mango->db->gridfs;
 $gridfs->$_->remove for qw(files chunks);
 
 # Blocking roundtrip
-my $writer = $gridfs->writer;
+my $writer = $gridfs->writer->filename('foo.txt');
 my $oid    = $writer->id;
 isa_ok $oid, 'Mango::BSON::ObjectID', 'right class';
 $writer->write('hello ');
@@ -20,9 +20,10 @@ $writer->write('world!');
 $writer->close;
 my $reader = $gridfs->reader;
 $reader->open($oid);
-is $reader->size,       12,     'right size';
-is $reader->chunk_size, 262144, 'right chunk size';
-is length $reader->uploaded, length(time) + 3, 'right length';
+is $reader->filename,   'foo.txt', 'right filename';
+is $reader->size,       12,        'right size';
+is $reader->chunk_size, 262144,    'right chunk size';
+is length $reader->upload_date, length(time) + 3, 'right time format';
 my $data;
 while (defined(my $chunk = $reader->read)) { $data .= $chunk }
 is $data, 'hello world!', 'right content';

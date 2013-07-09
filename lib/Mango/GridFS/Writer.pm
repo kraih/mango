@@ -4,7 +4,7 @@ use Mojo::Base -base;
 use Mango::BSON qw(bson_bin bson_doc bson_oid bson_time bson_true);
 
 has chunk_size => 262144;
-has 'gridfs';
+has [qw(filename gridfs)];
 has id => sub {bson_oid};
 
 sub close {
@@ -23,15 +23,15 @@ sub close {
     root    => $gridfs->prefix;
   my $md5 = $gridfs->db->command($command)->{md5};
 
-  $files->insert(
-    {
-      _id        => $self->id,
-      length     => $self->{len},
-      chunkSize  => $self->chunk_size,
-      uploadDate => bson_time,
-      md5        => $md5
-    }
-  );
+  my $doc = {
+    _id        => $self->id,
+    length     => $self->{len},
+    chunkSize  => $self->chunk_size,
+    uploadDate => bson_time,
+    md5        => $md5
+  };
+  if (my $name = $self->filename) { $doc->{filename} = $name }
+  $files->insert($doc);
 }
 
 sub write {
@@ -80,6 +80,13 @@ L<Mango::GridFS::Writer> implements the following attributes.
   $writer  = $writer->chunk_size(1024);
 
 Chunk size in bytes, defaults to C<262144>.
+
+=head2 filename
+
+  my $name = $writer->filename;
+  $writer  = $writer->filename('foo.txt');
+
+Name of file.
 
 =head2 gridfs
 
