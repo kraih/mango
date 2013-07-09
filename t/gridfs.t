@@ -29,7 +29,7 @@ while (defined(my $chunk = $reader->read)) { $data .= $chunk }
 is $data, 'hello world!', 'right content';
 is_deeply $gridfs->list, ['foo.txt'], 'right files';
 $gridfs->delete($oid);
-is_deeply $gridfs->list, [], 'files';
+is_deeply $gridfs->list, [], 'no files';
 $gridfs->$_->drop for qw(files chunks);
 
 done_testing();
