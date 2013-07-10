@@ -5,7 +5,6 @@ use Mango::BSON qw(bson_bin bson_doc bson_oid bson_time bson_true);
 
 has chunk_size => 262144;
 has [qw(content_type filename gridfs)];
-has id => sub {bson_oid};
 
 sub close {
   my $self = shift;
@@ -19,12 +18,12 @@ sub close {
     {unique => bson_true});
 
   my $command = bson_doc
-    filemd5 => $self->id,
+    filemd5 => $self->{files_id},
     root    => $gridfs->prefix;
   my $md5 = $gridfs->db->command($command)->{md5};
 
   my $doc = {
-    _id        => $self->id,
+    _id        => $self->{files_id},
     length     => $self->{len},
     chunkSize  => $self->chunk_size,
     uploadDate => bson_time,
@@ -34,7 +33,7 @@ sub close {
   if (my $type = $self->content_type) { $doc->{contentType} = $type }
   $files->insert($doc);
 
-  return $self->id;
+  return $self->{files_id};
 }
 
 sub write {
@@ -52,7 +51,8 @@ sub _chunk {
 
   my $n      = $self->{n}++;
   my $chunks = $self->gridfs->chunks;
-  $chunks->insert({files_id => $self->id, n => $n, data => bson_bin($chunk)});
+  my $oid    = $self->{files_id} //= bson_oid;
+  $chunks->insert({files_id => $oid, n => $n, data => bson_bin($chunk)});
 }
 
 1;
@@ -104,13 +104,6 @@ Name of file.
   $writer    = $writer->gridfs(Mango::GridFS->new);
 
 L<Mango::GridFS> object this writer belongs to.
-
-=head2 id
-
-  my $oid = $writer->id;
-  $writer = $writer->id(bson_oid '1a2b3c4e5f60718293a4b5c6');
-
-Object id of file, defaults to a newly generated one.
 
 =head1 METHODS
 
