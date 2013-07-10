@@ -14,11 +14,9 @@ $gridfs->$_->remove for qw(files chunks);
 # Blocking roundtrip
 my $writer = $gridfs->writer;
 $writer->filename('foo.txt')->content_type('text/plain');
-my $oid = $writer->id;
-isa_ok $oid, 'Mango::BSON::ObjectID', 'right class';
 $writer->write('hello ');
 $writer->write('world!');
-$writer->close;
+my $oid    = $writer->close;
 my $reader = $gridfs->reader;
 $reader->open($oid);
 is $reader->filename,     'foo.txt',    'right filename';

@@ -33,6 +33,8 @@ sub close {
   if (my $name = $self->filename)     { $doc->{filename}    = $name }
   if (my $type = $self->content_type) { $doc->{contentType} = $type }
   $files->insert($doc);
+
+  return $self->id;
 }
 
 sub write {
@@ -105,7 +107,7 @@ L<Mango::GridFS> object this writer belongs to.
 
 =head2 id
 
-  my $id  = $writer->id;
+  my $oid = $writer->id;
   $writer = $writer->id(bson_oid '1a2b3c4e5f60718293a4b5c6');
 
 Object id of file, defaults to a newly generated one.
@@ -117,7 +119,7 @@ implements the following new ones.
 
 =head2 close
 
-  $writer->close;
+  my $oid = $writer->close;
 
 Close file.
 
