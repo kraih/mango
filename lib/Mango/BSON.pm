@@ -12,7 +12,6 @@ use Mango::BSON::ObjectID;
 use Mango::BSON::Time;
 use Mango::BSON::Timestamp;
 use Mojo::JSON;
-use Mojo::Util qw(decode encode);
 use Scalar::Util 'blessed';
 
 my @BSON = (
@@ -113,7 +112,11 @@ sub bson_true {$TRUE}
 sub decode_int32 { unpack 'l<', shift }
 sub decode_int64 { unpack 'q<', shift }
 
-sub encode_cstring { pack 'Z*', encode('UTF-8', shift) }
+sub encode_cstring {
+  my $str = shift;
+  utf8::encode $str;
+  return pack 'Z*', $str;
+}
 
 sub encode_int32 { pack 'l<', shift }
 sub encode_int64 { pack 'q<', shift }
@@ -136,7 +139,9 @@ sub _decode_binary {
 sub _decode_cstring {
   my $bsonref = shift;
   $$bsonref =~ s/^([^\x00]*)\x00//;
-  return decode 'UTF-8', $1;
+  my $str = $1;
+  utf8::decode $str;
+  return $str;
 }
 
 sub _decode_doc {
@@ -159,9 +164,13 @@ sub _decode_doc {
 
 sub _decode_string {
   my $bsonref = shift;
+
   my $len = decode_int32(substr $$bsonref, 0, 4, '');
   substr $$bsonref, $len - 1, 1, '';
-  return decode 'UTF-8', substr($$bsonref, 0, $len - 1, '');
+  my $str = substr $$bsonref, 0, $len - 1, '';
+  utf8::decode $str;
+
+  return $str;
 }
 
 sub _decode_value {
@@ -283,7 +292,9 @@ sub _encode_object {
 }
 
 sub _encode_string {
-  my $str = encode('UTF-8', shift) . "\x00";
+  my $str = shift;
+  utf8::encode $str;
+  $str .= "\x00";
   return encode_int32(length $str) . $str;
 }
 
