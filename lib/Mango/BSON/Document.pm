@@ -5,11 +5,10 @@ sub DELETE {
   my ($self, $key) = @_;
 
   if (exists $self->[0]{$key}) {
-    my $i = $self->[0]{$key};
-    $self->[0]{$self->[1][$_]}-- for $i + 1 .. $#{$self->[1]};
-    delete $self->[0]{$key};
-    splice @{$self->[1]}, $i, 1;
-    return (splice(@{$self->[2]}, $i, 1))[0];
+    for (0 .. $#{$self->[1]}) {
+      splice @{$self->[1]}, $_, 1 and last if $key eq $self->[1][$_];
+    }
+    return delete $self->[0]{$key};
   }
 
   return undef;
@@ -19,37 +18,30 @@ sub EXISTS { exists $_[0][0]{$_[1]} }
 
 sub FETCH {
   my ($self, $key) = @_;
-  return exists $self->[0]{$key} ? $self->[2][$self->[0]{$key}] : undef;
+  return $self->[0]{$key};
 }
 
 sub FIRSTKEY {
-  $_[0][3] = 0;
+  $_[0][2] = 0;
   &NEXTKEY;
 }
 
 sub NEXTKEY {
-  return $_[0][1][$_[0][3]++] if $_[0][3] <= $#{$_[0][1]};
+  return $_[0][1][$_[0][2]++] if $_[0][2] <= $#{$_[0][1]};
   return undef;
 }
 
 sub STORE {
   my ($self, $key, $value) = @_;
 
-  if (exists $self->[0]{$key}) {
-    my $i = $self->[0]{$key};
-    $self->[0]{$key} = $i;
-    $self->[1][$i]   = $key;
-    $self->[2][$i]   = $value;
-  }
-  else {
+  unless (exists $self->[0]{$key}) {
     push @{$self->[1]}, $key;
-    push @{$self->[2]}, $value;
-    $self->[0]{$key} = $#{$self->[1]};
   }
+  $self->[0]{$key} = $value;
 }
 
 sub TIEHASH {
-  my $self = bless [{}, [], [], 0], shift;
+  my $self = bless [{}, [], 0], shift;
   $self->STORE(shift, shift) while @_;
   return $self;
 }
