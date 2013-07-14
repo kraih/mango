@@ -3,11 +3,9 @@ use Mojo::Base 'Tie::Hash';
 
 sub DELETE {
   my ($self, $key) = @_;
-
   return undef unless exists $self->[0]{$key};
-  for (0 .. $#{$self->[1]}) {
-    splice @{$self->[1]}, $_, 1 and last if $key eq $self->[1][$_];
-  }
+  $key eq $self->[1][$_] and splice @{$self->[1]}, $_, 1 and last
+    for 0 .. $#{$self->[1]};
   return delete $self->[0]{$key};
 }
 
