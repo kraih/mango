@@ -1,7 +1,9 @@
 package Mango::GridFS::Writer;
 use Mojo::Base -base;
 
+use List::Util 'first';
 use Mango::BSON qw(bson_bin bson_doc bson_oid bson_time bson_true);
+use Mojo::IOLoop;
 
 has chunk_size => 262144;
 has [qw(content_type filename gridfs)];
@@ -37,22 +39,42 @@ sub close {
 }
 
 sub write {
-  my ($self, $chunk) = @_;
+  my ($self, $chunk, $cb) = @_;
+
   $self->{buffer} .= $chunk;
   $self->{len} += length $chunk;
-  $self->_chunk while length $self->{buffer} > $self->chunk_size;
+
+  # Non-blocking
+  my $size = $self->chunk_size;
+  if ($cb) {
+    my $delay = Mojo::IOLoop->delay(sub { shift; $self->_err($cb, @_) });
+    $self->_chunk($delay->begin) while length $self->{buffer} >= $size;
+    $delay->begin->(undef, undef);
+  }
+
+  # Blocking
+  else { $self->_chunk while length $self->{buffer} >= $size }
 }
 
 sub _chunk {
-  my $self = shift;
+  my ($self, $cb) = @_;
 
   my $chunk = substr $self->{buffer}, 0, $self->chunk_size, '';
-  return unless length $chunk;
+  return $cb ? Mojo::IOLoop->timer(0 => $cb) : () unless length $chunk;
 
-  my $n      = $self->{n}++;
-  my $chunks = $self->gridfs->chunks;
-  my $oid    = $self->{files_id} //= bson_oid;
-  $chunks->insert({files_id => $oid, n => $n, data => bson_bin($chunk)});
+  # Blocking
+  my $n   = $self->{n}++;
+  my $oid = $self->{files_id} //= bson_oid;
+  my $doc = {files_id => $oid, n => $n, data => bson_bin($chunk)};
+  return $self->gridfs->chunks->insert($doc) unless $cb;
+
+  # Non-blocking
+  $self->gridfs->chunks->insert($doc => $cb);
+}
+
+sub _err {
+  my ($self, $cb) = (shift, shift);
+  $self->$cb(first {defined} @_[map { 2 * $_ } 0 .. @_ / 2]);
 }
 
 1;
@@ -120,7 +142,13 @@ Close file.
 
   $writer->write('hello world!');
 
-Write chunk.
+Write chunk. You can also append a callback to perform operation non-blocking.
+
+  $writer->write('hello world!' => sub {
+    my ($writer, $err) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head1 SEE ALSO
 

@@ -45,7 +45,7 @@ like $@, qr/Invalid MongoDB connection string/, 'right error';
 $mango = Mango->new('mongodb://127.0.0.1,127.0.0.1:5000');
 is_deeply $mango->hosts, [['127.0.0.1'], ['127.0.0.1', 5000]], 'right hosts';
 
-# Cleanup before start
+# Clean up before start
 $mango = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('connection_test');
 $collection->drop

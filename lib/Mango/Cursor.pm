@@ -217,6 +217,7 @@ Mango::Cursor - MongoDB cursor
   use Mango::Cursor;
 
   my $cursor = Mango::Cursor->new(collection => $collection);
+  my $docs   = $cursor->all;
 
 =head1 DESCRIPTION
 

@@ -9,7 +9,7 @@ use Mojo::IOLoop;
 plan skip_all => 'set TEST_ONLINE to enable this test'
   unless $ENV{TEST_ONLINE};
 
-# Cleanup before start
+# Clean up before start
 my $mango      = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('collection_test');
 $collection->drop
