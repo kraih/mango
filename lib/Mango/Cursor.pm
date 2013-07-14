@@ -165,8 +165,7 @@ sub _enough { $_[0]->_finished ? 1 : !!@{$_[0]{results}} }
 sub _finished {
   my $self = shift;
   return undef unless my $limit = $self->limit;
-  $limit = $limit * -1 if $limit < 0;
-  return ($self->{num} // 0) >= $limit ? 1 : undef;
+  return ($self->{num} // 0) >= abs($limit) ? 1 : undef;
 }
 
 sub _enqueue {

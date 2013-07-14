@@ -268,6 +268,13 @@ is_deeply $doc, {foo => bson_bin('12345')->type('user_defined')},
   'right document';
 is bson_encode($doc), $bytes, 'successful roundtrip';
 
+# Unicode roundtrip
+$bytes = "\x21\x00\x00\x00\x02\xe2\x98\x83\x00\x13\x00\x00\x00\x49\x20\xe2\x99"
+  . "\xa5\x20\x4d\x6f\x6a\x6f\x6c\x69\x63\x69\x6f\x75\x73\x21\x00\x00";
+$doc = bson_decode($bytes);
+is_deeply $doc, {'☃' => 'I ♥ Mojolicious!'}, 'right document';
+is bson_encode($doc), $bytes, 'successful roundtrip';
+
 # Blessed reference
 $bytes = bson_encode {test => b('test')};
 is_deeply bson_decode($bytes), {test => 'test'}, 'successful roundtrip';

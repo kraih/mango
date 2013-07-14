@@ -4,6 +4,7 @@
   - Added modules Mango::GridFS, Mango::GridFS::Reader and
     Mango::GridFS::Writer.
   - Added gridfs method to Mango::Database.
+  - Improved Mango::BSON performance. (avkhozov)
 
 0.05  2013-07-06
   - Changed heuristics for number detection in Mango::BSON to better line up

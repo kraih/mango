@@ -94,10 +94,7 @@ sub bson_encode {
 
 sub bson_false {$FALSE}
 
-sub bson_length {
-  my $bson = shift;
-  return length($bson) < 4 ? undef : decode_int32(substr $bson, 0, 4);
-}
+sub bson_length { length $_[0] < 4 ? undef : decode_int32(substr $_[0], 0, 4) }
 
 sub bson_max {$MAXKEY}
 
@@ -113,8 +110,8 @@ sub bson_ts {
 
 sub bson_true {$TRUE}
 
-sub decode_int32 { 0 + unpack 'l<', shift }
-sub decode_int64 { 0 + unpack 'q<', shift }
+sub decode_int32 { unpack 'l<', shift }
+sub decode_int64 { unpack 'q<', shift }
 
 sub encode_cstring { pack 'Z*', encode('UTF-8', shift) }
 
@@ -178,7 +175,7 @@ sub _decode_value {
     if $type eq OBJECT_ID;
 
   # Double/Int32/Int64
-  return 0 + unpack 'd<', substr $$bsonref, 0, 8, '' if $type eq DOUBLE;
+  return unpack 'd<', substr $$bsonref, 0, 8, '' if $type eq DOUBLE;
   return decode_int32(substr $$bsonref, 0, 4, '') if $type eq INT32;
   return decode_int64(substr $$bsonref, 0, 8, '') if $type eq INT64;
 
