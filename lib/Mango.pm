@@ -102,7 +102,8 @@ sub db {
 sub is_active {
   my $self = shift;
   return !!(@{$self->{queue} || []}
-    || grep { $_->{last} } values %{$self->{connections} || {}});
+    || grep { $_->{last} && !$_->{start} }
+    values %{$self->{connections} || {}});
 }
 
 sub kill_cursors {

@@ -5,6 +5,7 @@
     Mango::GridFS::Writer.
   - Added gridfs method to Mango::Database.
   - Improved Mango::BSON performance. (avkhozov)
+  - Fixed non-blocking connection pool timing bug.
 
 0.05  2013-07-06
   - Changed heuristics for number detection in Mango::BSON to better line up
