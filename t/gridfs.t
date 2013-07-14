@@ -39,7 +39,11 @@ $writer->filename('foo.txt')->content_type('text/plain');
 my $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
-    $writer->write('hello ' => $delay->begin);
+    $writer->write('he' => $delay->begin);
+  },
+  sub {
+    my $delay = shift;
+    $writer->write('llo ' => $delay->begin);
   },
   sub {
     my $delay = shift;
