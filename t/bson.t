@@ -307,10 +307,10 @@ my $num = 3;
 my $str = "$num";
 is_deeply bson_decode(bson_encode {test => [$num, $str]}), {test => [3, "3"]},
   'upgraded number detected';
-$num = 3.21;
+$num = 1.5;
 $str = "$num";
 is_deeply bson_decode(bson_encode {test => [$num, $str]}),
-  {test => [3.21, "3.21"]}, 'upgraded number detected';
+  {test => [1.5, "1.5"]}, 'upgraded number detected';
 $str = '0 but true';
 $num = 1 + $str;
 is_deeply bson_decode(bson_encode {test => [$num, $str]}), {test => [1, 0]},
