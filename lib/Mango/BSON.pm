@@ -294,8 +294,7 @@ sub _encode_object {
 sub _encode_string {
   my $str = shift;
   utf8::encode $str;
-  $str .= "\x00";
-  return encode_int32(length $str) . $str;
+  return encode_int32(length($str) + 1) . "$str\x00";
 }
 
 sub _encode_value {
