@@ -8,8 +8,19 @@ sub content_type { shift->{meta}{contentType} }
 sub filename     { shift->{meta}{filename} }
 
 sub open {
-  my ($self, $oid) = @_;
-  $self->{meta} = $self->gridfs->files->find_one($oid);
+  my ($self, $oid, $cb) = @_;
+
+  # Blocking
+  return $self->{meta} = $self->gridfs->files->find_one($oid) unless $cb;
+
+  # Non-blocking
+  $self->gridfs->files->find_one(
+    $oid => sub {
+      my ($collection, $err, $doc) = @_;
+      $self->{meta} = $doc;
+      $self->$cb($err);
+    }
+  );
 }
 
 sub read {
@@ -82,9 +93,15 @@ Name of file.
 
 =head2 open
 
-  $reader->open(bson_oid '1a2b3c4e5f60718293a4b5c6');
+  $reader->open($oid);
 
-Open file.
+Open file. You can also append a callback to perform operation non-blocking.
+
+  $reader->open($oid => sub {
+    my ($writer, $err) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 read
 
