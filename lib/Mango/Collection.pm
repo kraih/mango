@@ -42,7 +42,7 @@ sub ensure_index {
 
   # Non-blocking
   my $collection = $self->db->collection('system.indexes');
-  return $collection->insert($doc => sub { shift; $self->$cb(@_) }) if $cb;
+  return $collection->insert($doc => sub { shift; $self->$cb(shift) }) if $cb;
 
   # Blocking
   $collection->insert($doc);

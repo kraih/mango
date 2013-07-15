@@ -35,15 +35,11 @@ sub close {
       my ($delay, $err) = @_;
       return $self->$cb($err) if $err;
       $files->ensure_index({filename => 1} => $delay->begin);
-    },
-    sub {
-      my ($delay, $err) = @_;
-      return $self->$cb($err) if $err;
       $gridfs->chunks->ensure_index(@index => $delay->begin);
     },
     sub {
-      my ($delay, $err) = @_;
-      return $self->$cb($err) if $err;
+      my ($delay, $files_err, $chunks_err) = @_;
+      if (my $err = $files_err || $chunks_err) { return $self->$cb($err) }
       $gridfs->db->command($command => $delay->begin);
     },
     sub {
