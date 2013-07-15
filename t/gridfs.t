@@ -36,25 +36,39 @@ $gridfs->$_->drop for qw(files chunks);
 # Non-blocking roundtrip
 $writer = $gridfs->writer->chunk_size(4);
 $writer->filename('foo.txt')->content_type('text/plain');
+my ($fail, $result);
 my $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
     $writer->write('he' => $delay->begin);
   },
   sub {
-    my $delay = shift;
+    my ($delay, $err) = @_;
+    $fail = $err;
     $writer->write('llo ' => $delay->begin);
   },
   sub {
-    my $delay = shift;
+    my ($delay, $err) = @_;
+    $fail ||= $err;
     $writer->write('w'     => $delay->begin);
     $writer->write('orld!' => $delay->begin);
+  },
+  sub {
+    my ($delay, $err) = @_;
+    $fail ||= $err;
+    $writer->close($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $oid) = @_;
+    $fail ||= $err;
+    $result = $oid;
   }
 );
 $delay->wait;
-$oid    = $writer->close;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
 $reader = $gridfs->reader;
-$reader->open($oid);
+$reader->open($result);
 is $reader->filename,     'foo.txt',    'right filename';
 is $reader->content_type, 'text/plain', 'right content type';
 is $reader->size,         12,           'right size';
@@ -64,7 +78,7 @@ $data = undef;
 while (defined(my $chunk = $reader->read)) { $data .= $chunk }
 is $data, 'hello world!', 'right content';
 is_deeply $gridfs->list, ['foo.txt'], 'right files';
-$gridfs->delete($oid);
+$gridfs->delete($result);
 is_deeply $gridfs->list, [], 'no files';
 $gridfs->$_->drop for qw(files chunks);
 

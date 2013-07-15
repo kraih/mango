@@ -9,33 +9,53 @@ has chunk_size => 262144;
 has [qw(content_type filename gridfs)];
 
 sub close {
-  my $self = shift;
+  my ($self, $cb) = @_;
 
-  $self->_chunk;
-
-  my $gridfs = $self->gridfs;
-  my $files  = $gridfs->files;
-  $files->ensure_index({filename => 1});
-  $gridfs->chunks->ensure_index(bson_doc(files_id => 1, n => 1),
-    {unique => bson_true});
-
+  my @index   = (bson_doc(files_id => 1, n => 1), {unique => bson_true});
+  my $gridfs  = $self->gridfs;
   my $command = bson_doc
     filemd5 => $self->{files_id},
     root    => $gridfs->prefix;
-  my $md5 = $gridfs->db->command($command)->{md5};
 
-  my $doc = {
-    _id        => $self->{files_id},
-    length     => $self->{len},
-    chunkSize  => $self->chunk_size,
-    uploadDate => bson_time,
-    md5        => $md5
-  };
-  if (my $name = $self->filename)     { $doc->{filename}    = $name }
-  if (my $type = $self->content_type) { $doc->{contentType} = $type }
-  $files->insert($doc);
+  # Blocking
+  my $files = $gridfs->files;
+  unless ($cb) {
+    $self->_chunk;
+    $files->ensure_index({filename => 1});
+    $gridfs->chunks->ensure_index(@index);
+    my $md5 = $gridfs->db->command($command)->{md5};
+    $files->insert($self->_meta($md5));
+    return $self->{files_id};
+  }
 
-  return $self->{files_id};
+  # Non-blocking
+  Mojo::IOLoop->delay(
+    sub { $self->_chunk(shift->begin) },
+    sub {
+      my ($delay, $err) = @_;
+      return $self->$cb($err) if $err;
+      $files->ensure_index({filename => 1} => $delay->begin);
+    },
+    sub {
+      my ($delay, $err) = @_;
+      return $self->$cb($err) if $err;
+      $gridfs->chunks->ensure_index(@index => $delay->begin);
+    },
+    sub {
+      my ($delay, $err) = @_;
+      return $self->$cb($err) if $err;
+      $gridfs->db->command($command => $delay->begin);
+    },
+    sub {
+      my ($delay, $err, $doc) = @_;
+      return $self->$cb($err) if $err;
+      $files->insert($self->_meta($doc->{md5}) => $delay->begin);
+    },
+    sub {
+      my ($delay, $err) = @_;
+      $self->$cb($err, $self->{files_id});
+    }
+  );
 }
 
 sub write {
@@ -75,6 +95,22 @@ sub _chunk {
 sub _err {
   my ($self, $cb) = (shift, shift);
   $self->$cb(first {defined} @_[map { 2 * $_ } 0 .. @_ / 2]);
+}
+
+sub _meta {
+  my ($self, $md5) = @_;
+
+  my $doc = {
+    _id        => $self->{files_id},
+    length     => $self->{len},
+    chunkSize  => $self->chunk_size,
+    uploadDate => bson_time,
+    md5        => $md5
+  };
+  if (my $name = $self->filename)     { $doc->{filename}    = $name }
+  if (my $type = $self->content_type) { $doc->{contentType} = $type }
+
+  return $doc;
 }
 
 1;
@@ -136,7 +172,13 @@ implements the following new ones.
 
   my $oid = $writer->close;
 
-Close file.
+Close file. You can also append a callback to perform operation non-blocking.
+
+  $writer->close(sub {
+    my ($writer, $err, $oid) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 write
 
