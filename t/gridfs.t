@@ -40,6 +40,7 @@ is $data, 'llo world!', 'right content';
 is_deeply $gridfs->list, ['foo.txt'], 'right files';
 $gridfs->delete($oid);
 is_deeply $gridfs->list, [], 'no files';
+is $gridfs->chunks->find->count, 0, 'no chunks left';
 $gridfs->$_->drop for qw(files chunks);
 
 # Non-blocking roundtrip
@@ -133,6 +134,7 @@ ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is_deeply $before, ['foo.txt'], 'right files';
 is_deeply $after, [], 'no files';
+is $gridfs->chunks->find->count, 0, 'no chunks left';
 $gridfs->$_->drop for qw(files chunks);
 
 done_testing();
