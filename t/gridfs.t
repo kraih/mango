@@ -14,7 +14,8 @@ $gridfs->$_->remove for qw(files chunks);
 
 # Blocking roundtrip
 my $writer = $gridfs->writer;
-$writer->filename('foo.txt')->content_type('text/plain');
+$writer->filename('foo.txt')->content_type('text/plain')
+  ->metadata({foo => 'bar'});
 $writer->write('hello ');
 $writer->write('world!');
 my $oid    = $writer->close;
@@ -23,8 +24,9 @@ is $reader->tell, 0, 'right position';
 $reader->open($oid);
 is $reader->filename,     'foo.txt',    'right filename';
 is $reader->content_type, 'text/plain', 'right content type';
-is $reader->size,         12,           'right size';
-is $reader->chunk_size,   262144,       'right chunk size';
+is_deeply $reader->metadata, {foo => 'bar'}, 'right structure';
+is $reader->size,       12,     'right size';
+is $reader->chunk_size, 262144, 'right chunk size';
 is length $reader->upload_date, length(time) + 3, 'right time format';
 my $data;
 while (defined(my $chunk = $reader->read)) { $data .= $chunk }
@@ -45,7 +47,8 @@ $gridfs->$_->drop for qw(files chunks);
 
 # Non-blocking roundtrip
 $writer = $gridfs->writer->chunk_size(4);
-$writer->filename('foo.txt')->content_type('text/plain');
+$writer->filename('foo.txt')->content_type('text/plain')
+  ->metadata({foo => 'bar'});
 my ($fail, $result);
 my $delay = Mojo::IOLoop->delay(
   sub {
@@ -91,8 +94,9 @@ ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $reader->filename,     'foo.txt',    'right filename';
 is $reader->content_type, 'text/plain', 'right content type';
-is $reader->size,         12,           'right size';
-is $reader->chunk_size,   4,            'right chunk size';
+is_deeply $reader->metadata, {foo => 'bar'}, 'right structure';
+is $reader->size,       12, 'right size';
+is $reader->chunk_size, 4,  'right chunk size';
 is length $reader->upload_date, length(time) + 3, 'right time format';
 ($fail, $data) = ();
 my $cb;

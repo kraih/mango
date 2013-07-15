@@ -6,6 +6,7 @@ has 'gridfs';
 sub chunk_size   { shift->{meta}{chunkSize} }
 sub content_type { shift->{meta}{contentType} }
 sub filename     { shift->{meta}{filename} }
+sub metadata     { shift->{meta}{metadata} }
 
 sub open {
   my ($self, $oid, $cb) = @_;
@@ -115,6 +116,12 @@ Content type of file.
   my $name = $reader->filename;
 
 Name of file.
+
+=head2 metadata
+
+  my $data = $reader->metadata;
+
+Additional information.
 
 =head2 open
 

@@ -6,7 +6,7 @@ use Mango::BSON qw(bson_bin bson_doc bson_oid bson_time bson_true);
 use Mojo::IOLoop;
 
 has chunk_size => 262144;
-has [qw(content_type filename gridfs)];
+has [qw(content_type filename gridfs metadata)];
 
 sub close {
   my ($self, $cb) = @_;
@@ -105,6 +105,7 @@ sub _meta {
   };
   if (my $name = $self->filename)     { $doc->{filename}    = $name }
   if (my $type = $self->content_type) { $doc->{contentType} = $type }
+  if (my $data = $self->metadata)     { $doc->{metadata}    = $data }
 
   return $doc;
 }
@@ -158,6 +159,13 @@ Name of file.
   $writer    = $writer->gridfs(Mango::GridFS->new);
 
 L<Mango::GridFS> object this writer belongs to.
+
+=head2 metadata
+
+  my $data = $writer->metadata;
+  $writer  = $writer->metadata({foo => 'bar'});
+
+Additional information.
 
 =head1 METHODS
 
