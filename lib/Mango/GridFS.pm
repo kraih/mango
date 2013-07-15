@@ -10,7 +10,19 @@ has files => sub { $_[0]->db->collection($_[0]->prefix . '.files') };
 has prefix => 'fs';
 
 sub delete {
-  my ($self, $oid) = @_;
+  my ($self, $oid, $cb) = @_;
+
+  # Non-blocking
+  return Mojo::IOLoop->delay(
+    sub {
+      my $delay = shift;
+      $self->files->remove({_id => $oid} => $delay->begin);
+      $self->chunks->remove({files_id => $oid} => $delay->begin);
+    },
+    sub { $self->$cb($_[1] || $_[3]) }
+  ) if $cb;
+
+  # Blocking
   $self->files->remove({_id => $oid});
   $self->chunks->remove({files_id => $oid});
 }
@@ -79,9 +91,15 @@ following new ones.
 
 =head2 delete
 
-  $gridfs->delete(bson_oid '1a2b3c4e5f60718293a4b5c6');
+  $gridfs->delete($oid);
 
-Delete file.
+Delete file. You can also append a callback to perform operation non-blocking.
+
+  $gridfs->delete($oid => sub {
+    my ($gridfs, $err) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 list
 

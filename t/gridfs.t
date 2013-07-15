@@ -95,9 +95,21 @@ $cb = sub {
 };
 $reader->$cb(undef, '');
 Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
 is $data, 'hello world!', 'right content';
 is_deeply $gridfs->list, ['foo.txt'], 'right files';
-$gridfs->delete($result);
+$fail = undef;
+$gridfs->delete(
+  $result => sub {
+    my ($gridfs, $err) = @_;
+    $fail = $err;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
 is_deeply $gridfs->list, [], 'no files';
 $gridfs->$_->drop for qw(files chunks);
 
