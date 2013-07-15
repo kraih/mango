@@ -16,9 +16,7 @@ $gridfs->$_->remove for qw(files chunks);
 my $writer = $gridfs->writer;
 $writer->filename('foo.txt')->content_type('text/plain')
   ->metadata({foo => 'bar'});
-$writer->write('hello ');
-$writer->write('world!');
-my $oid    = $writer->close;
+my $oid    = $writer->write('hello ')->write('world!')->close;
 my $reader = $gridfs->reader;
 is $reader->tell, 0, 'right position';
 $reader->open($oid);
@@ -139,6 +137,42 @@ ok !$fail, 'no error';
 is_deeply $before, ['foo.txt'], 'right files';
 is_deeply $after, [], 'no files';
 is $gridfs->chunks->find->count, 0, 'no chunks left';
+$gridfs->$_->drop for qw(files chunks);
+
+# Find versions blocking
+my $one = $gridfs->writer->filename('test.txt')->write('One')->close;
+my $two = $gridfs->writer->filename('test.txt')->write('Two')->close;
+is_deeply $gridfs->list, ['test.txt'], 'right files';
+is $gridfs->reader->find_version('test.txt', 1), $one, 'right version';
+is $gridfs->reader->find_version('test.txt', 2), $two, 'right version';
+is $gridfs->reader->find_version('test.txt', 3), undef, 'no version';
+$gridfs->$_->drop for qw(files chunks);
+
+# Find versions non-blocking
+$one = $gridfs->writer->filename('test.txt')->write('One')->close;
+$two = $gridfs->writer->filename('test.txt')->write('Two')->close;
+is_deeply $gridfs->list, ['test.txt'], 'right files';
+my @results;
+$fail  = undef;
+$delay = Mojo::IOLoop->delay(
+  sub {
+    my $delay = shift;
+    $gridfs->reader->find_version(('test.txt', 3) => $delay->begin);
+    $gridfs->reader->find_version(('test.txt', 2) => $delay->begin);
+    $gridfs->reader->find_version(('test.txt', 1) => $delay->begin);
+  },
+  sub {
+    my ($delay, $three_err, $three, $two_err, $two, $one_err, $one) = @_;
+    $fail = $one_err || $two_err || $three_err;
+    @results = ($one, $two, $three);
+  }
+);
+$delay->wait;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $results[0], $one, 'right version';
+is $results[1], $two, 'right version';
+is $results[2], undef, 'no version';
 $gridfs->$_->drop for qw(files chunks);
 
 done_testing();

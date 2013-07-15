@@ -70,6 +70,8 @@ sub write {
 
   # Blocking
   else { $self->_chunk while length $self->{buffer} >= $size }
+
+  return $self;
 }
 
 sub _chunk {
@@ -186,7 +188,7 @@ Close file. You can also append a callback to perform operation non-blocking.
 
 =head2 write
 
-  $writer->write('hello world!');
+  $writer = $writer->write('hello world!');
 
 Write chunk. You can also append a callback to perform operation non-blocking.
 
