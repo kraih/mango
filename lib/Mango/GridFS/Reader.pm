@@ -24,16 +24,33 @@ sub open {
 }
 
 sub read {
-  my $self = shift;
+  my ($self, $cb) = @_;
 
   $self->{pos} //= 0;
-  return undef if $self->{pos} >= $self->size;
-  my $n     = $self->{pos} / $self->chunk_size;
-  my $chunk = $self->gridfs->chunks->find_one(
-    {files_id => $self->{meta}{_id}, n => $n});
-  my $data = $chunk->{data};
-  $self->{pos} += length $data;
-  return $data;
+
+  # EOF
+  if ($self->{pos} >= $self->size) {
+    return undef unless $cb;
+    return Mojo::IOLoop->timer(0 => sub { $self->$cb(undef, undef) });
+  }
+
+  # Blocking
+  my $n = $self->{pos} / $self->chunk_size;
+  my $doc = {files_id => $self->{meta}{_id}, n => $n};
+  unless ($cb) {
+    my $data = $self->gridfs->chunks->find_one($doc)->{data};
+    $self->{pos} += length $data;
+    return $data;
+  }
+
+  # Non-blocking
+  $self->gridfs->chunks->find_one(
+    $doc => sub {
+      my ($collection, $err, $doc) = @_;
+      $self->{pos} += length $doc->{data};
+      $self->$cb($err, $doc->{data});
+    }
+  );
 }
 
 sub size        { shift->{meta}{length} }
@@ -98,7 +115,7 @@ Name of file.
 Open file. You can also append a callback to perform operation non-blocking.
 
   $reader->open($oid => sub {
-    my ($writer, $err) = @_;
+    my ($reader, $err) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
@@ -107,7 +124,13 @@ Open file. You can also append a callback to perform operation non-blocking.
 
   my $chunk = $reader->read;
 
-Read chunk.
+Read chunk. You can also append a callback to perform operation non-blocking.
+
+  $reader->read(sub {
+    my ($reader, $err, $chunk) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 size
 

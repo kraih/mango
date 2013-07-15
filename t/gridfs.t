@@ -67,17 +67,16 @@ my $delay = Mojo::IOLoop->delay(
 $delay->wait;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-$oid    = $result;
 $reader = $gridfs->reader;
-($fail, $result) = ();
-$delay = Mojo::IOLoop->delay(
-  sub { $reader->open($oid => shift->begin) },
-  sub {
-    my ($delay, $err) = @_;
+$fail   = undef;
+$reader->open(
+  $result => sub {
+    my ($reader, $err) = @_;
     $fail = $err;
+    Mojo::IOLoop->stop;
   }
 );
-$delay->wait;
+Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $reader->filename,     'foo.txt',    'right filename';
@@ -85,11 +84,20 @@ is $reader->content_type, 'text/plain', 'right content type';
 is $reader->size,         12,           'right size';
 is $reader->chunk_size,   4,            'right chunk size';
 is length $reader->upload_date, length(time) + 3, 'right time format';
-$data = undef;
-while (defined(my $chunk = $reader->read)) { $data .= $chunk }
+($fail, $data) = ();
+my $cb;
+$cb = sub {
+  my ($reader, $err, $chunk) = @_;
+  $fail ||= $err;
+  return Mojo::IOLoop->stop unless defined $chunk;
+  $data .= $chunk;
+  $reader->read($cb);
+};
+$reader->$cb(undef, '');
+Mojo::IOLoop->start;
 is $data, 'hello world!', 'right content';
 is_deeply $gridfs->list, ['foo.txt'], 'right files';
-$gridfs->delete($oid);
+$gridfs->delete($result);
 is_deeply $gridfs->list, [], 'no files';
 $gridfs->$_->drop for qw(files chunks);
 
