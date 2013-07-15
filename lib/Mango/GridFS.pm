@@ -27,7 +27,15 @@ sub delete {
   $self->chunks->remove({files_id => $oid});
 }
 
-sub list { shift->files->find->distinct('filename') }
+sub list {
+  my ($self, $cb) = @_;
+
+  # Blocking
+  return $self->files->find->distinct('filename') unless $cb;
+
+  # Non-blocking
+  $self->files->find->distinct('filename' => sub { shift; $self->$cb(@_) });
+}
 
 sub reader { Mango::GridFS::Reader->new(gridfs => shift) }
 sub writer { Mango::GridFS::Writer->new(gridfs => shift) }
@@ -105,7 +113,13 @@ Delete file. You can also append a callback to perform operation non-blocking.
 
   my $names = $gridfs->list;
 
-List files.
+List files. You can also append a callback to perform operation non-blocking.
+
+  $gridfs->list(sub {
+    my ($gridfs, $err, $names) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 reader
 

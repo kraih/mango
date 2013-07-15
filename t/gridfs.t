@@ -98,19 +98,32 @@ Mojo::IOLoop->start;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $data, 'hello world!', 'right content';
-is_deeply $gridfs->list, ['foo.txt'], 'right files';
-$fail = undef;
-$gridfs->delete(
-  $result => sub {
-    my ($gridfs, $err) = @_;
-    $fail = $err;
-    Mojo::IOLoop->stop;
+my ($before, $after);
+$fail  = undef;
+$delay = Mojo::IOLoop->delay(
+  sub { $gridfs->list(shift->begin) },
+  sub {
+    my ($delay, $err, $names) = @_;
+    $fail   = $err;
+    $before = $names;
+    $gridfs->delete($result => $delay->begin);
+  },
+  sub {
+    my ($delay, $err) = @_;
+    $fail ||= $err;
+    $gridfs->list($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $names) = @_;
+    $fail ||= $err;
+    $after = $names;
   }
 );
-Mojo::IOLoop->start;
+$delay->wait;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is_deeply $gridfs->list, [], 'no files';
+is_deeply $before, ['foo.txt'], 'right files';
+is_deeply $after, [], 'no files';
 $gridfs->$_->drop for qw(files chunks);
 
 done_testing();
