@@ -139,16 +139,21 @@ is_deeply $after, [], 'no files';
 is $gridfs->chunks->find->count, 0, 'no chunks left';
 $gridfs->$_->drop for qw(files chunks);
 
-# Find versions blocking
-my $one = $gridfs->writer->filename('test.txt')->write('One')->close;
+# Find and slurp versions blocking
+my $one
+  = $gridfs->writer->chunk_size(1)->filename('test.txt')->write('One')->close;
 my $two = $gridfs->writer->filename('test.txt')->write('Two')->close;
 is_deeply $gridfs->list, ['test.txt'], 'right files';
 is $gridfs->find_version('test.txt', 1), $one, 'right version';
 is $gridfs->find_version('test.txt', 2), $two, 'right version';
 is $gridfs->find_version('test.txt', 3), undef, 'no version';
+is $gridfs->reader->open($one)->slurp, 'One', 'right content';
+is $gridfs->reader->open($one)->seek(1)->slurp, 'ne', 'right content';
+is $gridfs->reader->open($two)->slurp, 'Two', 'right content';
+is $gridfs->reader->open($two)->seek(1)->slurp, 'wo', 'right content';
 $gridfs->$_->drop for qw(files chunks);
 
-# Find versions non-blocking
+# Find and slurp versions non-blocking
 $one = $gridfs->writer->filename('test.txt')->write('One')->close;
 $two = $gridfs->writer->filename('test.txt')->write('Two')->close;
 is_deeply $gridfs->list, ['test.txt'], 'right files';
@@ -173,6 +178,32 @@ ok !$fail, 'no error';
 is $results[0], $one, 'right version';
 is $results[1], $two, 'right version';
 is $results[2], undef, 'no version';
+my $reader_one = $gridfs->reader;
+my $reader_two = $gridfs->reader;
+($fail, @results) = ();
+$delay = Mojo::IOLoop->delay(
+  sub {
+    my $delay = shift;
+    $reader_one->open($one => $delay->begin);
+    $reader_two->open($two => $delay->begin);
+  },
+  sub {
+    my ($delay, $one_err, $two_err) = @_;
+    $fail = $one_err || $two_err;
+    $reader_one->slurp($delay->begin);
+    $reader_two->slurp($delay->begin);
+  },
+  sub {
+    my ($delay, $one_err, $one, $two_err, $two) = @_;
+    $fail ||= $one_err || $two_err;
+    @results = ($one, $two);
+  }
+);
+$delay->wait;
+ok !$mango->is_active, 'no operations in progress';
+ok !$fail, 'no error';
+is $results[0], 'One', 'right content';
+is $results[1], 'Two', 'right content';
 $gridfs->$_->drop for qw(files chunks);
 
 done_testing();

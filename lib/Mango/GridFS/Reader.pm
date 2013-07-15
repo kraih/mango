@@ -11,17 +11,21 @@ sub metadata     { shift->{meta}{metadata} }
 sub open {
   my ($self, $oid, $cb) = @_;
 
-  # Blocking
-  return $self->{meta} = $self->gridfs->files->find_one($oid) unless $cb;
-
   # Non-blocking
-  $self->gridfs->files->find_one(
-    $oid => sub {
-      my ($collection, $err, $doc) = @_;
-      $self->{meta} = $doc;
-      $self->$cb($err);
-    }
-  );
+  if ($cb) {
+    $self->gridfs->files->find_one(
+      $oid => sub {
+        my ($collection, $err, $doc) = @_;
+        $self->{meta} = $doc;
+        $self->$cb($err);
+      }
+    );
+  }
+
+  # Blocking
+  else { $self->{meta} = $self->gridfs->files->find_one($oid) }
+
+  return $self;
 }
 
 sub read {
@@ -50,13 +54,44 @@ sub read {
   );
 }
 
-sub seek { shift->{pos} = pop }
+sub seek {
+  my ($self, $pos) = @_;
+  $self->{pos} = $pos;
+  return $self;
+}
+
+sub slurp {
+  my ($self, $cb) = @_;
+
+  # Blocking
+  my $data;
+  unless ($cb) {
+    while (defined(my $chunk = $self->read)) { $data .= $chunk }
+    return $data;
+  }
+
+  # Non-blocking
+  $self->_chunk(\$data, $cb);
+}
 
 sub size { shift->{meta}{length} }
 
 sub tell { shift->{pos} // 0 }
 
 sub upload_date { shift->{meta}{uploadDate} }
+
+sub _chunk {
+  my ($self, $dataref, $cb) = @_;
+
+  $self->read(
+    sub {
+      my ($self, $err, $chunk) = @_;
+      return $self->$cb($err, $$dataref) if $err || !defined $chunk;
+      $$dataref .= $chunk;
+      $self->_chunk($dataref, $cb);
+    }
+  );
+}
 
 sub _slice {
   my ($self, $n, $chunk) = @_;
@@ -125,7 +160,7 @@ Additional information.
 
 =head2 open
 
-  $reader->open($oid);
+  $reader = $reader->open($oid);
 
 Open file. You can also append a callback to perform operation non-blocking.
 
@@ -149,7 +184,7 @@ Read chunk. You can also append a callback to perform operation non-blocking.
 
 =head2 seek
 
-  $reader->seek(13);
+  $reader = $reader->seek(13);
 
 Change current position.
 
@@ -158,6 +193,19 @@ Change current position.
   my $size = $reader->size;
 
 Size of entire file in bytes.
+
+=head2 slurp
+
+  my $data = $reader->slurp;
+
+Slurp all remaining data from file. You can also append a callback to perform
+operation non-blocking.
+
+  $reader->slurp(sub {
+    my ($reader, $err, $data) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 tell
 
