@@ -19,6 +19,7 @@ $writer->write('hello ');
 $writer->write('world!');
 my $oid    = $writer->close;
 my $reader = $gridfs->reader;
+is $reader->tell, 0, 'right position';
 $reader->open($oid);
 is $reader->filename,     'foo.txt',    'right filename';
 is $reader->content_type, 'text/plain', 'right content type';
@@ -27,7 +28,15 @@ is $reader->chunk_size,   262144,       'right chunk size';
 is length $reader->upload_date, length(time) + 3, 'right time format';
 my $data;
 while (defined(my $chunk = $reader->read)) { $data .= $chunk }
+is $reader->tell, 12, 'right position';
 is $data, 'hello world!', 'right content';
+$data = undef;
+$reader->seek(0);
+is $reader->tell, 0, 'right position';
+$reader->seek(2);
+is $reader->tell, 2, 'right position';
+while (defined(my $chunk = $reader->read)) { $data .= $chunk }
+is $data, 'llo world!', 'right content';
 is_deeply $gridfs->list, ['foo.txt'], 'right files';
 $gridfs->delete($oid);
 is_deeply $gridfs->list, [], 'no files';

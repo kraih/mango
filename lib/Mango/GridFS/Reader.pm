@@ -35,26 +35,34 @@ sub read {
   }
 
   # Blocking
-  my $n = $self->{pos} / $self->chunk_size;
+  my $n = int($self->{pos} / $self->chunk_size);
   my $doc = {files_id => $self->{meta}{_id}, n => $n};
-  unless ($cb) {
-    my $data = $self->gridfs->chunks->find_one($doc)->{data};
-    $self->{pos} += length $data;
-    return $data;
-  }
+  return $self->_slice($n, $self->gridfs->chunks->find_one($doc)->{data})
+    unless $cb;
 
   # Non-blocking
   $self->gridfs->chunks->find_one(
     $doc => sub {
       my ($collection, $err, $doc) = @_;
-      $self->{pos} += length $doc->{data};
-      $self->$cb($err, $doc->{data});
+      $self->$cb($err, $self->_slice($n, $doc->{data}));
     }
   );
 }
 
-sub size        { shift->{meta}{length} }
+sub seek { shift->{pos} = pop }
+
+sub size { shift->{meta}{length} }
+
+sub tell { shift->{pos} // 0 }
+
 sub upload_date { shift->{meta}{uploadDate} }
+
+sub _slice {
+  my ($self, $n, $chunk) = @_;
+  my $offset = $self->{pos} - ($n * $self->chunk_size);
+  $self->{pos} += length $chunk;
+  return substr $chunk, $offset;
+}
 
 1;
 
@@ -132,11 +140,23 @@ Read chunk. You can also append a callback to perform operation non-blocking.
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
+=head2 seek
+
+  $reader->seek(13);
+
+Change current position.
+
 =head2 size
 
   my $size = $reader->size;
 
 Size of entire file in bytes.
+
+=head2 tell
+
+  my $pos = $reader->tell;
+
+Current position.
 
 =head2 upload_date
 
