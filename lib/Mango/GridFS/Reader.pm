@@ -6,25 +6,7 @@ has 'gridfs';
 sub chunk_size   { shift->{meta}{chunkSize} }
 sub content_type { shift->{meta}{contentType} }
 sub filename     { shift->{meta}{filename} }
-
-sub find_version {
-  my ($self, $name, $version, $cb) = @_;
-
-  my $cursor = $self->gridfs->files->find({filename => $name});
-  $cursor->sort({uploadDate => 1})->limit(-1)->fields({_id => 1});
-  $cursor->skip($version - 1) if $version;
-
-  # Non-blocking
-  return $cursor->next(
-    sub { shift; $self->$cb(shift, $_[0] ? $_[0]{_id} : undef) })
-    if $cb;
-
-  # Blocking
-  my $doc = $cursor->next;
-  return $doc ? $doc->{_id} : undef;
-}
-
-sub metadata { shift->{meta}{metadata} }
+sub metadata     { shift->{meta}{metadata} }
 
 sub open {
   my ($self, $oid, $cb) = @_;
@@ -134,19 +116,6 @@ Content type of file.
   my $name = $reader->filename;
 
 Name of file.
-
-=head2 find_version
-
-  my $oid = $reader->find_version('test.txt', 1);
-
-Find a specific version of a file. You can also append a callback to perform
-operation non-blocking.
-
-  $reader->find_version(('test.txt', 1) => sub {
-    my ($reader, $err, $oid) = @_;
-    ...
-  });
-  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 metadata
 

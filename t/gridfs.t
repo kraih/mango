@@ -143,9 +143,9 @@ $gridfs->$_->drop for qw(files chunks);
 my $one = $gridfs->writer->filename('test.txt')->write('One')->close;
 my $two = $gridfs->writer->filename('test.txt')->write('Two')->close;
 is_deeply $gridfs->list, ['test.txt'], 'right files';
-is $gridfs->reader->find_version('test.txt', 1), $one, 'right version';
-is $gridfs->reader->find_version('test.txt', 2), $two, 'right version';
-is $gridfs->reader->find_version('test.txt', 3), undef, 'no version';
+is $gridfs->find_version('test.txt', 1), $one, 'right version';
+is $gridfs->find_version('test.txt', 2), $two, 'right version';
+is $gridfs->find_version('test.txt', 3), undef, 'no version';
 $gridfs->$_->drop for qw(files chunks);
 
 # Find versions non-blocking
@@ -157,9 +157,9 @@ $fail  = undef;
 $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
-    $gridfs->reader->find_version(('test.txt', 3) => $delay->begin);
-    $gridfs->reader->find_version(('test.txt', 2) => $delay->begin);
-    $gridfs->reader->find_version(('test.txt', 1) => $delay->begin);
+    $gridfs->find_version(('test.txt', 3) => $delay->begin);
+    $gridfs->find_version(('test.txt', 2) => $delay->begin);
+    $gridfs->find_version(('test.txt', 1) => $delay->begin);
   },
   sub {
     my ($delay, $three_err, $three, $two_err, $two, $one_err, $one) = @_;

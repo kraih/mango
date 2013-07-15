@@ -27,6 +27,23 @@ sub delete {
   $self->chunks->remove({files_id => $oid});
 }
 
+sub find_version {
+  my ($self, $name, $version, $cb) = @_;
+
+  my $cursor = $self->files->find({filename => $name});
+  $cursor->sort({uploadDate => 1})->limit(-1)->fields({_id => 1});
+  $cursor->skip($version - 1) if $version;
+
+  # Non-blocking
+  return $cursor->next(
+    sub { shift; $self->$cb(shift, $_[0] ? $_[0]{_id} : undef) })
+    if $cb;
+
+  # Blocking
+  my $doc = $cursor->next;
+  return $doc ? $doc->{_id} : undef;
+}
+
 sub list {
   my ($self, $cb) = @_;
 
@@ -105,6 +122,19 @@ Delete file. You can also append a callback to perform operation non-blocking.
 
   $gridfs->delete($oid => sub {
     my ($gridfs, $err) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 find_version
+
+  my $oid = $gridfs->find_version('test.txt', 1);
+
+Find a specific version of a file. You can also append a callback to perform
+operation non-blocking.
+
+  $gridfs->find_version(('test.txt', 1) => sub {
+    my ($gridfs, $err, $oid) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
