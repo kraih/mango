@@ -12,7 +12,7 @@ die "Perl with support for quads is required!\n"
 WriteMakefile(
   NAME         => 'Mango',
   VERSION_FROM => 'lib/Mango.pm',
-  ABSTRACT     => 'Pure-Perl non-blocking I/O MongoDB client',
+  ABSTRACT     => 'Pure-Perl non-blocking I/O MongoDB driver',
   AUTHOR       => 'Sebastian Riedel <sri@cpan.org>',
   LICENSE      => 'artistic_2',
   META_MERGE   => {

@@ -320,7 +320,7 @@ sub _write {
 
 =head1 NAME
 
-Mango - Pure-Perl non-blocking I/O MongoDB client
+Mango - Pure-Perl non-blocking I/O MongoDB driver
 
 =head1 SYNOPSIS
 
@@ -373,7 +373,7 @@ Mango - Pure-Perl non-blocking I/O MongoDB client
 
 =head1 DESCRIPTION
 
-L<Mango> is a pure-Perl non-blocking I/O MongoDB client, optimized for use
+L<Mango> is a pure-Perl non-blocking I/O MongoDB driver, optimized for use
 with the L<Mojolicious> real-time web framework, and with multiple event loop
 support.
 
