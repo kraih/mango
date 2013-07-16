@@ -157,11 +157,27 @@ List files. You can also append a callback to perform operation non-blocking.
 
 Get L<Mango::GridFS::Reader> object.
 
+  # Read all data at once from newest version of file
+  my $oid  = $gridfs->find_version('test.txt', 1);
+  my $data = $gridfs->reader->open($oid)->slurp;
+
+  # Read all data in chunks from file
+  my $reader = $gridfs->reader->open($oid);
+  while (defined(my $chunk = $reader->read)) { say "Chunk: $chunk" }
+
 =head2 writer
 
   my $writer = $gridfs->writer;
 
 Get L<Mango::GridFS::Writer> object.
+
+  # Write all data at once to file with name
+  my $oid = $gridfs->writer->filename('test.txt')->write('Hello!')->close;
+
+  # Write data in chunks to file
+  my $writer = $gridfs->writer;
+  $writer->write($_) for 1 .. 100;
+  my $oid = $writer->close;
 
 =head1 SEE ALSO
 
