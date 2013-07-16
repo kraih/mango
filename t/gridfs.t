@@ -2,6 +2,7 @@ use Mojo::Base -strict;
 
 use Test::More;
 use Mango;
+use Mango::BSON 'bson_oid';
 use Mojo::IOLoop;
 
 plan skip_all => 'set TEST_ONLINE to enable this test'
@@ -205,5 +206,8 @@ ok !$fail, 'no error';
 is $results[0], 'One', 'right content';
 is $results[1], 'Two', 'right content';
 $gridfs->$_->drop for qw(files chunks);
+
+# Missing file
+is $gridfs->reader->open(bson_oid)->slurp, undef, 'no content';
 
 done_testing();

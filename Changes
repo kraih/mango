@@ -1,5 +1,5 @@
 
-0.06  2013-07-16
+0.06  2013-07-17
   - Added GridFS support.
   - Added modules Mango::GridFS, Mango::GridFS::Reader and
     Mango::GridFS::Writer.
