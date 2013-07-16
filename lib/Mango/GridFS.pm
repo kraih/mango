@@ -70,6 +70,8 @@ Mango::GridFS - GridFS
   use Mango::GridFS;
 
   my $gridfs = Mango::GridFS->new(db => $db);
+  my $reader = $gridfs->reader;
+  my $writer = $gridfs->writer;
 
 =head1 DESCRIPTION
 
