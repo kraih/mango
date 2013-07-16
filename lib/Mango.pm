@@ -383,7 +383,7 @@ L<official documentation|http://docs.mongodb.org>.
 Note that this whole distribution is EXPERIMENTAL and will change without
 warning!
 
-Many features are still incomplete or missing, so you should wait for a stable
+Most of the API is not changing much anymore, but you should wait for a stable
 1.0 release before using any of the modules in this distribution in a
 production environment. Unsafe operations are not supported, so far this is
 considered a feature.
