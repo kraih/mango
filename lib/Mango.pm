@@ -388,9 +388,9 @@ Most of the API is not changing much anymore, but you should wait for a stable
 production environment. Unsafe operations are not supported, so far this is
 considered a feature.
 
-Many method arguments as well as values of attributes get serialized to BSON
-with L<Mango::BSON>, which provides many helper functions you can use to
-generate data types that are not available natively in Perl.
+Many arguments passed to methods as well as values of attributes get
+serialized to BSON with L<Mango::BSON>, which provides many helper functions
+you can use to generate data types that are not available natively in Perl.
 
 For better scalability (epoll, kqueue) and to provide IPv6 as well as TLS
 support, the optional modules L<EV> (4.0+), L<IO::Socket::IP> (0.16+) and
