@@ -312,6 +312,12 @@ is_deeply bson_decode(bson_encode({false => \!!$bytes})),
 is_deeply bson_decode(bson_encode({false => \$bytes})), {false => bson_false},
   'encode false boolean from reference';
 
+# Mojo::JSON booleans
+is_deeply bson_decode(bson_encode {test => Mojo::JSON->true}),
+  {test => bson_true}, 'encode true boolean from Mojo::JSON';
+is_deeply bson_decode(bson_encode {test => Mojo::JSON->false}),
+  {test => bson_false}, 'encode false boolean from Mojo::JSON';
+
 # Upgraded numbers
 my $num = 3;
 my $str = "$num";
