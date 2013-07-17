@@ -14,9 +14,9 @@ sub close {
 
   # Already closed
   if ($self->{closed}++) {
-    return $self->{files_id} unless $cb;
-    return Mojo::IOLoop->timer(
-      0 => sub { $self->$cb(undef, $self->{files_id}) });
+    my $files_id = $self->{files_id};
+    return $files_id unless $cb;
+    return Mojo::IOLoop->timer(0 => sub { $self->$cb(undef, $files_id) });
   }
 
   my @index   = (bson_doc(files_id => 1, n => 1), {unique => bson_true});
@@ -53,10 +53,7 @@ sub close {
       return $self->$cb($err) if $err;
       $files->insert($self->_meta($doc->{md5}) => $delay->begin);
     },
-    sub {
-      my ($delay, $err) = @_;
-      $self->$cb($err, $self->{files_id});
-    }
+    sub { shift; $self->$cb(shift, $self->{files_id}) }
   );
 }
 

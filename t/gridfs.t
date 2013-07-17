@@ -212,7 +212,7 @@ is $results[1], 'Two', 'right content';
 $gridfs->$_->drop for qw(files chunks);
 
 # File already closed
-$writer = $gridfs->writer->filename('test.txt');
+$writer = $gridfs->writer;
 ok !$writer->is_closed, 'file has not been closed';
 $oid = $writer->write('Test')->close;
 ok $writer->is_closed, 'file has been closed';
