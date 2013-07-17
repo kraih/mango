@@ -1,5 +1,6 @@
 
 0.07  2013-07-18
+  - Added is_closed method to Mango::GridFS::Writer.
 
 0.06  2013-07-17
   - Added GridFS support.
