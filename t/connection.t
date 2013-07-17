@@ -106,6 +106,20 @@ is $updated, 1, 'one document updated';
 is_deeply $found, {_id => $created, foo => 'yada'}, 'right document';
 is $removed, 1, 'one document removed';
 
+# Error in callback
+$collection->insert({foo => 'bar'} => sub { die 'Oops!' });
+$fail = undef;
+$mango->once(
+  error => sub {
+    my ($mango, $err) = @_;
+    $fail = $err;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+like $fail, qr/Oops!/, 'right error';
+is $collection->remove, 1, 'one document removed';
+
 # Mixed parallel operations
 $collection->insert({test => $_}) for 1 .. 3;
 $delay = Mojo::IOLoop->delay;
