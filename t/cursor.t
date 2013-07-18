@@ -57,11 +57,14 @@ $cursor->sort(undef)->hint({test => 1})->snapshot(1);
 is_deeply $cursor->build_query,
   {'$query' => {test => 1}, '$hint' => {test => 1}, '$snapshot' => 1},
   'right query';
+$cursor->hint(undef)->snapshot(undef)->max_scan(500);
+is_deeply $cursor->build_query, {'$query' => {test => 1}, '$maxScan' => 500},
+  'right query';
 
 # Clone cursor
 $cursor
   = $collection->find({test => {'$exists' => 1}})->batch_size(2)->limit(3)
-  ->skip(1)->sort({test => 1})->fields({test => 1});
+  ->skip(1)->sort({test => 1})->fields({test => 1})->max_scan(100);
 my $doc = $cursor->next;
 ok defined $cursor->id, 'has a cursor id';
 ok $doc->{test}, 'right document';
@@ -73,9 +76,10 @@ is_deeply $clone->fields, {test => 1}, 'right fields';
 is_deeply $clone->hint,   {test => 1}, 'right hint value';
 is $clone->limit, 3, 'right limit';
 is_deeply $clone->query, {test => {'$exists' => 1}}, 'right query';
-is $clone->skip,     1, 'right skip value';
-is $clone->snapshot, 1, 'right snapshot value';
-is $clone->tailable, 1, 'is tailable';
+is $clone->skip,     1,   'right skip value';
+is $clone->snapshot, 1,   'right snapshot value';
+is $clone->max_scan, 100, 'right max_scan value';
+is $clone->tailable, 1,   'is tailable';
 is_deeply $clone->sort, {test => 1}, 'right sort value';
 
 # Explain blocking

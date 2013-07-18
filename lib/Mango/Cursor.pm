@@ -5,7 +5,7 @@ use Mango::BSON 'bson_doc';
 use Mojo::IOLoop;
 
 has [qw(batch_size limit skip)] => 0;
-has [qw(collection hint id snapshot sort tailable)];
+has [qw(collection hint id max_scan snapshot sort tailable)];
 has [qw(fields query)] => sub { {} };
 
 sub all {
@@ -27,14 +27,16 @@ sub build_query {
   my $sort     = $self->sort;
   my $hint     = $self->hint;
   my $snapshot = $self->snapshot;
+  my $max_scan = $self->max_scan;
 
-  return $query unless $snapshot || $hint || $sort || $explain;
+  return $query unless $snapshot || $hint || $sort || $max_scan || $explain;
 
   $query = {'$query' => $query};
-  $query->{'$explain'}  = 1     if $explain;
-  $query->{'$orderby'}  = $sort if $sort;
-  $query->{'$hint'}     = $hint if $hint;
-  $query->{'$snapshot'} = 1     if $snapshot;
+  $query->{'$explain'}  = 1         if $explain;
+  $query->{'$orderby'}  = $sort     if $sort;
+  $query->{'$hint'}     = $hint     if $hint;
+  $query->{'$snapshot'} = 1         if $snapshot;
+  $query->{'$maxScan'}  = $max_scan if $max_scan;
 
   return $query;
 }
@@ -43,8 +45,8 @@ sub clone {
   my $self  = shift;
   my $clone = $self->new;
   $clone->$_($self->$_)
-    for qw(batch_size collection fields hint limit query skip snapshot),
-    qw(sort tailable);
+    for qw(batch_size collection fields hint limit max_scan query skip),
+    qw(snapshot sort tailable);
   return $clone;
 }
 
@@ -269,6 +271,13 @@ Cursor id.
   $cursor   = $cursor->limit(10);
 
 Limit the number of documents, defaults to C<0>.
+
+=head2 max_scan
+
+  my $max = $cursor->max_scan;
+  $cursor = $cursor->max_scan(500);
+
+Limit the number of documents to scan.
 
 =head2 query
 
