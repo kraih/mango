@@ -24,19 +24,19 @@ sub build_query {
   my ($self, $explain) = @_;
 
   my $query    = $self->query;
-  my $sort     = $self->sort;
   my $hint     = $self->hint;
-  my $snapshot = $self->snapshot;
   my $max_scan = $self->max_scan;
+  my $snapshot = $self->snapshot;
+  my $sort     = $self->sort;
 
-  return $query unless $snapshot || $hint || $sort || $max_scan || $explain;
+  return $query unless $explain || $hint || $max_scan || $snapshot || $sort;
 
   $query = {'$query' => $query};
   $query->{'$explain'}  = 1         if $explain;
-  $query->{'$orderby'}  = $sort     if $sort;
   $query->{'$hint'}     = $hint     if $hint;
-  $query->{'$snapshot'} = 1         if $snapshot;
   $query->{'$maxScan'}  = $max_scan if $max_scan;
+  $query->{'$snapshot'} = 1         if $snapshot;
+  $query->{'$orderby'}  = $sort     if $sort;
 
   return $query;
 }
@@ -44,9 +44,8 @@ sub build_query {
 sub clone {
   my $self  = shift;
   my $clone = $self->new;
-  $clone->$_($self->$_)
-    for qw(batch_size collection fields hint limit max_scan query skip),
-    qw(snapshot sort tailable);
+  $clone->$_($self->$_) for qw(batch_size collection fields hint limit);
+  $clone->$_($self->$_) for qw(max_scan query skip snapshot sort tailable);
   return $clone;
 }
 

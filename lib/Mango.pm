@@ -46,12 +46,12 @@ for my $name (qw(delete insert update)) {
     my ($next, $msg) = $self->_build($name, $ns, @_);
     $next = $self->_id;
     $ns =~ s/\..+$/\.\$cmd/;
-    my $command = bson_doc
+    my $gle = bson_doc
       getLastError => 1,
       j            => $self->j ? bson_true : bson_false,
       w            => $self->w,
       wtimeout     => $self->wtimeout;
-    $msg .= $self->protocol->build_query($next, $ns, {}, 0, -1, $command, {});
+    $msg .= $self->protocol->build_query($next, $ns, {}, 0, -1, $gle, {});
 
     warn "-- Operation $next ($name)\n" if DEBUG;
     $self->_start({id => $next, safe => 1, msg => $msg, cb => $cb});
@@ -121,10 +121,10 @@ sub _auth {
   # Run "authenticate" command with "nonce" value
   my $nonce = $reply->{docs}[0]{nonce} // '';
   my $key = md5_sum $nonce . $user . md5_sum "$user:mongo:$pass";
-  my $command
+  my $authenticate
     = bson_doc(authenticate => 1, user => $user, nonce => $nonce, key => $key);
   my $cb = sub { shift->_connected($id, $credentials) };
-  $self->_fast($id, $db, $command, $cb);
+  $self->_fast($id, $db, $authenticate, $cb);
 }
 
 sub _build {

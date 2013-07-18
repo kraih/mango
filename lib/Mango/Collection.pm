@@ -114,7 +114,7 @@ sub insert {
 sub map_reduce {
   my ($self, $map, $reduce) = (shift, shift, shift);
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-  my $command = bson_doc
+  my $mr = bson_doc
     mapreduce => $self->name,
     map       => ref $map ? $map : bson_code($map),
     reduce    => ref $reduce ? $reduce : bson_code($reduce),
@@ -123,7 +123,7 @@ sub map_reduce {
   # Non-blocking
   my $db = $self->db;
   return $db->command(
-    $command => sub {
+    $mr => sub {
       my ($db, $err, $doc) = @_;
       my $result
         = $doc->{result} ? $db->collection($doc->{result}) : $doc->{results};
@@ -132,7 +132,7 @@ sub map_reduce {
   ) if $cb;
 
   # Blocking
-  my $doc = $db->command($command);
+  my $doc = $db->command($mr);
   return $doc->{result} ? $db->collection($doc->{result}) : $doc->{results};
 }
 
