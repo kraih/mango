@@ -180,8 +180,7 @@ sub _max {
   my $self  = shift;
   my $limit = $self->limit;
   my $size  = $self->batch_size;
-  return $size if $limit == 0;
-  return $size > $limit ? $limit : $size;
+  return $limit == 0 || $size < $limit ? $size : $limit;
 }
 
 sub _start {
@@ -190,17 +189,17 @@ sub _start {
   my $collection = $self->collection;
   my $name       = $collection->full_name;
   my $flags = $self->tailable ? {tailable_cursor => 1, await_data => 1} : {};
-  my @args  = (
+  my @query = (
     $name, $flags, $self->skip, $self->_max, $self->build_query, $self->fields
   );
 
   # Non-blocking
   return $collection->db->mango->query(
-    @args => sub { shift; $self->$cb(shift, $self->_enqueue(shift)) })
+    @query => sub { shift; $self->$cb(shift, $self->_enqueue(shift)) })
     if $cb;
 
   # Blocking
-  my $reply = $collection->db->mango->query(@args);
+  my $reply = $collection->db->mango->query(@query);
   $self->id($reply->{cursor}) if $reply;
   return $self->_enqueue($reply);
 }

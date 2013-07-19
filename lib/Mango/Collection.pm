@@ -151,11 +151,12 @@ sub save {
   return $self->insert($doc, $cb) unless $doc->{_id};
 
   # Update non-blocking
-  my @args = ({_id => $doc->{_id}}, $doc, {upsert => 1});
-  return $self->update(@args => sub { shift->$cb(shift, $doc->{_id}) }) if $cb;
+  my @update = ({_id => $doc->{_id}}, $doc, {upsert => 1});
+  return $self->update(@update => sub { shift->$cb(shift, $doc->{_id}) })
+    if $cb;
 
   # Update blocking
-  $self->update(@args);
+  $self->update(@update);
   return $doc->{_id};
 }
 
