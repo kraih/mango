@@ -48,10 +48,7 @@ sub ensure_index {
   $collection->insert($doc);
 }
 
-sub find {
-  my ($self, $query) = @_;
-  return Mango::Cursor->new(collection => $self, query => $query // {});
-}
+sub find { Mango::Cursor->new(collection => shift, query => shift // {}) }
 
 sub find_and_modify {
   my ($self, $opts) = (shift, shift);

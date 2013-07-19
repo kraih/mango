@@ -72,6 +72,7 @@ Mango::Database - MongoDB database
 
   my $db = Mango::Database->new(mango => $mango);
   my $collection = $db->collection('foo');
+  my $gridfs     = $db->gridfs;
 
 =head1 DESCRIPTION
 

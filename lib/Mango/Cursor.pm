@@ -83,13 +83,12 @@ sub distinct {
     key      => $key,
     query    => $self->build_query;
 
-  # Non-blocking
-  return $collection->db->command(
-    $distinct => sub { shift; $self->$cb(shift, shift->{values}) })
-    if $cb;
-
   # Blocking
-  return $collection->db->command($distinct)->{values};
+  my $db = $collection->db;
+  return $db->command($distinct)->{values} unless $cb;
+
+  # Non-blocking
+  $db->command($distinct => sub { shift; $self->$cb(shift, shift->{values}) });
 }
 
 sub explain {
@@ -302,8 +301,9 @@ Use snapshot mode.
 
   my $sort = $cursor->sort;
   $cursor  = $cursor->sort({foo => 1});
+  $cursor  = $cursor->sort(bson_doc(foo => 1, bar => -1));
 
-Sort documents.
+Sort documents, the order of keys matters.
 
 =head2 tailable
 
@@ -321,8 +321,8 @@ following new ones.
 
   my $docs = $cursor->all;
 
-Fetch all documents. You can also append a callback to perform operation
-non-blocking.
+Fetch all documents at once. You can also append a callback to perform
+operation non-blocking.
 
   $cursor->all(sub {
     my ($cursor, $err, $docs) = @_;
