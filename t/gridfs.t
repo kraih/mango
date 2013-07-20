@@ -80,7 +80,6 @@ my $delay = Mojo::IOLoop->delay(
   }
 );
 $delay->wait;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 ok $writer->is_closed, 'file has been closed';
 $reader = $gridfs->reader;
@@ -93,7 +92,6 @@ $reader->open(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $reader->filename,     'foo.txt',    'right filename';
 is $reader->content_type, 'text/plain', 'right content type';
@@ -112,7 +110,6 @@ $cb = sub {
 };
 $reader->$cb(undef, '');
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $data, 'hello world!', 'right content';
 my ($before, $after);
@@ -137,7 +134,6 @@ $delay = Mojo::IOLoop->delay(
   }
 );
 $delay->wait;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is_deeply $before, ['foo.txt'], 'right files';
 is_deeply $after, [], 'no files';
@@ -152,7 +148,6 @@ is_deeply $gridfs->list, ['test.txt'], 'right files';
 is $gridfs->find_version('test.txt', 1), $one, 'right version';
 is $gridfs->find_version('test.txt', 2), $two, 'right version';
 is $gridfs->find_version('test.txt', 3), undef, 'no version';
-is $mango->backlog, 0, 'no operations waiting';
 is $gridfs->reader->open($one)->slurp, 'One', 'right content';
 is $gridfs->reader->open($one)->seek(1)->slurp, 'ne', 'right content';
 is $gridfs->reader->open($two)->slurp, 'Two', 'right content';
@@ -163,7 +158,7 @@ $gridfs->$_->drop for qw(files chunks);
 $one = $gridfs->writer->filename('test.txt')->write('One')->close;
 $two = $gridfs->writer->filename('test.txt')->write('Two')->close;
 is_deeply $gridfs->list, ['test.txt'], 'right files';
-my ($backlog, @results);
+my @results;
 $fail  = undef;
 $delay = Mojo::IOLoop->delay(
   sub {
@@ -171,7 +166,6 @@ $delay = Mojo::IOLoop->delay(
     $gridfs->find_version(('test.txt', 3) => $delay->begin);
     $gridfs->find_version(('test.txt', 2) => $delay->begin);
     $gridfs->find_version(('test.txt', 1) => $delay->begin);
-    $backlog = $gridfs->db->mango->backlog;
   },
   sub {
     my ($delay, $three_err, $three, $two_err, $two, $one_err, $one) = @_;
@@ -180,9 +174,7 @@ $delay = Mojo::IOLoop->delay(
   }
 );
 $delay->wait;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
-is $backlog, 3, 'three operations waiting';
 is $results[0], $one, 'right version';
 is $results[1], $two, 'right version';
 is $results[2], undef, 'no version';
@@ -208,7 +200,6 @@ $delay = Mojo::IOLoop->delay(
   }
 );
 $delay->wait;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $results[0], 'One', 'right content';
 is $results[1], 'Two', 'right content';
@@ -230,7 +221,6 @@ $writer->write(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 like $fail, qr/^File already closed/, 'right error';
 ok $writer->is_closed, 'file is still closed';
 is $writer->close, $oid, 'right result';
@@ -244,7 +234,6 @@ $writer->close(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $result, $oid, 'right result';
 ok $writer->is_closed, 'file is still closed';

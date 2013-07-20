@@ -50,7 +50,6 @@ $collection->stats(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $result->{count}, 2, 'right number of documents';
 
@@ -99,7 +98,6 @@ $collection->find_and_modify(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $result->{atomic}, 1, 'right document';
 is $collection->find_one($oid)->{atomic}, 2, 'right document';
@@ -125,7 +123,6 @@ $collection->aggregate(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $result->[0]{total}, 6, 'right result';
 is $collection->remove({more => {'$exists' => 1}}), 3,
@@ -158,7 +155,6 @@ $collection->save(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 $doc = $collection->find_one($result);
 is $doc->{update}, 'me', 'right document';
@@ -174,7 +170,6 @@ $collection->save(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $oid, $result, 'same object id';
 $doc = $collection->find_one($oid);
@@ -192,7 +187,6 @@ $collection->save(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $oid, $result, 'same object id';
 $doc = $collection->find_one($oid);
@@ -217,7 +211,6 @@ $collection->drop(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 ok !$collection->find_one($oid), 'no document';
 
@@ -256,7 +249,6 @@ my $delay = Mojo::IOLoop->delay(
   }
 );
 $delay->wait;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $collection->find->count, 1, 'one document';
 is $result->{test}{unique}, bson_true, 'index is unique';
@@ -278,7 +270,6 @@ $delay = Mojo::IOLoop->delay(
   }
 );
 $delay->wait;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 is $result->{test}, undef, 'no index';
 $collection->drop;
@@ -301,7 +292,6 @@ $collection->create(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 $collection->insert([{test => 1}, {test => 2}]);
 is $collection->find({})->count, 2, 'two documents';
@@ -354,7 +344,6 @@ $collection->map_reduce(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 $collection->drop;
 $docs = $result->find->sort({value => -1})->all;
@@ -390,7 +379,6 @@ $collection->map_reduce(
   }
 );
 Mojo::IOLoop->start;
-ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
 $collection->drop;
 is_deeply $result->[0], {_id => 'cat',   value => 3}, 'right document';
@@ -412,7 +400,6 @@ $mango->db->collection('collection_test')->remove(
 );
 Mojo::IOLoop->start;
 Mojo::IOLoop->remove($id);
-ok !$mango->is_active, 'no operations in progress';
 like $fail, qr/Premature connection close/, 'right error';
 ok !$result, 'remove was not successful';
 

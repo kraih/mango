@@ -101,19 +101,19 @@ sub db {
   return $db;
 }
 
-sub is_active {
-  my $self = shift;
-  return 1 if $self->backlog;
-  return !!grep { $_->{last} && !$_->{start} }
-    values %{$self->{connections} || {}};
-}
-
 sub kill_cursors {
   my $self = shift;
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
   my ($next, $msg) = $self->_build('kill_cursors', @_);
   warn "-- Unsafe operation $next (kill_cursors)\n" if DEBUG;
   $self->_start({id => $next, safe => 0, msg => $msg, cb => $cb});
+}
+
+sub _active {
+  my $self = shift;
+  return 1 if $self->backlog;
+  return !!grep { $_->{last} && !$_->{start} }
+    values %{$self->{connections} || {}};
 }
 
 sub _auth {
@@ -267,7 +267,7 @@ sub _start {
 
     # Start non-blocking
     unless ($self->{nb}) {
-      croak 'Blocking operation in progress' if $self->is_active;
+      croak 'Blocking operation in progress' if $self->_active;
       warn "-- Switching to non-blocking mode\n" if DEBUG;
       $self->_cleanup;
       $self->{nb}++;
@@ -278,7 +278,7 @@ sub _start {
 
   # Start blocking
   if ($self->{nb}) {
-    croak 'Non-blocking operations in progress' if $self->is_active;
+    croak 'Non-blocking operations in progress' if $self->_active;
     warn "-- Switching to blocking mode\n" if DEBUG;
     $self->_cleanup;
     delete $self->{nb};
@@ -554,12 +554,6 @@ can also append a callback to perform operation non-blocking.
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
-
-=head2 is_active
-
-  my $success = $mango->is_active;
-
-Check if there are still operations in progress.
 
 =head2 kill_cursors
 

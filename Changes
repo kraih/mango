@@ -1,5 +1,6 @@
 
 0.08  2013-07-20
+  - Removed is_active method from Mango.
   - Added backlog method to Mango.
   - Added max_scan attribute to Mango::Cursor.
 

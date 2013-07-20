@@ -126,11 +126,14 @@ is $collection->remove, 1, 'one document removed';
 
 # Mixed parallel operations
 $collection->insert({test => $_}) for 1 .. 3;
+is $mango->backlog, 0, 'no operations waiting';
 $delay = Mojo::IOLoop->delay;
 $collection->find_one({test => $_} => $delay->begin) for 1 .. 3;
-ok $mango->is_active, 'operations in progress';
+is $mango->backlog, 3, 'three operations waiting';
+eval { $collection->find_one({test => 1}) };
+like $@, qr/^Non-blocking operations in progress/, 'right error';
 my @results = $delay->wait;
-ok !$mango->is_active, 'no operations in progress';
+is $mango->backlog, 0, 'no operations waiting';
 ok !$results[0], 'no error';
 is $results[1]{test}, 1, 'right result';
 ok !$results[2], 'no error';
