@@ -477,7 +477,7 @@ Protocol handler, defaults to a L<Mango::Protocol> object.
 =head2 w
 
   my $w  = $mango->w;
-  $mango = $mango->w(1);
+  $mango = $mango->w(2);
 
 Wait for all operations to have reached at least this many servers, C<1>
 indicates just primary, C<2> indicates primary and at least one secondary,
@@ -498,7 +498,7 @@ new ones.
 =head2 new
 
   my $mango = Mango->new;
-  my $mango = Mango->new('mongodb://localhost:3000/mango_test?w=2');
+  my $mango = Mango->new('mongodb://sri:s3cret@localhost:3000/test?w=2');
 
 Construct a new L<Mango> object.
 
