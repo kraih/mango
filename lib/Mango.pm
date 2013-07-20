@@ -91,6 +91,8 @@ sub new {
   return $self;
 }
 
+sub backlog { scalar @{shift->{queue} || []} }
+
 sub db {
   my ($self, $name) = @_;
   $name //= $self->default_db;
@@ -101,7 +103,7 @@ sub db {
 
 sub is_active {
   my $self = shift;
-  return 1 if @{$self->{queue} || []};
+  return 1 if $self->backlog;
   return !!grep { $_->{last} && !$_->{start} }
     values %{$self->{connections} || {}};
 }
@@ -499,6 +501,12 @@ new ones.
   my $mango = Mango->new('mongodb://localhost:3000/mango_test?w=2');
 
 Construct a new L<Mango> object.
+
+=head2 backlog
+
+  my $num = $mango->backlog;
+
+Number of queued operations that have not yet been assigned to a connection.
 
 =head2 db
 

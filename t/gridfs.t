@@ -152,6 +152,7 @@ is_deeply $gridfs->list, ['test.txt'], 'right files';
 is $gridfs->find_version('test.txt', 1), $one, 'right version';
 is $gridfs->find_version('test.txt', 2), $two, 'right version';
 is $gridfs->find_version('test.txt', 3), undef, 'no version';
+is $mango->backlog, 0, 'no operations waiting';
 is $gridfs->reader->open($one)->slurp, 'One', 'right content';
 is $gridfs->reader->open($one)->seek(1)->slurp, 'ne', 'right content';
 is $gridfs->reader->open($two)->slurp, 'Two', 'right content';
@@ -162,7 +163,7 @@ $gridfs->$_->drop for qw(files chunks);
 $one = $gridfs->writer->filename('test.txt')->write('One')->close;
 $two = $gridfs->writer->filename('test.txt')->write('Two')->close;
 is_deeply $gridfs->list, ['test.txt'], 'right files';
-my @results;
+my ($backlog, @results);
 $fail  = undef;
 $delay = Mojo::IOLoop->delay(
   sub {
@@ -170,6 +171,7 @@ $delay = Mojo::IOLoop->delay(
     $gridfs->find_version(('test.txt', 3) => $delay->begin);
     $gridfs->find_version(('test.txt', 2) => $delay->begin);
     $gridfs->find_version(('test.txt', 1) => $delay->begin);
+    $backlog = $gridfs->db->mango->backlog;
   },
   sub {
     my ($delay, $three_err, $three, $two_err, $two, $one_err, $one) = @_;
@@ -180,6 +182,7 @@ $delay = Mojo::IOLoop->delay(
 $delay->wait;
 ok !$mango->is_active, 'no operations in progress';
 ok !$fail, 'no error';
+is $backlog, 3, 'three operations waiting';
 is $results[0], $one, 'right version';
 is $results[1], $two, 'right version';
 is $results[2], undef, 'no version';

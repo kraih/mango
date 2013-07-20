@@ -16,6 +16,7 @@ is_deeply $mango->credentials, [], 'no credentials';
 is $mango->j,        0,    'right j value';
 is $mango->w,        1,    'right w value';
 is $mango->wtimeout, 1000, 'right wtimeout value';
+is $mango->backlog,  0,    'no operations waiting';
 
 # Simple connection string
 $mango = Mango->new('mongodb://127.0.0.1:3000');
@@ -53,6 +54,7 @@ $collection->drop
 
 # Blocking CRUD
 my $oid = $collection->insert({foo => 'bar'});
+is $mango->backlog, 0, 'no operations waiting';
 isa_ok $oid, 'Mango::BSON::ObjectID', 'right class';
 my $doc = $collection->find_one({foo => 'bar'});
 is_deeply $doc, {_id => $oid, foo => 'bar'}, 'right document';
@@ -63,11 +65,12 @@ is_deeply $doc, {_id => $oid, foo => 'yada'}, 'right document';
 is $collection->remove, 1, 'one document removed';
 
 # Non-blocking CRUD
-my ($fail, $created, $updated, $found, $removed);
+my ($fail, $backlog, $created, $updated, $found, $removed);
 my $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
     $collection->insert({foo => 'bar'} => $delay->begin);
+    $backlog = $collection->db->mango->backlog;
   },
   sub {
     my ($delay, $err, $oid) = @_;
@@ -101,8 +104,9 @@ my $delay = Mojo::IOLoop->delay(
 );
 $delay->wait;
 ok !$fail, 'no error';
+is $backlog,     1,                       'one operation waiting';
 isa_ok $created, 'Mango::BSON::ObjectID', 'right class';
-is $updated, 1, 'one document updated';
+is $updated,     1,                       'one document updated';
 is_deeply $found, {_id => $created, foo => 'yada'}, 'right document';
 is $removed, 1, 'one document removed';
 
