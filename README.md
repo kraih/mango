@@ -22,13 +22,13 @@
       $collection->insert({when => bson_time, from => $ip} => sub {
         my ($collection, $err, $oid) = @_;
 
-        return $self->render_exception if $err;
+        return $self->render_exception($err) if $err;
 
         # Retrieve information about previous visitors
         $collection->find({})->sort({when => -1})->fields({_id => 0})->all(sub {
           my ($collection, $err, $docs) = @_;
 
-          return $self->render_exception if $err;
+          return $self->render_exception($err) if $err;
 
           # And show it to current visitor
           $self->render(json => $docs);
