@@ -25,7 +25,7 @@
         return $self->render_exception($err) if $err;
 
         # Retrieve information about previous visitors
-        $collection->find({})->sort({when => -1})->fields({_id => 0})->all(sub {
+        $collection->find->sort({when => -1})->fields({_id => 0})->all(sub {
           my ($collection, $err, $docs) = @_;
 
           return $self->render_exception($err) if $err;
