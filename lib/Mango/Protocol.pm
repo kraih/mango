@@ -118,7 +118,7 @@ sub build_update {
   vec($vec, 1, 1) = 1 if $flags->{multi_update};
   $msg .= encode_int32(unpack 'V', $vec);
 
-  # Query and update sepecification
+  # Query and update specification
   $msg .= bson_encode($query) . bson_encode($update);
 
   # Header
