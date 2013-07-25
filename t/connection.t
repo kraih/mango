@@ -124,6 +124,35 @@ Mojo::IOLoop->start;
 like $fail, qr/Oops!/, 'right error';
 is $collection->remove, 1, 'one document removed';
 
+# Fork safety
+my $result;
+$fail = undef;
+$collection->find->count(
+  sub {
+    my ($collection, $err, $num) = @_;
+    $fail   = $err;
+    $result = $num;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$fail, 'no error';
+is $result, 0, 'no documents';
+$fail = undef;
+$collection->find->count(
+  sub {
+    my ($collection, $err, $num) = @_;
+    $fail   = $err;
+    $result = $num;
+  }
+);
+{
+  local $$ = -23;
+  is $collection->find->count, 0, 'no documents';
+  like $fail, qr/Premature connection close/, 'right error';
+  is $result, undef, 'no result';
+}
+
 # Mixed parallel operations
 $collection->insert({test => $_}) for 1 .. 3;
 is $mango->backlog, 0, 'no operations waiting';

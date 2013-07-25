@@ -1,5 +1,6 @@
 
-0.09  2013-07-21
+0.09  2013-07-26
+  - Improved connection management to be fork-safe.
 
 0.08  2013-07-20
   - Removed is_active method from Mango.

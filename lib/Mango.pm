@@ -141,6 +141,7 @@ sub _cleanup {
   return unless my $loop = $self->_loop;
 
   # Clean up connections
+  delete $self->{pid};
   my $connections = delete $self->{connections};
   $loop->remove($_) for keys %$connections;
 
@@ -261,6 +262,9 @@ sub _read {
 
 sub _start {
   my ($self, $op) = @_;
+
+  # Fork safety
+  $self->_cleanup unless ($self->{pid} //= $$) eq $$;
 
   # Non-blocking
   if ($op->{cb}) {
@@ -393,6 +397,7 @@ considered a feature.
 Many arguments passed to methods as well as values of attributes get
 serialized to BSON with L<Mango::BSON>, which provides many helper functions
 you can use to generate data types that are not available natively in Perl.
+All connections will be reset automatically if a new process has been forked.
 
 For better scalability (epoll, kqueue) and to provide IPv6 as well as TLS
 support, the optional modules L<EV> (4.0+), L<IO::Socket::IP> (0.16+) and
