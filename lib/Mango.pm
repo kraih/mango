@@ -175,7 +175,7 @@ sub _connect {
       $stream->on(close => sub { $self->_close($id) });
       $stream->on(error => sub { $self && $self->_error($id, pop) });
       $stream->on(read => sub { $self->_read($id, pop) });
-      $self->_connected($id, [@{$self->credentials}]);
+      $self->emit(connection => $id)->_connected($id, [@{$self->credentials}]);
     }
   );
   $self->{connections}{$id} = {start => 1};
@@ -409,6 +409,15 @@ MOJO_NO_IPV6 and MOJO_NO_TLS environment variables.
 
 L<Mango> inherits all events from L<Mojo::EventEmitter> and can emit the
 following new ones.
+
+=head2 connection
+
+  $mango->on(connection => sub {
+    my ($mango, $id) = @_;
+    ...
+  });
+
+Emitted when a new connection has been established.
 
 =head2 error
 
