@@ -138,17 +138,22 @@ $mango->on(
 is $collection->find->count, 0, 'no documents';
 is $connections, 1, 'one connection';
 ok $mango->ioloop->stream($current), 'connection exists';
-my $first = $current;
+my $last = $current;
 is $collection->find->count, 0, 'no documents';
 is $connections, 1, 'one connection';
 ok $mango->ioloop->stream($current), 'connection exists';
-is $first, $current, 'same connection';
+is $last, $current, 'same connection';
 {
   local $$ = -23;
   is $collection->find->count, 0, 'no documents';
   is $connections, 2, 'two connections';
   ok $mango->ioloop->stream($current), 'connection exists';
-  isnt $first, $current, 'different connections';
+  isnt $last, $current, 'different connections';
+  $last = $current;
+  is $collection->find->count, 0, 'no documents';
+  is $connections, 2, 'two connections';
+  ok $mango->ioloop->stream($current), 'connection exists';
+  is $last, $current, 'same connection';
 }
 
 # Mixed parallel operations
