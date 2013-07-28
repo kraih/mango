@@ -1,5 +1,5 @@
 
-0.09  2013-07-26
+0.09  2013-07-28
   - Added connection event to Mango.
   - Improved connection management to be fork-safe.
 
