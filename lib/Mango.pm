@@ -23,7 +23,7 @@ has protocol        => sub { Mango::Protocol->new };
 has w               => 1;
 has wtimeout        => 1000;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
@@ -168,7 +168,7 @@ sub _connect {
       my ($loop, $err, $stream) = @_;
 
       # Connection error
-      return $self && $self->_error($id, $err) if $err;
+      return $self->_error($id, $err) if $err;
 
       # Connection established
       $stream->timeout(0);

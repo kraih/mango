@@ -46,6 +46,11 @@ like $@, qr/Invalid MongoDB connection string/, 'right error';
 $mango = Mango->new('mongodb://127.0.0.1,127.0.0.1:5000');
 is_deeply $mango->hosts, [['127.0.0.1'], ['127.0.0.1', 5000]], 'right hosts';
 
+# Connection error
+my $port = Mojo::IOLoop->generate_port;
+eval { Mango->new("mongodb://127.0.0.1:$port/test")->db->command('getnonce') };
+ok $@, 'has error';
+
 # Clean up before start
 $mango = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('connection_test');
