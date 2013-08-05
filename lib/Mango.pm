@@ -310,10 +310,10 @@ sub _write {
   return $c->{start} if $c->{last};
   my $loop = $self->_loop;
   return undef unless my $stream = $loop->stream($id);
-  #if (!$loop->is_running && $stream->is_readable) {
-  #  $stream->close;
-  #  return undef;
-  #}
+  if (!$loop->is_running && $stream->is_readable) {
+    $stream->close;
+    return undef;
+  }
 
   delete $c->{start} unless my $last = delete $c->{fast};
   return $c->{start} unless $c->{last} = $last ||= shift @{$self->{queue}};
