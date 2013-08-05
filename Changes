@@ -1,5 +1,6 @@
 
-0.10  2013-07-29
+0.10  2013-08-06
+  - Improved connection management to be more fault-tolerant.
 
 0.09  2013-07-28
   - Added connection event to Mango.

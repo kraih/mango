@@ -305,10 +305,17 @@ sub _start {
 sub _write {
   my ($self, $id) = @_;
 
+  # Make sure connection has not been corrupted while event loop was stopped
   my $c = $self->{connections}{$id};
   return $c->{start} if $c->{last};
-  return undef       unless my $stream = $self->_loop->stream($id);
-  delete $c->{start} unless my $last   = delete $c->{fast};
+  my $loop = $self->_loop;
+  return undef unless my $stream = $loop->stream($id);
+  #if (!$loop->is_running && $stream->is_readable) {
+  #  $stream->close;
+  #  return undef;
+  #}
+
+  delete $c->{start} unless my $last = delete $c->{fast};
   return $c->{start} unless $c->{last} = $last ||= shift @{$self->{queue}};
   warn "-- Client >>> Server ($last->{id})\n" if DEBUG;
   $stream->write(delete $last->{msg});
