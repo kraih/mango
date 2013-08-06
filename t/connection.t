@@ -38,7 +38,7 @@ is $mango->w,        2,    'right w value';
 is $mango->wtimeout, 2000, 'right wtimeout value';
 is $mango->db->name, 'test', 'right database name';
 
-# Invalud connection string
+# Invalid connection string
 eval { Mango->new('http://localhost:3000/test') };
 like $@, qr/Invalid MongoDB connection string/, 'right error';
 
