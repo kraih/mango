@@ -384,7 +384,7 @@ perform operation non-blocking.
 
 =head2 next
 
-  my $doc  = $cursor->next;
+  my $doc = $cursor->next;
 
 Fetch next document. You can also append a callback to perform operation
 non-blocking.
