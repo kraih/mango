@@ -1,12 +1,13 @@
 use Mojo::Base -strict;
 
 use Test::More;
-use List::Util 'first';
-use Mango;
-use Mojo::IOLoop;
 
 plan skip_all => 'set TEST_ONLINE to enable this test'
   unless $ENV{TEST_ONLINE};
+
+use List::Util 'first';
+use Mango;
+use Mojo::IOLoop;
 
 # Clean up before start
 my $mango      = Mango->new($ENV{TEST_ONLINE});

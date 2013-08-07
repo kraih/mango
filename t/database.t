@@ -1,13 +1,14 @@
 use Mojo::Base -strict;
 
 use Test::More;
+
+plan skip_all => 'set TEST_ONLINE to enable this test'
+  unless $ENV{TEST_ONLINE};
+
 use List::Util 'first';
 use Mango;
 use Mango::BSON 'bson_code';
 use Mojo::IOLoop;
-
-plan skip_all => 'set TEST_ONLINE to enable this test'
-  unless $ENV{TEST_ONLINE};
 
 # Run command blocking
 my $mango = Mango->new($ENV{TEST_ONLINE});
