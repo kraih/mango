@@ -198,9 +198,7 @@ sub _start {
     if $cb;
 
   # Blocking
-  my $reply = $collection->db->mango->query(@query);
-  $self->id($reply->{cursor}) if $reply;
-  return $self->_enqueue($reply);
+  return $self->_enqueue($collection->db->mango->query(@query));
 }
 
 1;
