@@ -65,10 +65,10 @@ isa_ok $oid, 'Mango::BSON::ObjectID', 'right class';
 my $doc = $collection->find_one({foo => 'bar'});
 is_deeply $doc, {_id => $oid, foo => 'bar'}, 'right document';
 $doc->{foo} = 'yada';
-is $collection->update({foo => 'bar'}, $doc), 1, 'one document updated';
+is $collection->update({foo => 'bar'}, $doc)->{n}, 1, 'one document updated';
 $doc = $collection->find_one($oid);
 is_deeply $doc, {_id => $oid, foo => 'yada'}, 'right document';
-is $collection->remove, 1, 'one document removed';
+is $collection->remove->{n}, 1, 'one document removed';
 
 # Non-blocking CRUD
 my ($fail, $backlog, $created, $updated, $found, $removed);
@@ -91,9 +91,9 @@ my $delay = Mojo::IOLoop->delay(
     $collection->update(({foo => 'bar'}, $doc) => $delay->begin);
   },
   sub {
-    my ($delay, $err, $num) = @_;
+    my ($delay, $err, $doc) = @_;
     $fail ||= $err;
-    $updated = $num;
+    $updated = $doc;
     $collection->find_one($created => $delay->begin);
   },
   sub {
@@ -103,18 +103,18 @@ my $delay = Mojo::IOLoop->delay(
     $collection->remove($delay->begin);
   },
   sub {
-    my ($delay, $err, $num) = @_;
+    my ($delay, $err, $doc) = @_;
     $fail ||= $err;
-    $removed = $num;
+    $removed = $doc;
   }
 );
 $delay->wait;
 ok !$fail, 'no error';
-is $backlog,     1,                       'one operation waiting';
+is $backlog, 1, 'one operation waiting';
 isa_ok $created, 'Mango::BSON::ObjectID', 'right class';
-is $updated,     1,                       'one document updated';
+is $updated->{n}, 1, 'one document updated';
 is_deeply $found, {_id => $created, foo => 'yada'}, 'right document';
-is $removed, 1, 'one document removed';
+is $removed->{n}, 1, 'one document removed';
 
 # Error in callback
 $collection->insert({foo => 'bar'} => sub { die 'Oops!' });
@@ -128,7 +128,7 @@ $mango->once(
 );
 Mojo::IOLoop->start;
 like $fail, qr/Oops!/, 'right error';
-is $collection->remove, 1, 'one document removed';
+is $collection->remove->{n}, 1, 'one document removed';
 
 # Fork safety
 $mango      = Mango->new($ENV{TEST_ONLINE});
@@ -178,6 +178,6 @@ ok !$results[2], 'no error';
 is $results[3]{test}, 2, 'right result';
 ok !$results[4], 'no error';
 is $results[5]{test}, 3, 'right result';
-is $collection->remove, 3, 'three documents removed';
+is $collection->remove->{n}, 3, 'three documents removed';
 
 done_testing();
