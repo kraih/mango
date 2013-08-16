@@ -1,5 +1,7 @@
 
-0.12  2013-08-15
+0.12  2013-08-17
+  - Fixed rewind bug in Mango::Cursor where the cursor would not be killed on
+    the server.
 
 0.11  2013-08-14
   - Changed return values of remove and update methods in Mango::Collection.
