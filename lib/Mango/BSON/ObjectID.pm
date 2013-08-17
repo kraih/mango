@@ -16,12 +16,12 @@ sub new {
   my ($class, $oid) = @_;
   croak qq{Invalid object id "$oid"}
     if defined $oid && $oid !~ /^[0-9a-fA-F]{24}$/;
-  return bless \($oid //= _generate()), ref $class || $class;
+  return $class->SUPER::new(oid => $oid // _generate());
 }
 
-sub to_epoch { unpack 'N', substr(pack('H*', ${$_[0]}), 0, 4) }
+sub to_epoch { unpack 'N', substr(pack('H*', shift->to_string), 0, 4) }
 
-sub to_string { ${$_[0]} }
+sub to_string { shift->{oid} }
 
 sub _generate {
 
@@ -63,7 +63,7 @@ implements the following new ones.
   my $oid = Mango::BSON::ObjectID->new;
   my $oid = Mango::BSON::ObjectID->new('1a2b3c4e5f60718293a4b5c6');
 
-Construct a new scalar-based L<Mango::BSON::ObjectID> object.
+Construct a new L<Mango::BSON::ObjectID> object.
 
 =head2 to_epoch
 

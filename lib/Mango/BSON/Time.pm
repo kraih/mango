@@ -4,16 +4,13 @@ use overload '""' => sub { shift->to_string }, fallback => 1;
 
 use Time::HiRes 'time';
 
-sub new {
-  my ($class, $time) = @_;
-  return bless \($time //= int(time * 1000)), ref $class || $class;
-}
+sub new { shift->SUPER::new(time => shift // int(time * 1000)) }
 
-sub to_epoch { ${$_[0]} / 1000 }
+sub to_epoch { shift->to_string / 1000 }
 
-sub to_string { ${$_[0]} }
+sub to_string { shift->{time} }
 
-sub TO_JSON { ${$_[0]} }
+sub TO_JSON { shift->to_string }
 
 1;
 
@@ -45,7 +42,7 @@ the following new ones.
   my $time = Mango::BSON::Time->new;
   my $time = Mango::BSON::Time->new(time * 1000);
 
-Construct a new scalar-based L<Mango::BSON::Time> object.
+Construct a new L<Mango::BSON::Time> object.
 
 =head2 to_epoch
 
