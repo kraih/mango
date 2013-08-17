@@ -1,4 +1,6 @@
 
+0.13  2013-08-18
+
 0.12  2013-08-17
   - Fixed rewind bug in Mango::Cursor where the cursor would not be killed on
     the server.

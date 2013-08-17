@@ -23,7 +23,7 @@ has protocol        => sub { Mango::Protocol->new };
 has w               => 1;
 has wtimeout        => 1000;
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
