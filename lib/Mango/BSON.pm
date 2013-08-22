@@ -429,7 +429,7 @@ Decode BSON into Perl data structures.
 =head2 bson_doc
 
   my $doc = bson_doc;
-  my $doc = bson_doc foo => 'bar', baz => 23;
+  my $doc = bson_doc foo => 'bar', baz => 0.42, yada => {yada => [1, 2, 3]};
 
 Create new BSON document with L<Mango::BSON::Document>, which can also be used
 as a generic ordered hash.
