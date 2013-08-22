@@ -375,7 +375,12 @@ Mango::BSON - BSON
 
   use Mango::BSON ':bson';
 
-  my $bson = bson_encode bson_doc(now => bson_time, counter => 13);
+  my $bson = bson_encode bson_doc(
+    foo       => 'bar',
+    baz       => 0.42,
+    unordered => {one => [1, 2, 3], two => bson_time},
+    ordered   => bson_doc(one => bson_true, two => bson_false)
+  );
   my $doc  = bson_decode $bson;
 
 =head1 DESCRIPTION
