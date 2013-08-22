@@ -379,7 +379,7 @@ Mango::BSON - BSON
     foo       => 'bar',
     baz       => 0.42,
     unordered => {one => [1, 2, 3], two => bson_time},
-    ordered   => bson_doc(one => bson_true, two => bson_false)
+    ordered   => bson_doc(one => qr/test/i, two => bson_true)
   );
   my $doc  = bson_decode $bson;
 
