@@ -381,7 +381,7 @@ Mango::BSON - BSON
     unordered => {one => [1, 2, 3], two => bson_time},
     ordered   => bson_doc(one => qr/test/i, two => bson_true)
   );
-  my $doc  = bson_decode $bson;
+  my $doc = bson_decode $bson;
 
 =head1 DESCRIPTION
 
