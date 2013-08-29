@@ -88,7 +88,7 @@ L<Mango::Database> implements the following attributes.
   $db       = $db->mango(Mango->new);
 
 L<Mango> object this database belongs to. Note that this reference is usually
-weakened, so the L<Mango> object needs to be referenced elsewhere too.
+weakened, so the L<Mango> object needs to be referenced elsewhere as well.
 
 =head2 name
 
