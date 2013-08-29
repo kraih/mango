@@ -87,7 +87,8 @@ L<Mango::Database> implements the following attributes.
   my $mango = $db->mango;
   $db       = $db->mango(Mango->new);
 
-L<Mango> object this database belongs to.
+L<Mango> object this database belongs to. Note that this reference is usually
+weakened and needs to be referenced elsewhere too.
 
 =head2 name
 
