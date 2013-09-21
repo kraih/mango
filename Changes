@@ -1,5 +1,6 @@
 
-0.13  2013-08-30
+0.13  2013-09-21
+  - Added fields argument to find and find_one methods in Mango::Collection.
 
 0.12  2013-08-17
   - Fixed rewind bug in Mango::Cursor where the cursor would not be killed on

@@ -190,8 +190,8 @@ $collection->save(
 Mojo::IOLoop->start;
 ok !$fail, 'no error';
 is $oid, $result, 'same object id';
-$doc = $collection->find_one($oid);
-is $doc->{save}, 'me', 'right document';
+$doc = $collection->find_one($oid, {_id => 0});
+is_deeply $doc, {save => 'me'}, 'right document';
 is $collection->remove({_id => $oid})->{n}, 1, 'one document removed';
 
 # Drop collection blocking

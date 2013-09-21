@@ -82,6 +82,9 @@ is $clone->snapshot, 1,   'right snapshot value';
 is $clone->max_scan, 100, 'right max_scan value';
 is $clone->tailable, 1,   'is tailable';
 is_deeply $clone->sort, {test => 1}, 'right sort value';
+$cursor = $collection->find({foo => 'bar'}, {foo => 1});
+is_deeply $cursor->clone->query,  {foo => 'bar'}, 'right query';
+is_deeply $cursor->clone->fields, {foo => 1},     'right fields';
 
 # Explain blocking
 $cursor = $collection->find({test => 2});

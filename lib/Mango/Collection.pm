@@ -48,7 +48,13 @@ sub ensure_index {
   $collection->insert($doc);
 }
 
-sub find { Mango::Cursor->new(collection => shift, query => shift // {}) }
+sub find {
+  Mango::Cursor->new(
+    collection => shift,
+    query      => shift // {},
+    fields     => shift // {}
+  );
+}
 
 sub find_and_modify {
   my ($self, $opts) = (shift, shift);
@@ -57,12 +63,12 @@ sub find_and_modify {
 }
 
 sub find_one {
-  my ($self, $query) = @_;
+  my ($self, $query) = (shift, shift);
   $query = {_id => $query} if ref $query eq 'Mango::BSON::ObjectID';
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
 
   # Non-blocking
-  my $cursor = $self->find($query)->limit(-1);
+  my $cursor = $self->find($query, @_)->limit(-1);
   return $cursor->next(sub { shift; $self->$cb(@_) }) if $cb;
 
   # Blocking
@@ -333,18 +339,19 @@ append a callback to perform operation non-blocking.
 
   my $cursor = $collection->find;
   my $cursor = $collection->find({foo => 'bar'});
+  my $cursor = $collection->find({foo => 'bar'}, {foo => 1});
 
 Get L<Mango::Cursor> object for query.
 
 =head2 find_and_modify
 
   my $doc = $collection->find_and_modify(
-    {query => {foo => 1}, update => {'$set' => {foo => 2}}});
+    {query => {foo => 'bar'}, update => {'$set' => {foo => 'baz'}}});
 
 Update document atomically. You can also append a callback to perform
 operation non-blocking.
 
-  my $opts = {query => {foo => 1}, update => {'$set' => {foo => 2}}};
+  my $opts = {query => {foo => 'bar'}, update => {'$set' => {foo => 'baz'}}};
   $collection->find_and_modify($opts => sub {
     my ($collection, $err, $doc) = @_;
     ...
@@ -354,7 +361,8 @@ operation non-blocking.
 =head2 find_one
 
   my $doc = $collection->find_one({foo => 'bar'});
-  my $doc = $collection->find_one($oid);
+  my $doc = $collection->find_one({foo => 'bar'}, {foo => 1});
+  my $doc = $collection->find_one($oid, {foo => 1});
 
 Find one document. You can also append a callback to perform operation
 non-blocking.
