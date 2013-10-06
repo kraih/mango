@@ -271,6 +271,17 @@ is_deeply $doc, {foo => bson_bin('12345')->type('user_defined')},
   'right document';
 is bson_encode($doc), $bytes, 'successful roundtrip';
 
+# DBRef roundtrip
+$bytes
+  = "\x31\x00\x00\x00\x03\x64\x62\x72\x65\x66\x00\x25\x00\x00\x00\x07\x24\x69"
+  . "\x64\x00\x52\x51\x39\xd8\x58\x67\xb4\x57\x14\x02\x00\x00\x02\x24\x72\x65"
+  . "\x66\x00\x05\x00\x00\x00\x74\x65\x73\x74\x00\x00\x00";
+$doc = bson_decode($bytes);
+is $doc->{dbref}{'$ref'}, 'test', 'right collection name';
+is $doc->{dbref}{'$id'}->to_string, '525139d85867b45714020000',
+  'right object id';
+is bson_encode($doc), $bytes, 'successful roundtrip';
+
 # Unicode roundtrip
 $bytes = "\x21\x00\x00\x00\x02\xe2\x98\x83\x00\x13\x00\x00\x00\x49\x20\xe2\x99"
   . "\xa5\x20\x4d\x6f\x6a\x6f\x6c\x69\x63\x69\x6f\x75\x73\x21\x00\x00";
@@ -345,6 +356,10 @@ is j({time => bson_time(1360626536748)}), '{"time":1360626536748}',
 # Binary to JSON
 is j({bin => bson_bin('Hello World!')}), '{"bin":"SGVsbG8gV29ybGQh"}',
   'right JSON';
+
+# DBRef to JSON
+is j({dbref => bson_dbref('test', bson_oid('525139d85867b45714020000'))}),
+  '{"dbref":{"$ref":"test","$id":"525139d85867b45714020000"}}', 'right JSON';
 
 # Validate object id
 is bson_oid('123456789012345678abcdef'), '123456789012345678abcdef',

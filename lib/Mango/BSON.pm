@@ -15,8 +15,9 @@ use Mojo::JSON;
 use Scalar::Util 'blessed';
 
 my @BSON = (
-  qw(bson_bin bson_code bson_decode bson_doc bson_encode bson_false),
-  qw(bson_length bson_max bson_min bson_oid bson_time bson_true bson_ts)
+  qw(bson_bin bson_code bson_dbref bson_decode bson_doc bson_encode),
+  qw(bson_false bson_length bson_max bson_min bson_oid bson_time bson_true),
+  qw(bson_ts)
 );
 our @EXPORT_OK = (
   @BSON,
@@ -67,6 +68,8 @@ my $MINKEY = bless {}, 'Mango::BSON::_MinKey';
 sub bson_bin { Mango::BSON::Binary->new(data => shift) }
 
 sub bson_code { Mango::BSON::Code->new(code => shift) }
+
+sub bson_dbref { bson_doc('$ref' => shift, '$id' => shift) }
 
 sub bson_decode {
   my $bson = shift;
@@ -424,6 +427,12 @@ Create new BSON element of the code type with L<Mango::BSON::Code>.
 
   # With scope
   bson_code('function () {}')->scope({foo => 'bar'});
+
+=head2 bson_dbref
+
+  my $dbref = bson_dbref('test', $oid);
+
+Create a new database reference.
 
 =head2 bson_decode
 

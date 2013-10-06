@@ -1,4 +1,9 @@
 
+0.14  2013-10-06
+  - Added DBRef support.
+  - Added dereference method to Mango::Database.
+  - Added bson_dbref function to Mango::BSON.
+
 0.13  2013-09-21
   - Added fields argument to find and find_one methods in Mango::Collection.
 

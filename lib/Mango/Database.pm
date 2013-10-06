@@ -54,6 +54,18 @@ sub command {
   return $doc;
 }
 
+sub dereference {
+  my ($self, $dbref, $cb) = @_;
+
+  # Non-blocking
+  my $collection = $self->collection($dbref->{'$ref'});
+  return $collection->find_one($dbref->{'$id'} => sub { shift; $self->$cb(@_) }
+  ) if $cb;
+
+  # Blocking
+  return $collection->find_one($dbref->{'$id'});
+}
+
 sub gridfs { Mango::GridFS->new(db => shift) }
 
 sub stats { shift->command(bson_doc(dbstats => 1), @_) }
@@ -130,6 +142,19 @@ Run command against database. You can also append a callback to run command
 non-blocking.
 
   $db->command(('getLastError', w => 2) => sub {
+    my ($db, $err, $doc) = @_;
+    ...
+  });
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 dereference
+
+  my $doc = $db->dereference($dbref);
+
+Resolve database reference. You can also append a callback to perform
+operation non-blocking.
+
+  $db->dereference($dbref => sub {
     my ($db, $err, $doc) = @_;
     ...
   });
