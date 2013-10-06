@@ -10,14 +10,9 @@ use Mango;
 use Mango::BSON qw(bson_code bson_dbref);
 use Mojo::IOLoop;
 
-# Clean up before start
-my $mango      = Mango->new($ENV{TEST_ONLINE});
-my $db         = $mango->db;
-my $collection = $db->collection('database_test');
-$collection->drop
-  if first { $_ eq 'database_test' } @{$mango->db->collection_names};
-
 # Run command blocking
+my $mango = Mango->new($ENV{TEST_ONLINE});
+my $db    = $mango->db;
 ok $db->command('getnonce')->{nonce}, 'command was successful';
 
 # Run command non-blocking
@@ -52,6 +47,7 @@ ok !$fail, 'no error';
 is $result->{db}, $db->name, 'right name';
 
 # Get collection names blocking
+my $collection = $db->collection('database_test');
 $collection->insert({test => 1});
 ok first { $_ eq 'database_test' } @{$db->collection_names},
   'found collection';
