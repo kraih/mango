@@ -30,7 +30,7 @@ ok !$fail, 'no error';
 ok $result, 'command was successful';
 
 # Get database statistics blocking
-ok $db->stats->{objects}, 'has objects';
+ok exists $db->stats->{objects}, 'has objects';
 
 # Get database statistics non-blocking
 ($fail, $result) = ();
@@ -44,7 +44,7 @@ $db->stats(
 );
 Mojo::IOLoop->start;
 ok !$fail, 'no error';
-ok $result->{objects}, 'has objects';
+ok exists $result->{objects}, 'has objects';
 
 # Get collection names blocking
 my $collection = $db->collection('database_test');
