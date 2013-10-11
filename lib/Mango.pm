@@ -23,7 +23,7 @@ has protocol        => sub { Mango::Protocol->new };
 has w               => 1;
 has wtimeout        => 1000;
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
@@ -388,7 +388,8 @@ Mango - Pure-Perl non-blocking I/O MongoDB driver
 
 L<Mango> is a pure-Perl non-blocking I/O MongoDB driver, optimized for use
 with the L<Mojolicious> real-time web framework, and with multiple event loop
-support.
+support. Since MongoDB is still changing rapidly, only the latest stable
+version is supported.
 
 To learn more about MongoDB you should take a look at the
 L<official documentation|http://docs.mongodb.org>.
