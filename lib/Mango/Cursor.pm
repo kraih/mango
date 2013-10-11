@@ -160,7 +160,10 @@ sub _dequeue {
   return shift @{$self->{results}};
 }
 
-sub _enough { $_[0]->_finished ? 1 : !!@{$_[0]{results} // []} }
+sub _enough {
+  my $self = shift;
+  return $self->id eq '0' || $self->_finished || !!@{$self->{results} // []};
+}
 
 sub _enqueue {
   my ($self, $reply) = @_;

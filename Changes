@@ -1,5 +1,6 @@
 
 0.15  2013-10-11
+  - Fixed mongos compatibility bugs.
 
 0.14  2013-10-06
   - Added DBRef support.
