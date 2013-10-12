@@ -1,6 +1,7 @@
 
 0.16  2013-10-12
   - Added support for fallback servers.
+  - Fixed reconnect bugs.
 
 0.15  2013-10-11
   - Fixed mongos compatibility bugs.
