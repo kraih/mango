@@ -182,8 +182,10 @@ is $collection->remove->{n}, 3, 'three documents removed';
 
 # Fallback server
 $mango = Mango->new($ENV{TEST_ONLINE});
-unshift @{$mango->hosts}, ['127.0.0.1', Mojo::IOLoop->generate_port];
+$port  = Mojo::IOLoop->generate_port;
+unshift @{$mango->hosts}, ['127.0.0.1', $port];
 ok $mango->db->command('getnonce')->{nonce}, 'command was successful';
+is_deeply $mango->hosts->[0], ['127.0.0.1', $port], 'right server';
 ok scalar @{$mango->hosts} > 1, 'more than one server';
 
 done_testing();
