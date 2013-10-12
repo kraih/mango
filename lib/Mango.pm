@@ -151,12 +151,6 @@ sub _cleanup {
   $self->_finish(undef, $_->{cb}, 'Premature connection close') for @$queue;
 }
 
-sub _close {
-  my ($self, $id) = @_;
-  $self->_error($id);
-  $self->_connect if delete $self->{connections}{$id};
-}
-
 sub _connect {
   my ($self, $hosts) = @_;
   my ($host, $port) = @{shift @{$hosts ||= [@{$self->hosts}]}};
@@ -168,15 +162,12 @@ sub _connect {
       my ($loop, $err, $stream) = @_;
 
       # Connection error (try next server)
-      if ($err) {
-        return $self->_error($id, $err) unless @$hosts;
-        delete $self->{connections}{$id};
-        return $self->_connect($hosts);
-      }
+      return @$hosts ? $self->_retry($id, $hosts) : $self->_error($id, $err)
+        if $err;
 
       # Connection established
       $stream->timeout(0);
-      $stream->on(close => sub { $self->_close($id) });
+      $stream->on(close => sub { $self->_error($id)->_retry($id) });
       $stream->on(error => sub { $self && $self->_error($id, pop) });
       $stream->on(read => sub { $self->_read($id, pop) });
       $self->emit(connection => $id)->_connected($id, [@{$self->credentials}]);
@@ -205,8 +196,10 @@ sub _error {
   my $c    = delete $self->{connections}{$id};
   my $last = $c->{last};
   $last //= shift @{$self->{queue}} if $err;
-  return $err ? $self->emit(error => $err) : undef unless $last;
+  return $err ? $self->emit(error => $err) : $self unless $last;
   $self->_finish(undef, $last->{cb}, $err || 'Premature connection close');
+
+  return $self;
 }
 
 sub _fast {
@@ -263,6 +256,8 @@ sub _read {
   }
   $self->_next;
 }
+
+sub _retry { $_[0]->_connect($_[2]) if delete $_[0]->{connections}{$_[1]} }
 
 sub _start {
   my ($self, $op) = @_;
