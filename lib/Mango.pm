@@ -159,12 +159,12 @@ sub _close {
 
 sub _connect {
   my ($self, $hosts) = @_;
+  my ($host, $port) = @{shift @{$hosts ||= [@{$self->hosts}]}};
 
   weaken $self;
-  my ($host, $port) = @{shift @{$hosts ||= [@{$self->hosts}]}};
   my $id;
   $id = $self->_loop->client(
-    {address => $host, port => $port // DEFAULT_PORT} => sub {
+    {address => $host, port => $port //= DEFAULT_PORT} => sub {
       my ($loop, $err, $stream) = @_;
 
       # Connection error (try next server)
