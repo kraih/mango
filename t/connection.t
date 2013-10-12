@@ -180,4 +180,10 @@ ok !$results[4], 'no error';
 is_deeply $results[5], {test => 3}, 'right result';
 is $collection->remove->{n}, 3, 'three documents removed';
 
+# Fallback server
+$mango = Mango->new($ENV{TEST_ONLINE});
+unshift @{$mango->hosts}, ['127.0.0.1', Mojo::IOLoop->generate_port];
+ok $mango->db->command('getnonce')->{nonce}, 'command was successful';
+ok scalar @{$mango->hosts} > 1, 'more than one server';
+
 done_testing();
