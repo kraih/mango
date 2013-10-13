@@ -110,7 +110,7 @@ sub next {
 sub rewind {
   my ($self, $cb) = @_;
 
-  delete $self->{$_} for qw(num results);
+  delete @$self{qw(num results)};
   return $cb ? $self->_defer($cb) : undef unless defined(my $id = $self->id);
   $self->id(undef);
 
