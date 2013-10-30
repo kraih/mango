@@ -39,6 +39,9 @@ is bson_length("\x05\x00\x00\x00\x00\x00"), 5,     'right length';
 is length bson_oid, 24, 'right length';
 is bson_oid('510d83915867b405b9000000')->to_epoch, 1359840145,
   'right epoch time';
+my $oid = bson_oid->from_epoch(1359840145);
+is $oid->to_epoch, 1359840145, 'right epoch time';
+isnt $oid, bson_oid->from_epoch(1359840145), 'different object ids';
 
 # Generate Time
 is length bson_time, length(time) + 3, 'right length';

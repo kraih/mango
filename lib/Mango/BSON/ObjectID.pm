@@ -16,17 +16,23 @@ sub new {
   my ($class, $oid) = @_;
   croak qq{Invalid object id "$oid"}
     if defined $oid && $oid !~ /^[0-9a-fA-F]{24}$/;
-  return $class->SUPER::new(oid => $oid // _generate());
+  return defined $oid ? $class->SUPER::new(oid => $oid) : $class->SUPER::new;
+}
+
+sub from_epoch {
+  my ($self, $epoch) = @_;
+  $self->{oid} = _generate($epoch);
+  return $self;
 }
 
 sub to_epoch { unpack 'N', substr(pack('H*', shift->to_string), 0, 4) }
 
-sub to_string { shift->{oid} }
+sub to_string { shift->{oid} //= _generate() }
 
 sub _generate {
 
   # 4 byte time, 3 byte machine identifier and 2 byte process id
-  my $oid = pack('N', time) . $MACHINE . pack('n', $$ % 0xffff);
+  my $oid = pack('N', shift // time) . $MACHINE . pack('n', $$ % 0xffff);
 
   # 3 byte counter
   $COUNTER = ($COUNTER + 1) % 0xffffff;
@@ -64,6 +70,12 @@ implements the following new ones.
   my $oid = Mango::BSON::ObjectID->new('1a2b3c4e5f60718293a4b5c6');
 
 Construct a new L<Mango::BSON::ObjectID> object.
+
+=head2 from_epoch
+
+  my $oid = $oid->from_epoch(1359840145);
+
+Generate new object id with specific epoch time.
 
 =head2 to_epoch
 

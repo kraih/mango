@@ -493,6 +493,9 @@ Create new BSON element of the min key type.
 Create new BSON element of the object id type with L<Mango::BSON::ObjectID>,
 defaults to generating a new unique object id.
 
+  # Generate object id with specific epoch time
+  my $oid = bson_oid->from_epoch(1359840145);
+
 =head2 bson_time
 
   my $now  = bson_time;
