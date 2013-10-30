@@ -129,11 +129,23 @@ is $result->[0]{total}, 6, 'right result';
 is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
   'three documents removed';
 
-# Aggregate with cursors
+# Aggregate with cursors and collections
 SKIP: {
-  my $info = $mango->db->command('buildInfo');
-  skip 'MongoDB 2.5 required!', 8
-    if $info->{versionArray}[0] < 2 || $info->{versionArray}[1] < 5;
+  my $version = $mango->db->command('buildInfo')->{versionArray};
+  skip 'MongoDB 2.5 required!', 8 unless join('.', @$version[0, 1]) >= '2.5';
+
+  # Aggregate with collections
+  $collection->insert({stuff => $_}) for 1 .. 30;
+  my $out = $collection->aggregate(
+    [
+      {'$match' => {stuff => {'$gt' => 0}}},
+      {'$out'   => 'collection_test_results'}
+    ]
+  );
+  is $out->name, 'collection_test_results', 'right name';
+  is $out->find->count, 30, 'thirty documents found';
+  $out->drop;
+  is $collection->remove->{n}, 30, 'thirty documents removed';
 
   # Aggregate with cursor
   $collection->insert({stuff => $_}) for 1 .. 30;

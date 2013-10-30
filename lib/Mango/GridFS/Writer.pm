@@ -21,7 +21,7 @@ sub close {
 
   my @index   = (bson_doc(files_id => 1, n => 1), {unique => bson_true});
   my $gridfs  = $self->gridfs;
-  my $filemd5 = bson_doc filemd5 => $self->{files_id}, root => $gridfs->prefix;
+  my $command = bson_doc filemd5 => $self->{files_id}, root => $gridfs->prefix;
 
   # Blocking
   my $files = $gridfs->files;
@@ -29,7 +29,7 @@ sub close {
     $self->_chunk;
     $files->ensure_index({filename => 1});
     $gridfs->chunks->ensure_index(@index);
-    my $md5 = $gridfs->db->command($filemd5)->{md5};
+    my $md5 = $gridfs->db->command($command)->{md5};
     $files->insert($self->_meta($md5));
     return $self->{files_id};
   }
@@ -46,7 +46,7 @@ sub close {
     sub {
       my ($delay, $files_err, $chunks_err) = @_;
       if (my $err = $files_err || $chunks_err) { return $self->$cb($err) }
-      $gridfs->db->command($filemd5 => $delay->begin);
+      $gridfs->db->command($command => $delay->begin);
     },
     sub {
       my ($delay, $err, $doc) = @_;

@@ -60,7 +60,7 @@ sub count {
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
 
   my $collection = $self->collection;
-  my $count      = bson_doc
+  my $command    = bson_doc
     count => $collection->name,
     query => $self->build_query,
     skip  => $self->skip,
@@ -68,14 +68,14 @@ sub count {
 
   # Non-blocking
   return $collection->db->command(
-    $count => sub {
+    $command => sub {
       my ($collection, $err, $doc) = @_;
       $self->$cb($err, $doc ? $doc->{n} : 0);
     }
   ) if $cb;
 
   # Blocking
-  my $doc = $collection->db->command($count);
+  my $doc = $collection->db->command($command);
   return $doc ? $doc->{n} : 0;
 }
 
@@ -84,17 +84,17 @@ sub distinct {
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
 
   my $collection = $self->collection;
-  my $distinct   = bson_doc
+  my $command    = bson_doc
     distinct => $collection->name,
     key      => $key,
     query    => $self->build_query;
 
   # Blocking
   my $db = $collection->db;
-  return $db->command($distinct)->{values} unless $cb;
+  return $db->command($command)->{values} unless $cb;
 
   # Non-blocking
-  $db->command($distinct => sub { shift; $self->$cb(shift, shift->{values}) });
+  $db->command($command => sub { shift; $self->$cb(shift, shift->{values}) });
 }
 
 sub explain {
