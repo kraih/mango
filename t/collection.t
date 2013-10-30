@@ -132,7 +132,7 @@ is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
 # Aggregate with cursors
 SKIP: {
   my $info = $mango->db->command('buildInfo');
-  skip 'MongoDB 2.5 required!', 1
+  skip 'MongoDB 2.5 required!', 8
     if $info->{versionArray}[0] < 2 || $info->{versionArray}[1] < 5;
 
   # Aggregate with cursor
