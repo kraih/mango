@@ -27,13 +27,6 @@ sub aggregate {
   return $command->{cursor} ? $self->_cursor($doc) : $doc->{result};
 }
 
-sub _cursor {
-  my ($self, $doc) = @_;
-  my $cursor = $doc->{cursor};
-  return Mango::Cursor->new(collection => $self, id => $cursor->{id})
-    ->add_batch($cursor->{firstBatch});
-}
-
 sub build_index_name { join '_', keys %{$_[1]} }
 
 sub create {
@@ -206,6 +199,13 @@ sub _command {
   # Blocking
   my $doc = $self->db->command($command);
   return $field ? $doc->{$field} : $doc;
+}
+
+sub _cursor {
+  my ($self, $doc) = @_;
+  my $cursor = $doc->{cursor};
+  return Mango::Cursor->new(collection => $self, id => $cursor->{id})
+    ->add_batch($cursor->{firstBatch});
 }
 
 sub _handle {
