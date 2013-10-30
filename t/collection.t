@@ -135,14 +135,23 @@ SKIP: {
   skip 'MongoDB 2.5 required!', 1
     if $info->{versionArray}[0] < 2 || $info->{versionArray}[1] < 5;
 
-  # Aggregate with cursor blocking
+  # Aggregate with cursor
   $collection->insert({stuff => $_}) for 1 .. 30;
   my $cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
-    {cursor => {batchSize => 5}});
+    {cursor => {}});
+  ok !$cursor->id, 'no cursor id';
   is scalar @{$cursor->all}, 30, 'thirty documents found';
   is $collection->remove->{n}, 30, 'thirty documents removed';
 
-  # Aggregate with cursor non-blocking
+  # Aggregate with cursor blocking (multiple batches)
+  $collection->insert({stuff => $_}) for 1 .. 30;
+  $cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
+    {cursor => {batchSize => 5}});
+  ok $cursor->id, 'cursor has id';
+  is scalar @{$cursor->all}, 30, 'thirty documents found';
+  is $collection->remove->{n}, 30, 'thirty documents removed';
+
+  # Aggregate with cursor non-blocking (multiple batches)
   $collection->insert({stuff => $_}) for 1 .. 30;
   ($fail, $result) = ();
   my $delay = Mojo::IOLoop->delay(

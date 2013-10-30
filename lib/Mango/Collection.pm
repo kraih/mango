@@ -284,8 +284,9 @@ the following new ones.
   my $cursor = $collection->aggregate(
     [{'$match' => {'$gt' => 23}}], {cursor => {}});
 
-Aggregate collection with aggregation framework. You can also append a
-callback to perform operation non-blocking.
+Aggregate collection with aggregation framework, additional options will be
+passed along to the server verbatim.. You can also append a callback to
+perform operation non-blocking.
 
   my $pipeline = [{'$group' => {_id => undef, total => {'$sum' => '$foo'}}}];
   $collection->aggregate($pipeline => sub {
