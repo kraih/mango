@@ -132,7 +132,15 @@ is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
 # Aggregate with cursors and collections
 SKIP: {
   my $version = $mango->db->command('buildInfo')->{versionArray};
-  skip 'MongoDB 2.5 required!', 8 unless join('.', @$version[0, 1]) >= '2.5';
+  skip 'MongoDB 2.5 required!', 11 unless join('.', @$version[0, 1]) >= '2.5';
+
+  # Aggregate with cursor
+  $collection->insert({stuff => $_}) for 1 .. 30;
+  my $cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
+    {cursor => {}});
+  ok !$cursor->id, 'no cursor id';
+  is scalar @{$cursor->all}, 30, 'thirty documents found';
+  is $collection->remove->{n}, 30, 'thirty documents removed';
 
   # Aggregate with collections
   $collection->insert({stuff => $_}) for 1 .. 30;
@@ -145,14 +153,6 @@ SKIP: {
   is $out->name, 'collection_test_results', 'right name';
   is $out->find->count, 30, 'thirty documents found';
   $out->drop;
-  is $collection->remove->{n}, 30, 'thirty documents removed';
-
-  # Aggregate with cursor
-  $collection->insert({stuff => $_}) for 1 .. 30;
-  my $cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
-    {cursor => {}});
-  ok !$cursor->id, 'no cursor id';
-  is scalar @{$cursor->all}, 30, 'thirty documents found';
   is $collection->remove->{n}, 30, 'thirty documents removed';
 
   # Aggregate with cursor blocking (multiple batches)
