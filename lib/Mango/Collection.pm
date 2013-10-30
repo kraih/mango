@@ -9,9 +9,29 @@ has [qw(db name)];
 
 sub aggregate {
   my ($self, $pipeline) = (shift, shift);
-  return $self->_command(
-    bson_doc(aggregate => $self->name, pipeline => $pipeline),
-    'result', @_);
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+  my $command = bson_doc(aggregate => $self->name, pipeline => $pipeline,
+    %{shift // {}});
+
+  # Non-blocking
+  return $self->db->command(
+    $command => sub {
+      my ($db, $err, $doc) = @_;
+      $self->$cb($err,
+        $command->{cursor} ? $self->_cursor($doc) : $doc->{result});
+    }
+  ) if $cb;
+
+  # Blocking
+  my $doc = $self->db->command($command);
+  return $command->{cursor} ? $self->_cursor($doc) : $doc->{result};
+}
+
+sub _cursor {
+  my ($self, $doc) = @_;
+  my $cursor = $doc->{cursor};
+  return Mango::Cursor->new(collection => $self, id => $cursor->{id})
+    ->add_batch($cursor->{firstBatch});
 }
 
 sub build_index_name { join '_', keys %{$_[1]} }
@@ -261,6 +281,8 @@ the following new ones.
 
   my $docs = $collection->aggregate(
     [{'$group' => {_id => undef, total => {'$sum' => '$foo'}}}]);
+  my $cursor = $collection->aggregate(
+    [{'$match' => {'$gt' => 23}}], {cursor => {}});
 
 Aggregate collection with aggregation framework. You can also append a
 callback to perform operation non-blocking.

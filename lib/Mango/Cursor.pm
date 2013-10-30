@@ -8,6 +8,12 @@ has [qw(batch_size limit skip)] => 0;
 has [qw(collection hint id max_scan snapshot sort tailable)];
 has [qw(fields query)] => sub { {} };
 
+sub add_batch {
+  my ($self, $docs) = @_;
+  push @{$self->{results} ||= []}, @$docs;
+  return $self;
+}
+
 sub all {
   my ($self, $cb) = @_;
 
@@ -168,8 +174,7 @@ sub _enough {
 sub _enqueue {
   my ($self, $reply) = @_;
   return unless $reply;
-  push @{$self->{results} ||= []}, @{$reply->{docs}};
-  return $self->id($reply->{cursor})->_dequeue;
+  return $self->add_batch($reply->{docs})->id($reply->{cursor})->_dequeue;
 }
 
 sub _finished {
@@ -317,6 +322,12 @@ Tailable cursor.
 
 L<Mango::Cursor> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
+
+=head2 add_batch
+
+  $cursor = $cursor->add_batch($docs);
+
+Add batch of documents to cursor.
 
 =head2 all
 

@@ -129,6 +129,47 @@ is $result->[0]{total}, 6, 'right result';
 is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
   'three documents removed';
 
+# Aggregate with cursors
+SKIP: {
+  my $info = $mango->db->command('buildInfo');
+  skip 'MongoDB 2.5 required!', 1
+    if $info->{versionArray}[0] < 2 || $info->{versionArray}[1] < 5;
+
+  # Aggregate with cursor blocking
+  $collection->insert({stuff => $_}) for 1 .. 30;
+  my $cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
+    {cursor => {batchSize => 5}});
+  is scalar @{$cursor->all}, 30, 'thirty documents found';
+  is $collection->remove->{n}, 30, 'thirty documents removed';
+
+  # Aggregate with cursor non-blocking
+  $collection->insert({stuff => $_}) for 1 .. 30;
+  ($fail, $result) = ();
+  my $delay = Mojo::IOLoop->delay(
+    sub {
+      my $delay = shift;
+      $collection->aggregate(
+        [{'$match' => {stuff => {'$gt' => 0}}}],
+        {cursor => {batchSize => 5}},
+        $delay->begin
+      );
+    },
+    sub {
+      my ($delay, $err, $cursor) = @_;
+      $fail = $err;
+      $cursor->all($delay->begin);
+    },
+    sub {
+      my ($delay, $err, $docs) = @_;
+      $fail ||= $err;
+      $result = $docs;
+    }
+  );
+  $delay->wait;
+  is scalar @$result, 30, 'thirty documents found';
+  is $collection->remove->{n}, 30, 'thirty documents removed';
+}
+
 # Save document blocking
 $oid = $collection->save({update => 'me'});
 $doc = $collection->find_one($oid);
