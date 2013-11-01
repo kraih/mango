@@ -87,7 +87,7 @@ L<Mango::GridFS> implements the following attributes.
   $gridfs    = $gridfs->chunks(Mango::Collection->new);
 
 L<Mango::Collection> object for C<chunks> collection, defaults to one based on
-C<prefix>.
+L</"prefix">.
 
 =head2 db
 
@@ -102,7 +102,7 @@ L<Mango::Database> object GridFS belongs to.
   $gridfs   = $gridfs->files(Mango::Collection->new);
 
 L<Mango::Collection> object for C<files> collection, defaults to one based on
-C<prefix>.
+L</"prefix">.
 
 =head2 prefix
 

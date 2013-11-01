@@ -23,7 +23,7 @@ has protocol        => sub { Mango::Protocol->new };
 has w               => 1;
 has wtimeout        => 1000;
 
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
@@ -535,9 +535,9 @@ Number of queued operations that have not yet been assigned to a connection.
   my $db = $mango->db;
   my $db = $mango->db('test');
 
-Get L<Mango::Database> object for database, uses C<default_db> if no name is
-provided. Note that the reference L<Mango::Database/"mango"> is weakened, so
-the L<Mango> object needs to be referenced elsewhere as well.
+Get L<Mango::Database> object for database, uses L</"default_db"> if no name
+is provided. Note that the reference L<Mango::Database/"mango"> is weakened,
+so the L<Mango> object needs to be referenced elsewhere as well.
 
 =head2 delete
 
