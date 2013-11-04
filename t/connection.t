@@ -5,7 +5,6 @@ use Test::More;
 plan skip_all => 'set TEST_ONLINE to enable this test'
   unless $ENV{TEST_ONLINE};
 
-use List::Util 'first';
 use Mango;
 use Mojo::IOLoop;
 
@@ -56,7 +55,7 @@ ok $@, 'has error';
 $mango = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('connection_test');
 $collection->drop
-  if first { $_ eq 'connection_test' } @{$mango->db->collection_names};
+  if grep { $_ eq 'connection_test' } @{$mango->db->collection_names};
 
 # Blocking CRUD
 my $oid = $collection->insert({foo => 'bar'});

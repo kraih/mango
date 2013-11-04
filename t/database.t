@@ -5,7 +5,6 @@ use Test::More;
 plan skip_all => 'set TEST_ONLINE to enable this test'
   unless $ENV{TEST_ONLINE};
 
-use List::Util 'first';
 use Mango;
 use Mango::BSON qw(bson_code bson_dbref);
 use Mojo::IOLoop;
@@ -49,8 +48,7 @@ ok exists $result->{objects}, 'has objects';
 # Get collection names blocking
 my $collection = $db->collection('database_test');
 $collection->insert({test => 1});
-ok first { $_ eq 'database_test' } @{$db->collection_names},
-  'found collection';
+ok grep { $_ eq 'database_test' } @{$db->collection_names}, 'found collection';
 $collection->drop;
 
 # Get collection names non-blocking
@@ -66,7 +64,7 @@ $db->collection_names(
 );
 Mojo::IOLoop->start;
 ok !$fail, 'no error';
-ok first { $_ eq 'database_test' } @$result, 'found collection';
+ok grep { $_ eq 'database_test' } @$result, 'found collection';
 $collection->drop;
 
 # Dereference blocking
