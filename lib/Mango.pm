@@ -101,11 +101,7 @@ sub db {
 sub kill_cursors {
   my $self = shift;
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-
-  my $next = $self->_id;
-  my $msg  = $self->protocol->build_kill_cursors(@_);
-  warn "-- Unsafe operation #$next (kill_cursors)\n@{[dumper [@_]]}" if DEBUG;
-
+  my ($next, $msg) = $self->_build('kill_cursors', @_);
   $self->_start({id => $next, safe => 0, msg => $msg, cb => $cb});
 }
 
@@ -130,11 +126,11 @@ sub _auth {
 }
 
 sub _build {
-  my ($self, $name, $namespace) = (shift, shift, shift);
+  my ($self, $name) = (shift, shift);
   my $next = $self->_id;
-  warn "-- Operation #$next ($name, $namespace)\n@{[dumper [@_]]}" if DEBUG;
+  warn "-- Operation #$next ($name)\n@{[dumper [@_]]}" if DEBUG;
   my $method = "build_$name";
-  return ($next, $self->protocol->$method($next, $namespace, @_));
+  return ($next, $self->protocol->$method($next, @_));
 }
 
 sub _cleanup {
@@ -248,9 +244,9 @@ sub _next {
 sub _read {
   my ($self, $id, $chunk) = @_;
 
-  $self->{buffer} .= $chunk;
   my $c = $self->{connections}{$id};
-  while (my $reply = $self->protocol->parse_reply(\$self->{buffer})) {
+  $c->{buffer} .= $chunk;
+  while (my $reply = $self->protocol->parse_reply(\$c->{buffer})) {
     warn "-- Client <<< Server (#$reply->{to})\n@{[dumper $reply]}" if DEBUG;
     next unless $reply->{to} == $c->{last}{id};
     $self->_finish($reply, (delete $c->{last})->{cb});

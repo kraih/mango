@@ -240,6 +240,33 @@ is $result, $oid, 'right result';
 ok $writer->is_closed, 'file is still closed';
 $gridfs->$_->drop for qw(files chunks);
 
+# Big chunks and parallel readers
+$oid = $gridfs->writer->write('x' x 1000000)->close;
+($fail, @results) = ();
+$delay = Mojo::IOLoop->delay(
+  sub {
+    my $delay = shift;
+    $gridfs->reader->open($oid => $delay->begin(0));
+    $gridfs->reader->open($oid => $delay->begin(0));
+  },
+  sub {
+    my ($delay, $reader1, $err1, $reader2, $err2) = @_;
+    $fail = $err1 || $err2;
+    $reader1->slurp($delay->begin);
+    $reader2->slurp($delay->begin);
+  },
+  sub {
+    my ($delay, $err1, $data1, $err2, $data2) = @_;
+    $fail ||= $err2 || $err2;
+    @results = ($data1, $data2);
+  }
+);
+$delay->wait;
+ok !$fail, 'no error';
+is $results[0], 'x' x 1000000, 'right content';
+is $results[1], 'x' x 1000000, 'right content';
+$gridfs->$_->drop for qw(files chunks);
+
 # Missing file
 is $gridfs->reader->open(bson_oid)->slurp, undef, 'no content';
 
