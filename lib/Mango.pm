@@ -7,7 +7,7 @@ use Mango::Database;
 use Mango::Protocol;
 use Mojo::IOLoop;
 use Mojo::URL;
-use Mojo::Util qw(md5_sum monkey_patch);
+use Mojo::Util qw(dumper md5_sum monkey_patch);
 use Scalar::Util 'weaken';
 
 use constant DEBUG => $ENV{MANGO_DEBUG} || 0;
@@ -25,6 +25,16 @@ has wtimeout        => 1000;
 
 our $VERSION = '0.18';
 
+# Operations with reply
+for my $name (qw(get_more query)) {
+  monkey_patch __PACKAGE__, $name, sub {
+    my $self = shift;
+    my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+    my ($next, $msg) = $self->_build($name, @_);
+    $self->_start({id => $next, safe => 1, msg => $msg, cb => $cb});
+  };
+}
+
 # Operations followed by getLastError
 for my $name (qw(delete insert update)) {
   monkey_patch __PACKAGE__, $name, sub {
@@ -33,18 +43,15 @@ for my $name (qw(delete insert update)) {
 
     # Make sure both operations can be written together
     my ($next, $msg) = $self->_build($name, $namespace, @_);
-    warn "-- Operation $next ($name, $namespace)\n" if DEBUG;
-    $next = $self->_id;
     $namespace =~ s/\..+$/\.\$cmd/;
     my $gle = bson_doc
       getLastError => 1,
       j            => $self->j ? bson_true : bson_false,
       w            => $self->w,
       wtimeout     => $self->wtimeout;
-    $msg
-      .= $self->protocol->build_query($next, $namespace, {}, 0, -1, $gle, {});
+    ($next, $gle) = $self->_build('query', $namespace, {}, 0, -1, $gle, {});
 
-    $self->_start({id => $next, safe => 1, msg => $msg, cb => $cb});
+    $self->_start({id => $next, safe => 1, msg => "$msg$gle", cb => $cb});
   };
 }
 
@@ -91,33 +98,16 @@ sub db {
   return $db;
 }
 
-sub get_more {
-  my ($self, $namespace) = (shift, shift);
-  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-  my ($next, $msg) = $self->_build('get_more', $namespace, @_);
-  warn "-- Operation $next (get_more, $namespace)\n" if DEBUG;
-  $self->_start({id => $next, safe => 1, msg => $msg, cb => $cb});
-}
-
 sub kill_cursors {
   my $self = shift;
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-  my ($next, $msg) = $self->_build('kill_cursors', @_);
-  warn "-- Unsafe operation $next (kill_cursors)\n" if DEBUG;
+
+  my $next = $self->_id;
+  my $msg  = $self->protocol->build_kill_cursors(@_);
+  warn "-- Unsafe operation #$next (kill_cursors)\n@{[dumper [@_]]}\n"
+    if DEBUG;
+
   $self->_start({id => $next, safe => 0, msg => $msg, cb => $cb});
-}
-
-sub query {
-  my ($self, $namespace) = (shift, shift);
-  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-  my ($fields, $query) = (pop, pop);
-
-  my ($next, $msg) = $self->_build('query', $namespace, @_, $query, $fields);
-  if (DEBUG && $namespace =~ /\.\$cmd$/) {
-    warn "-- Operation $next (query, $namespace, @{[(keys %$query)[0]]})\n";
-  }
-  elsif (DEBUG) { warn "-- Operation $next (query, $namespace)\n" }
-  $self->_start({id => $next, safe => 1, msg => $msg, cb => $cb});
 }
 
 sub _active {
@@ -141,10 +131,11 @@ sub _auth {
 }
 
 sub _build {
-  my ($self, $name) = (shift, shift);
-  my $next   = $self->_id;
+  my ($self, $name, $namespace) = (shift, shift, shift);
+  my $next = $self->_id;
+  warn "-- Operation #$next ($name, $namespace)\n@{[dumper [@_]]}\n" if DEBUG;
   my $method = "build_$name";
-  return ($next, $self->protocol->$method($next, @_));
+  return ($next, $self->protocol->$method($next, $namespace, @_));
 }
 
 sub _cleanup {
@@ -227,13 +218,10 @@ sub _fast {
   };
 
   # Skip the queue and run command right away
-  my $next = $self->_id;
-  my $msg
-    = $protocol->build_query($next, "$db.\$cmd", {}, 0, -1, $command, {});
+  my ($next, $msg)
+    = $self->_build('query', "$db.\$cmd", {}, 0, -1, $command, {});
   $self->{connections}{$id}{fast}
     = {id => $next, safe => 1, msg => $msg, cb => $wrapper};
-  warn "-- Fast operation $next (query, $db.\$cmd, @{[(keys %$command)[0]]})\n"
-    if DEBUG;
   $self->_next;
 }
 
@@ -264,7 +252,7 @@ sub _read {
   $self->{buffer} .= $chunk;
   my $c = $self->{connections}{$id};
   while (my $reply = $self->protocol->parse_reply(\$self->{buffer})) {
-    warn "-- Client <<< Server ($reply->{to})\n" if DEBUG;
+    warn "-- Client <<< Server (#$reply->{to})\n@{[dumper $reply]}\n" if DEBUG;
     next unless $reply->{to} == $c->{last}{id};
     $self->_finish($reply, (delete $c->{last})->{cb});
   }
@@ -328,7 +316,7 @@ sub _write {
 
   delete $c->{start} unless my $last = delete $c->{fast};
   return $c->{start} unless $c->{last} = $last ||= shift @{$self->{queue}};
-  warn "-- Client >>> Server ($last->{id})\n" if DEBUG;
+  warn "-- Client >>> Server (#$last->{id})\n" if DEBUG;
   $stream->write(delete $last->{msg});
 
   # Unsafe operations are done when they are written

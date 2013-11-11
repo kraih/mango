@@ -40,14 +40,16 @@ sub read {
   }
 
   # Blocking
-  my $n = int($self->{pos} / $self->chunk_size);
-  my $doc = {files_id => $self->{meta}{_id}, n => $n};
-  return $self->_slice($n, $self->gridfs->chunks->find_one($doc)->{data})
+  my $n      = int($self->{pos} / $self->chunk_size);
+  my $doc    = {files_id => $self->{meta}{_id}, n => $n};
+  my $fields = {_id => 0, data => 1};
+  return $self->_slice($n,
+    $self->gridfs->chunks->find_one($doc, $fields)->{data})
     unless $cb;
 
   # Non-blocking
   $self->gridfs->chunks->find_one(
-    $doc => sub {
+    ($doc, $fields) => sub {
       my ($collection, $err, $doc) = @_;
       $self->$cb($err, $self->_slice($n, $doc->{data}));
     }
