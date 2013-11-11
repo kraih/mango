@@ -61,6 +61,7 @@ use constant {INT32_MIN => -(1 << 31) + 1, INT32_MAX => (1 << 31) - 1};
 # Reuse boolean singletons
 my $FALSE = Mojo::JSON->false;
 my $TRUE  = Mojo::JSON->true;
+my $BOOL  = blessed $TRUE;
 
 my $MAXKEY = bless {}, 'Mango::BSON::_MaxKey';
 my $MINKEY = bless {}, 'Mango::BSON::_MinKey';
@@ -246,6 +247,9 @@ sub _encode_object {
   return OBJECT_ID . $e . pack('H*', $value)
     if $class eq 'Mango::BSON::ObjectID';
 
+  # Boolean
+  return BOOL . $e . ($value ? "\x01" : "\x00") if $class eq $BOOL;
+
   # Time
   return DATETIME . $e . encode_int64($value) if $class eq 'Mango::BSON::Time';
 
@@ -308,12 +312,6 @@ sub _encode_value {
 
   # Blessed
   if (my $class = blessed $value) {
-
-    # True
-    return BOOL . $e . "\x01" if $value eq $TRUE;
-
-    # False
-    return BOOL . $e . "\x00" if $value eq $FALSE;
 
     # Max
     return MAX_KEY . $e if $value eq $MAXKEY;

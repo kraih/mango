@@ -104,8 +104,7 @@ sub kill_cursors {
 
   my $next = $self->_id;
   my $msg  = $self->protocol->build_kill_cursors(@_);
-  warn "-- Unsafe operation #$next (kill_cursors)\n@{[dumper [@_]]}\n"
-    if DEBUG;
+  warn "-- Unsafe operation #$next (kill_cursors)\n@{[dumper [@_]]}" if DEBUG;
 
   $self->_start({id => $next, safe => 0, msg => $msg, cb => $cb});
 }
@@ -133,7 +132,7 @@ sub _auth {
 sub _build {
   my ($self, $name, $namespace) = (shift, shift, shift);
   my $next = $self->_id;
-  warn "-- Operation #$next ($name, $namespace)\n@{[dumper [@_]]}\n" if DEBUG;
+  warn "-- Operation #$next ($name, $namespace)\n@{[dumper [@_]]}" if DEBUG;
   my $method = "build_$name";
   return ($next, $self->protocol->$method($next, $namespace, @_));
 }
@@ -252,7 +251,7 @@ sub _read {
   $self->{buffer} .= $chunk;
   my $c = $self->{connections}{$id};
   while (my $reply = $self->protocol->parse_reply(\$self->{buffer})) {
-    warn "-- Client <<< Server (#$reply->{to})\n@{[dumper $reply]}\n" if DEBUG;
+    warn "-- Client <<< Server (#$reply->{to})\n@{[dumper $reply]}" if DEBUG;
     next unless $reply->{to} == $c->{last}{id};
     $self->_finish($reply, (delete $c->{last})->{cb});
   }

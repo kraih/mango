@@ -1,5 +1,7 @@
 
 0.18  2013-11-11
+  - Fixed bug in Mango::BSON where all objects that stringify to "1" were
+    considered booleans.
 
 0.17  2013-10-30
   - Added cursor and collection support for aggregation.

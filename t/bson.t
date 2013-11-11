@@ -292,6 +292,14 @@ $doc = bson_decode($bytes);
 is_deeply $doc, {'☃' => 'I ♥ Mojolicious!'}, 'right document';
 is bson_encode($doc), $bytes, 'successful roundtrip';
 
+# Object stringifies to "1"
+$bytes = "\x10\x00\x00\x00\x05\x66\x6f\x6f\x00\x01\x00\x00\x00\x00\x31\x00";
+$doc   = bson_decode($bytes);
+isa_ok $doc->{foo}, 'Mango::BSON::Binary', 'right class';
+is $doc->{foo}->type, 'generic', 'right type';
+is_deeply $doc, {foo => bson_bin('1')}, 'right document';
+is bson_encode($doc), $bytes, 'successful roundtrip';
+
 # Blessed reference
 $bytes = bson_encode {test => b('test')};
 is_deeply bson_decode($bytes), {test => 'test'}, 'successful roundtrip';

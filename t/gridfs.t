@@ -143,14 +143,14 @@ $gridfs->$_->drop for qw(files chunks);
 
 # Find and slurp versions blocking
 my $one
-  = $gridfs->writer->chunk_size(1)->filename('test.txt')->write('One')->close;
+  = $gridfs->writer->chunk_size(1)->filename('test.txt')->write('One1')->close;
 my $two = $gridfs->writer->filename('test.txt')->write('Two')->close;
 is_deeply $gridfs->list, ['test.txt'], 'right files';
 is $gridfs->find_version('test.txt', 1), $one, 'right version';
 is $gridfs->find_version('test.txt', 2), $two, 'right version';
 is $gridfs->find_version('test.txt', 3), undef, 'no version';
-is $gridfs->reader->open($one)->slurp, 'One', 'right content';
-is $gridfs->reader->open($one)->seek(1)->slurp, 'ne', 'right content';
+is $gridfs->reader->open($one)->slurp, 'One1', 'right content';
+is $gridfs->reader->open($one)->seek(1)->slurp, 'ne1', 'right content';
 is $gridfs->reader->open($two)->slurp, 'Two', 'right content';
 is $gridfs->reader->open($two)->seek(1)->slurp, 'wo', 'right content';
 $gridfs->$_->drop for qw(files chunks);
