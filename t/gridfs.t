@@ -179,20 +179,20 @@ ok !$fail, 'no error';
 is $results[0], $one, 'right version';
 is $results[1], $two, 'right version';
 is $results[2], undef, 'no version';
-my $reader_one = $gridfs->reader;
-my $reader_two = $gridfs->reader;
+my $one_reader = $gridfs->reader;
+my $two_reader = $gridfs->reader;
 ($fail, @results) = ();
 $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
-    $reader_one->open($one => $delay->begin);
-    $reader_two->open($two => $delay->begin);
+    $one_reader->open($one => $delay->begin);
+    $two_reader->open($two => $delay->begin);
   },
   sub {
     my ($delay, $one_err, $two_err) = @_;
     $fail = $one_err || $two_err;
-    $reader_one->slurp($delay->begin);
-    $reader_two->slurp($delay->begin);
+    $one_reader->slurp($delay->begin);
+    $two_reader->slurp($delay->begin);
   },
   sub {
     my ($delay, $one_err, $one, $two_err, $two) = @_;

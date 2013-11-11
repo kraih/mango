@@ -12,19 +12,16 @@ sub open {
   my ($self, $oid, $cb) = @_;
 
   # Non-blocking
-  if ($cb) {
-    $self->gridfs->files->find_one(
-      $oid => sub {
-        my ($collection, $err, $doc) = @_;
-        $self->{meta} = $doc;
-        $self->$cb($err);
-      }
-    );
-  }
+  return $self->gridfs->files->find_one(
+    $oid => sub {
+      my ($collection, $err, $doc) = @_;
+      $self->{meta} = $doc;
+      $self->$cb($err);
+    }
+  ) if $cb;
 
   # Blocking
-  else { $self->{meta} = $self->gridfs->files->find_one($oid) }
-
+  $self->{meta} = $self->gridfs->files->find_one($oid);
   return $self;
 }
 
