@@ -1,4 +1,6 @@
 
+0.19  2013-11-12
+
 0.18  2013-11-11
   - Fixed concurrency bugs in Mango.
   - Fixed bug in Mango::BSON where all objects that stringify to "1" were

@@ -87,10 +87,10 @@ is $buffer, "\x51", 'right leftovers';
 my $nonce = {
   id     => 305769,
   to     => 3,
-  flags  => {await_capable => 1, query_failure => 0, cursor_not_found => 0},
+  flags  => {await_capable => 1},
   cursor => 0,
   from   => 0,
-  docs => [{nonce => '3295e5cd5eef2500', ok => 1}]
+  docs   => [{nonce => '3295e5cd5eef2500', ok => 1}]
 };
 is_deeply $reply, $nonce, 'right reply';
 
@@ -105,10 +105,10 @@ $reply = $protocol->parse_reply(\$buffer);
 my $query = {
   id     => 317243,
   to     => 1,
-  flags  => {await_capable => 0, query_failure => 1, cursor_not_found => 0},
+  flags  => {query_failure => 1},
   cursor => 0,
   from   => 0,
-  docs => [{'$err' => '$or requires nonempty array', code => 13262}]
+  docs   => [{'$err' => '$or requires nonempty array', code => 13262}]
 };
 is_deeply $reply, $query, 'right reply';
 
@@ -129,7 +129,7 @@ is $buffer, "\x00", 'message has been removed';
 my $unknown = {
   id     => 316991,
   to     => 1,
-  flags  => {await_capable => 1, query_failure => 0, cursor_not_found => 0},
+  flags  => {await_capable => 1},
   cursor => 0,
   from   => 0,
   docs   => [
@@ -139,7 +139,7 @@ my $unknown = {
 my $gle = {
   to     => 9,
   cursor => 0,
-  flags  => {await_capable => 1, query_failure => 0, cursor_not_found => 0},
+  flags  => {await_capable => 1},
   from   => 0,
   id     => 462265,
   docs   => [

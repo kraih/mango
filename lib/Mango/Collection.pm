@@ -142,7 +142,7 @@ sub remove {
   my $self  = shift;
   my $query = ref $_[0] eq 'CODE' ? {} : shift // {};
   my $flags = ref $_[0] eq 'CODE' ? {} : shift // {};
-  $flags->{single_remove} = delete $flags->{single};
+  $flags->{single_remove} = 1 if delete $flags->{single};
   return $self->_handle('delete', $flags, $query, @_);
 }
 
@@ -167,7 +167,7 @@ sub stats { $_[0]->_command(bson_doc(collstats => $_[0]->name), undef, $_[1]) }
 sub update {
   my ($self, $query, $update) = (shift, shift, shift);
   my $flags = ref $_[0] eq 'CODE' ? {} : shift // {};
-  $flags->{multi_update} = delete $flags->{multi};
+  $flags->{multi_update} = 1 if delete $flags->{multi};
   return $self->_handle('update', $flags, $query, $update, @_);
 }
 
@@ -469,6 +469,8 @@ These options are currently available:
 
 =item single
 
+  single => 1
+
 Remove only one document.
 
 =back
@@ -519,9 +521,13 @@ These options are currently available:
 
 =item multi
 
+  multi => 1
+
 Update more than one document.
 
 =item upsert
+
+  upsert => 1
 
 Insert document if none could be updated.
 
