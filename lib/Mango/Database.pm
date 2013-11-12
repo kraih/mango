@@ -135,6 +135,7 @@ perform operation non-blocking.
 
 =head2 command
 
+  my $doc = $db->command(bson_doc(text => 'foo.bar', search => 'test'));
   my $doc = $db->command(bson_doc(getLastError => 1, w => 2));
   my $doc = $db->command('getLastError', w => 2);
 
