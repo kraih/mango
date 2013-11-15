@@ -386,7 +386,8 @@ support. Since MongoDB is still changing rapidly, only the latest stable
 version is supported.
 
 To learn more about MongoDB you should take a look at the
-L<official documentation|http://docs.mongodb.org>.
+L<official documentation|http://docs.mongodb.org>, the documentation included
+in this distribution is no replacement for it.
 
 Note that this whole distribution is EXPERIMENTAL and will change without
 warning!
