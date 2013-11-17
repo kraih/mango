@@ -383,7 +383,7 @@ Mango - Pure-Perl non-blocking I/O MongoDB driver
   use AnyEvent;
   my $cv = AE::cv;
   $mango->db('test')->command(buildInfo => sub {
-    my ($mango, $err, $doc) = @_;
+    my ($db, $err, $doc) = @_;
     $cv->send($doc->{version});
   });
   say $cv->recv;
