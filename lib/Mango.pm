@@ -378,6 +378,16 @@ Mango - Pure-Perl non-blocking I/O MongoDB driver
   }
   $delay->wait unless Mojo::IOLoop->is_running;
 
+  # Event loops such as AnyEvent are supported through EV
+  use EV;
+  use AnyEvent;
+  my $cv = AE::cv;
+  $mango->db('test')->command(buildInfo => sub {
+    my ($mango, $err, $doc) = @_;
+    $cv->send($doc->{version});
+  });
+  say $cv->recv;
+
 =head1 DESCRIPTION
 
 L<Mango> is a pure-Perl non-blocking I/O MongoDB driver, optimized for use
