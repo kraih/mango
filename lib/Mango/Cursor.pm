@@ -37,7 +37,7 @@ sub build_query {
 
   return $query unless $explain || $hint || $max_scan || $snapshot || $sort;
 
-  $query = bson_doc '$query' => $query unless $query->{'$query'};
+  $query = bson_doc $query->{'$query'} ? %$query : ('$query' => $query);
   $query->{'$explain'}  = 1         if $explain;
   $query->{'$hint'}     = $hint     if $hint;
   $query->{'$maxScan'}  = $max_scan if $max_scan;

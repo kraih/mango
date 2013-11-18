@@ -67,6 +67,8 @@ $cursor = $collection->find({'$query' => {foo => 'bar'}, '$foo' => 'bar'});
 is_deeply $cursor->build_query(1),
   {'$query' => {foo => 'bar'}, '$foo' => 'bar', '$explain' => 1},
   'right query';
+is_deeply $cursor->query, {'$query' => {foo => 'bar'}, '$foo' => 'bar'},
+  'query has not changed';
 
 # Clone cursor
 $cursor
