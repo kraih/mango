@@ -1,5 +1,6 @@
 
-0.19  2013-11-17
+0.19  2013-11-18
+  - Improved Mango::Cursor to allow $query key in queries.
 
 0.18  2013-11-11
   - Fixed concurrency bugs in Mango.

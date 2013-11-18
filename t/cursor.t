@@ -60,6 +60,13 @@ is_deeply $cursor->build_query,
 $cursor->hint(undef)->snapshot(undef)->max_scan(500);
 is_deeply $cursor->build_query, {'$query' => {test => 1}, '$maxScan' => 500},
   'right query';
+$cursor = $collection->find({'$query' => {foo => 'bar'}, '$foo' => 'bar'});
+is_deeply $cursor->build_query, {'$query' => {foo => 'bar'}, '$foo' => 'bar'},
+  'right query';
+$cursor = $collection->find({'$query' => {foo => 'bar'}, '$foo' => 'bar'});
+is_deeply $cursor->build_query(1),
+  {'$query' => {foo => 'bar'}, '$foo' => 'bar', '$explain' => 1},
+  'right query';
 
 # Clone cursor
 $cursor
