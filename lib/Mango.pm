@@ -332,10 +332,10 @@ Mango - Pure-Perl non-blocking I/O MongoDB driver
 =head1 SYNOPSIS
 
   use Mango;
-  my $mango = Mango->new('mongodb://localhost:27017');
 
   # Insert document
-  my $oid = $mango->db('test')->collection('foo')->insert({bar => 'baz'});
+  my $mango = Mango->new('mongodb://localhost:27017');
+  my $oid   = $mango->db('test')->collection('foo')->insert({bar => 'baz'});
 
   # Find document
   my $doc = $mango->db('test')->collection('foo')->find_one({bar => 'baz'});
