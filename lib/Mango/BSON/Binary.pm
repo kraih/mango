@@ -21,11 +21,14 @@ Mango::BSON::Binary - Binary type
   use Mango::BSON::Binary;
 
   my $bin = Mango::BSON::Binary->new(data => $bytes, type => 'generic');
+  say $bin->data;
+  say "$bin";
 
 =head1 DESCRIPTION
 
 L<Mango::BSON::Binary> is a container for the BSON binary type used by
-L<Mango::BSON>.
+L<Mango::BSON>. For C<JSON> implementations like L<Mojo::JSON>, that support
+the C<TO_JSON> method, it will automatically C<Base64> encode the binary data.
 
 =head1 ATTRIBUTES
 

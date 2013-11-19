@@ -299,6 +299,7 @@ isa_ok $doc->{foo}, 'Mango::BSON::Binary', 'right class';
 is $doc->{foo}->type, 'generic', 'right type';
 is_deeply $doc, {foo => bson_bin('1')}, 'right document';
 is bson_encode($doc), $bytes, 'successful roundtrip';
+is bson_bin('1'), '1', 'right result';
 
 # Blessed reference
 $bytes = bson_encode {test => b('test')};
