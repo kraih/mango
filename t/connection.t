@@ -43,7 +43,7 @@ eval { Mango->new('http://localhost:3000/test') };
 like $@, qr/Invalid MongoDB connection string/, 'right error';
 
 # No port
-$mango = Mango->new('mongodb://127.0.0.1,127.0.0.1:5000');
+$mango = Mango->new->from_string('mongodb://127.0.0.1,127.0.0.1:5000');
 is_deeply $mango->hosts, [['127.0.0.1'], ['127.0.0.1', 5000]], 'right hosts';
 
 # Connection error
