@@ -23,7 +23,7 @@ has protocol        => sub { Mango::Protocol->new };
 has w               => 1;
 has wtimeout        => 1000;
 
-our $VERSION = '0.20';
+our $VERSION = '0.21';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
@@ -530,7 +530,8 @@ new ones.
   my $mango = Mango->new;
   my $mango = Mango->new('mongodb://sri:s3cret@localhost:3000/test?w=2');
 
-Construct a new L<Mango> object.
+Construct a new L<Mango> object and parse connection string with
+L</"from_string"> if necessary.
 
 =head2 backlog
 
