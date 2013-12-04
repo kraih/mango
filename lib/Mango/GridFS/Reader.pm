@@ -1,6 +1,8 @@
 package Mango::GridFS::Reader;
 use Mojo::Base -base;
 
+use Carp 'croak';
+
 has 'gridfs';
 
 sub chunk_size   { shift->{meta}{chunkSize} }
@@ -15,13 +17,14 @@ sub open {
   return $self->gridfs->files->find_one(
     $oid => sub {
       my ($collection, $err, $doc) = @_;
-      $self->{meta} = $doc;
+      $err //= "$oid does not exist" unless $self->{meta} = $doc;
       $self->$cb($err);
     }
   ) if $cb;
 
   # Blocking
-  $self->{meta} = $self->gridfs->files->find_one($oid);
+  croak "$oid does not exist"
+    unless $self->{meta} = $self->gridfs->files->find_one($oid);
   return $self;
 }
 

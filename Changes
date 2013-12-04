@@ -1,5 +1,6 @@
 
-0.21  2013-12-01
+0.21  2013-12-04
+  - Improved handling of missing files in Mango::GridFS::Reader.
 
 0.20  2013-11-30
   - Added from_string method to Mango.
