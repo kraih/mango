@@ -267,12 +267,12 @@ is $results[0], 'x' x 1000000, 'right content';
 is $results[1], 'x' x 1000000, 'right content';
 $gridfs->$_->drop for qw(files chunks);
 
-# Missing file blocking
+# Open missing file blocking
 $oid = bson_oid;
 eval { $gridfs->reader->open($oid) };
 like $@, qr/^$oid does not exist/, 'right error';
 
-# Missing file non-blocking
+# Open missing file non-blocking
 $fail = undef;
 $gridfs->reader->open(
   $oid => sub {
