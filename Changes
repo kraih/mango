@@ -1,4 +1,6 @@
 
+0.22  2013-12-13
+
 0.21  2013-12-04
   - Improved handling of missing files in Mango::GridFS::Reader.
 

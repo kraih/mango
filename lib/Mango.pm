@@ -23,7 +23,7 @@ has protocol        => sub { Mango::Protocol->new };
 has w               => 1;
 has wtimeout        => 1000;
 
-our $VERSION = '0.21';
+our $VERSION = '0.22';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
@@ -470,7 +470,7 @@ Default database, defaults to C<admin>.
 =head2 hosts
 
   my $hosts = $mango->hosts;
-  $mango    = $mango->hosts([['localhost', 3000]]);
+  $mango    = $mango->hosts([['localhost', 3000], ['localhost', 4000]]);
 
 Servers to connect to, defaults to C<localhost> and port C<27017>.
 
