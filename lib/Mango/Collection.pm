@@ -449,8 +449,8 @@ to perform operation non-blocking.
   my $docs = $collection->map_reduce(
     bson_code($map), bson_code($reduce), {out => {inline => 1}});
 
-Perform map/reduce operation on this collection, additional options will be
-passed along to the server verbatim. You can also append a callback to perform
+Perform map/reduce operation on collection, additional options will be passed
+along to the server verbatim. You can also append a callback to perform
 operation non-blocking.
 
   $collection->map_reduce(($map, $reduce, {out => {inline => 1}}) => sub {
@@ -464,7 +464,7 @@ operation non-blocking.
 
   my $doc = $collection->options;
 
-Get options for this collection. You can also append a callback to perform
+Get options for collection. You can also append a callback to perform
 operation non-blocking.
 
   $collection->options(sub {
