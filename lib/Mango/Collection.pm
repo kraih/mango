@@ -138,6 +138,18 @@ sub map_reduce {
     $command => sub { shift; $self->$cb(shift, $self->_map_reduce(shift)) });
 }
 
+sub options {
+  my ($self, $cb) = @_;
+
+  # Non-blocking
+  my $query = {name => $self->full_name};
+  my $namespaces = $self->db->collection('system.namespaces');
+  return $namespaces->find_one($query => sub { shift; $self->$cb(@_) }) if $cb;
+
+  # Blocking
+  return $namespaces->find_one($query);
+}
+
 sub remove {
   my $self  = shift;
   my $query = ref $_[0] eq 'CODE' ? {} : shift // {};
@@ -446,6 +458,19 @@ operation non-blocking.
       ...
     }
   );
+  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 options
+
+  my $doc = $collection->options;
+
+Get options for this collection. You can also append a callback to perform
+operation non-blocking.
+
+  $collection->options(sub {
+    my ($collection, $err, $doc) = @_;
+    ...
+  });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
 
 =head2 remove

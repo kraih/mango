@@ -11,8 +11,7 @@ use Mojo::IOLoop;
 # Clean up before start
 my $mango      = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('cursor_test');
-$collection->drop
-  if grep { $_ eq 'cursor_test' } @{$mango->db->collection_names};
+$collection->drop if $collection->options;
 
 # Add some documents to fetch
 my $oids = $collection->insert([{test => 3}, {test => 1}, {test => 2}]);

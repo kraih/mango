@@ -12,8 +12,7 @@ use Mojo::IOLoop;
 # Clean up before start
 my $mango      = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('collection_test');
-$collection->drop
-  if grep { $_ eq 'collection_test' } @{$mango->db->collection_names};
+$collection->drop if $collection->options;
 
 # Collection names
 is $collection->name, 'collection_test', 'right collection name';
@@ -102,6 +101,41 @@ ok !$fail, 'no error';
 is $result->{atomic}, 1, 'right document';
 is $collection->find_one($oid)->{atomic}, 2, 'right document';
 is $collection->remove({atomic => 2})->{n}, 1, 'removed one document';
+
+# Get options blocking
+is $collection->options->{name}, $collection->full_name, 'right name';
+
+# Get options non-blocking
+($fail, $result) = ();
+$collection->options(
+  sub {
+    my ($collection, $err, $doc) = @_;
+    $fail   = $err;
+    $result = $doc;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$fail, 'no error';
+is $result->{name}, $collection->full_name, 'right name';
+
+# Get options blocking (missing collection)
+is $mango->db->collection('collection_test2')->options, undef,
+  'collection does not exist';
+
+# Get options non-blocking (missing collection)
+($fail, $result) = ();
+$mango->db->collection('collection_test2')->options(
+  sub {
+    my ($collection, $err, $doc) = @_;
+    $fail   = $err;
+    $result = $doc;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+ok !$fail, 'no error';
+is $result, undef, 'collection does not exist';
 
 # Aggregate collection blocking
 $collection->insert([{more => 1}, {more => 2}, {more => 3}]);

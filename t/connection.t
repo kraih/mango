@@ -54,8 +54,7 @@ ok $@, 'has error';
 # Clean up before start
 $mango = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('connection_test');
-$collection->drop
-  if grep { $_ eq 'connection_test' } @{$mango->db->collection_names};
+$collection->drop if $collection->options;
 
 # Blocking CRUD
 my $oid = $collection->insert({foo => 'bar'});
