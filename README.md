@@ -4,39 +4,41 @@
   Pure-Perl non-blocking I/O MongoDB driver, optimized for use with the
   [Mojolicious](http://mojolicio.us) real-time web framework.
 
-    use Mojolicious::Lite;
-    use Mango;
-    use Mango::BSON ':bson';
+```perl
+use Mojolicious::Lite;
+use Mango;
+use Mango::BSON ':bson';
 
-    my $uri = 'mongodb://<user>:<pass>@<server>/<database>';
-    helper mango => sub { state $mango = Mango->new($uri) };
+my $uri = 'mongodb://<user>:<pass>@<server>/<database>';
+helper mango => sub { state $mango = Mango->new($uri) };
 
-    # Store and retrieve information non-blocking
-    get '/' => sub {
-      my $self = shift;
+# Store and retrieve information non-blocking
+get '/' => sub {
+  my $self = shift;
 
-      my $collection = $self->mango->db->collection('visitors');
-      my $ip         = $self->tx->remote_address;
+  my $collection = $self->mango->db->collection('visitors');
+  my $ip         = $self->tx->remote_address;
 
-      # Store information about current visitor
-      $collection->insert({when => bson_time, from => $ip} => sub {
-        my ($collection, $err, $oid) = @_;
+  # Store information about current visitor
+  $collection->insert({when => bson_time, from => $ip} => sub {
+    my ($collection, $err, $oid) = @_;
 
-        return $self->render_exception($err) if $err;
+    return $self->render_exception($err) if $err;
 
-        # Retrieve information about previous visitors
-        $collection->find->sort({when => -1})->fields({_id => 0})->all(sub {
-          my ($collection, $err, $docs) = @_;
+    # Retrieve information about previous visitors
+    $collection->find->sort({when => -1})->fields({_id => 0})->all(sub {
+      my ($collection, $err, $docs) = @_;
 
-          return $self->render_exception($err) if $err;
+      return $self->render_exception($err) if $err;
 
-          # And show it to current visitor
-          $self->render(json => $docs);
-        });
-      });
-    };
+      # And show it to current visitor
+      $self->render(json => $docs);
+    });
+  });
+};
 
-    app->start;
+app->start;
+```
 
 ## Installation
 
