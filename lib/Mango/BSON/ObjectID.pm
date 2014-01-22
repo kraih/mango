@@ -1,6 +1,6 @@
 package Mango::BSON::ObjectID;
 use Mojo::Base -base;
-use overload '""' => sub { shift->to_string }, fallback => 1;
+use overload bool => sub {1}, '""' => sub { shift->to_string }, fallback => 1;
 
 use Carp 'croak';
 use Mojo::Util 'md5_bytes';
@@ -86,9 +86,24 @@ Extract epoch seconds from object id.
 =head2 to_string
 
   my $str = $oid->to_string;
-  my $str = "$oid";
 
 Stringify object id.
+
+=head1 OPERATORS
+
+L<Mango::BSON::ObjectID> overloads the following operators.
+
+=head2 bool
+
+  my $bool = !!$oid;
+
+Always true.
+
+=head2 stringify
+
+  my $str = "$oid";
+
+Alias for L</to_string>.
 
 =head1 SEE ALSO
 

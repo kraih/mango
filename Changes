@@ -1,5 +1,6 @@
 
-0.23  2014-01-10
+0.23  2014-01-22
+  - Fixed a few small operator overloading bugs.
 
 0.22  2013-12-18
   - Added options method to Mango::Collection.

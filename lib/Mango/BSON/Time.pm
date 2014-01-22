@@ -1,6 +1,6 @@
 package Mango::BSON::Time;
 use Mojo::Base -base;
-use overload '""' => sub { shift->to_string }, fallback => 1;
+use overload bool => sub {1}, '""' => sub { shift->to_string }, fallback => 1;
 
 use Time::HiRes 'time';
 
@@ -53,9 +53,24 @@ Convert time to floating seconds since the epoch.
 =head2 to_string
 
   my $str = $time->to_string;
-  my $str = "$time";
 
 Stringify time.
+
+=head1 OPERATORS
+
+L<Mango::BSON::Time> overloads the following operators.
+
+=head2 bool
+
+  my $bool = !!$time;
+
+Always true.
+
+=head2 stringify
+
+  my $str = "$time";
+
+Alias for L</to_string>.
 
 =head1 SEE ALSO
 

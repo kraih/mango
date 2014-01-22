@@ -1,6 +1,6 @@
 package Mango::BSON::Binary;
 use Mojo::Base -base;
-use overload '""' => sub { shift->data }, fallback => 1;
+use overload bool => sub {1}, '""' => sub { shift->data }, fallback => 1;
 
 use Mojo::Util 'b64_encode';
 
@@ -22,7 +22,6 @@ Mango::BSON::Binary - Binary type
 
   my $bin = Mango::BSON::Binary->new(data => $bytes, type => 'generic');
   say $bin->data;
-  say "$bin";
 
 =head1 DESCRIPTION
 
@@ -51,6 +50,22 @@ Binary subtype.
 =head1 METHODS
 
 L<Mango::BSON::Binary> inherits all methods from L<Mojo::Base>.
+
+=head1 OPERATORS
+
+L<Mango::BSON::Binary> overloads the following operators.
+
+=head2 bool
+
+  my $bool = !!$bin;
+
+Always true.
+
+=head2 stringify
+
+  my $str = "$bin";
+
+Alias for L</data>.
 
 =head1 SEE ALSO
 
