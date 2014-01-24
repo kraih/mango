@@ -6,11 +6,11 @@ use Time::HiRes 'time';
 
 sub new { shift->SUPER::new(time => shift // int(time * 1000)) }
 
+sub TO_JSON { shift->to_string }
+
 sub to_epoch { shift->to_string / 1000 }
 
 sub to_string { shift->{time} }
-
-sub TO_JSON { shift->to_string }
 
 1;
 
@@ -43,6 +43,12 @@ the following new ones.
   my $time = Mango::BSON::Time->new(time * 1000);
 
 Construct a new L<Mango::BSON::Time> object.
+
+=head2 TO_JSON
+
+  my $str = $time->TO_JSON;
+
+Alias for L</"to_string">.
 
 =head2 to_epoch
 

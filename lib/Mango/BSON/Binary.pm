@@ -49,7 +49,14 @@ Binary subtype.
 
 =head1 METHODS
 
-L<Mango::BSON::Binary> inherits all methods from L<Mojo::Base>.
+L<Mango::BSON::Binary> inherits all methods from L<Mojo::Base> and implements
+the following new ones.
+
+=head2 TO_JSON
+
+  my $b64 = $bin->TO_JSON;
+
+Base64 encode L</"data">.
 
 =head1 OPERATORS
 

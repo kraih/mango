@@ -23,7 +23,7 @@ has protocol        => sub { Mango::Protocol->new };
 has w               => 1;
 has wtimeout        => 1000;
 
-our $VERSION = '0.23';
+our $VERSION = '0.24';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
@@ -56,8 +56,6 @@ for my $name (qw(delete insert update)) {
 }
 
 sub DESTROY { shift->_cleanup }
-
-sub new { shift->SUPER::new->from_string(@_) }
 
 sub backlog { scalar @{shift->{queue} || []} }
 
@@ -106,6 +104,8 @@ sub kill_cursors {
   my ($next, $msg) = $self->_build('kill_cursors', @_);
   $self->_start({id => $next, safe => 0, msg => $msg, cb => $cb});
 }
+
+sub new { shift->SUPER::new->from_string(@_) }
 
 sub _active {
   my $self = shift;
@@ -525,14 +525,6 @@ Timeout for write propagation in milliseconds, defaults to C<1000>.
 L<Mango> inherits all methods from L<Mojo::Base> and implements the following
 new ones.
 
-=head2 new
-
-  my $mango = Mango->new;
-  my $mango = Mango->new('mongodb://sri:s3cret@localhost:3000/test?w=2');
-
-Construct a new L<Mango> object and parse connection string with
-L</"from_string"> if necessary.
-
 =head2 backlog
 
   my $num = $mango->backlog;
@@ -606,6 +598,14 @@ perform operation non-blocking.
       ...
     });
     Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 new
+
+  my $mango = Mango->new;
+  my $mango = Mango->new('mongodb://sri:s3cret@localhost:3000/test?w=2');
+
+Construct a new L<Mango> object and parse connection string with
+L</"from_string"> if necessary.
 
 =head2 query
 

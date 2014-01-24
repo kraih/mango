@@ -12,17 +12,17 @@ my $MACHINE = substr md5_bytes(hostname), 0, 3;
 # Global counter
 my $COUNTER = 0;
 
+sub from_epoch {
+  my ($self, $epoch) = @_;
+  $self->{oid} = _generate($epoch);
+  return $self;
+}
+
 sub new {
   my ($class, $oid) = @_;
   croak qq{Invalid object id "$oid"}
     if defined $oid && $oid !~ /^[0-9a-fA-F]{24}$/;
   return defined $oid ? $class->SUPER::new(oid => $oid) : $class->SUPER::new;
-}
-
-sub from_epoch {
-  my ($self, $epoch) = @_;
-  $self->{oid} = _generate($epoch);
-  return $self;
 }
 
 sub to_epoch { unpack 'N', substr(pack('H*', shift->to_string), 0, 4) }
@@ -64,18 +64,18 @@ L<Mango::BSON>.
 L<Mango::BSON::ObjectID> inherits all methods from L<Mojo::Base> and
 implements the following new ones.
 
+=head2 from_epoch
+
+  my $oid = $oid->from_epoch(1359840145);
+
+Generate new object id with specific epoch time.
+
 =head2 new
 
   my $oid = Mango::BSON::ObjectID->new;
   my $oid = Mango::BSON::ObjectID->new('1a2b3c4e5f60718293a4b5c6');
 
 Construct a new L<Mango::BSON::ObjectID> object.
-
-=head2 from_epoch
-
-  my $oid = $oid->from_epoch(1359840145);
-
-Generate new object id with specific epoch time.
 
 =head2 to_epoch
 
