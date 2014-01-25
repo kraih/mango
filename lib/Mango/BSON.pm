@@ -396,7 +396,8 @@ generate booleans, based on if their values are true or false.
 
 =head1 FUNCTIONS
 
-L<Mango::BSON> implements the following functions.
+L<Mango::BSON> implements the following functions, which can be imported
+individually or at once with the C<:bson> flag.
 
 =head2 bson_bin
 
