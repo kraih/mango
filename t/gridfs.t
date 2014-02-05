@@ -240,7 +240,7 @@ is $result, $oid, 'right result';
 ok $writer->is_closed, 'file is still closed';
 $gridfs->$_->drop for qw(files chunks);
 
-# Big chunks and parallel readers
+# Big chunks and concurrent readers
 $oid = $gridfs->writer->write('x' x 1000000)->close;
 ($fail, @results) = ();
 $delay = Mojo::IOLoop->delay(

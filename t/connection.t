@@ -160,7 +160,7 @@ is $last, $current, 'same connection';
   is $last, $current, 'same connection';
 }
 
-# Mixed parallel operations
+# Mixed concurrent operations
 $collection->insert({test => $_}) for 1 .. 3;
 is $mango->backlog, 0, 'no operations waiting';
 $delay = Mojo::IOLoop->delay;

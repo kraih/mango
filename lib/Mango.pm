@@ -355,7 +355,7 @@ Mango - Pure-Perl non-blocking I/O MongoDB driver
   my $oid = $mango->db('test')->collection('foo')
     ->insert({data => bson_bin("\x00\x01"), now => bson_time});
 
-  # Blocking parallel find (does not work inside a running event loop)
+  # Blocking concurrent find (does not work inside a running event loop)
   my $delay = Mojo::IOLoop->delay;
   for my $name (qw(sri marty)) {
     my $end = $delay->begin(0);
@@ -366,7 +366,7 @@ Mango - Pure-Perl non-blocking I/O MongoDB driver
   }
   my @docs = $delay->wait;
 
-  # Non-blocking parallel find (does work inside a running event loop)
+  # Non-blocking concurrent find (does work inside a running event loop)
   my $delay = Mojo::IOLoop->delay(sub {
     my ($delay, @docs) = @_;
     ...
