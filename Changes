@@ -1,6 +1,6 @@
 
-0.24  2014-02-16
-  - Added comment, max, min and timeout attributes to Mango::Cursor.
+0.24  2014-02-17
+  - Added comment and timeout attributes to Mango::Cursor.
 
 0.23  2014-01-22
   - Fixed a few small operator overloading bugs.

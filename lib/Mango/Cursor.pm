@@ -5,10 +5,7 @@ use Mango::BSON 'bson_doc';
 use Mojo::IOLoop;
 
 has [qw(batch_size limit skip)] => 0;
-has [
-  qw(collection comment hint id max max_scan min snapshot sort tailable),
-  qw(timeout)
-];
+has [qw(collection comment hint id max_scan snapshot sort tailable timeout)];
 has [qw(fields query)] => sub { {} };
 
 sub add_batch {
@@ -36,16 +33,13 @@ sub build_query {
   if (my $comment = $self->comment) { $ext{'$comment'} = $comment }
   if ($explain) { $ext{'$explain'} = 1 }
   if (my $hint     = $self->hint)     { $ext{'$hint'}      = $hint }
-  if (my $max      = $self->max)      { $ext{'$max'}       = $max }
   if (my $max_scan = $self->max_scan) { $ext{'$maxScan'}   = $max_scan }
-  if (my $min      = $self->min)      { $ext{'$min'}       = $min }
   if (my $snapshot = $self->snapshot) { $ext{'$snapshot'}  = 1 }
   if (my $sort     = $self->sort)     { $ext{'$orderby'}   = $sort }
   if (my $timeout  = $self->timeout)  { $ext{'$maxTimeMS'} = $timeout }
 
-  return $self->query unless keys %ext;
-
   my $query = $self->query;
+  return $query unless keys %ext;
   return bson_doc $query->{'$query'} ? %$query : ('$query' => $query), %ext;
 }
 
@@ -53,8 +47,8 @@ sub clone {
   my $self  = shift;
   my $clone = $self->new;
   $clone->$_($self->$_)
-    for qw(batch_size collection comment fields hint limit max max_scan),
-    qw(min query skip snapshot sort tailable timeout);
+    for qw(batch_size collection comment fields hint limit max_scan);
+  $clone->$_($self->$_) for qw(query skip snapshot sort tailable timeout);
   return $clone;
 }
 
@@ -285,26 +279,12 @@ Cursor id.
 
 Limit the number of documents, defaults to C<0>.
 
-=head2 max
-
-  my $max = $cursor->max;
-  $cursor = $cursor->max({foo => 5});
-
-Exclusive upper index bound.
-
 =head2 max_scan
 
   my $max = $cursor->max_scan;
   $cursor = $cursor->max_scan(500);
 
 Limit the number of documents to scan.
-
-=head2 min
-
-  my $min = $cursor->min;
-  $cursor = $cursor->min({foo => 3});
-
-Inclusive lower index bound.
 
 =head2 query
 
