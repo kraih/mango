@@ -68,26 +68,39 @@ is_deeply $cursor->build_query(1),
   'right query';
 is_deeply $cursor->query, {'$query' => {foo => 'bar'}, '$foo' => 'bar'},
   'query has not changed';
+$cursor = $collection->find->max({foo => 5})->min({foo => 2});
+is_deeply $cursor->build_query,
+  {'$query' => {}, '$max' => {foo => 5}, '$min' => {foo => 2}}, 'right query';
+$cursor = $collection->find({})->comment('Test!')->timeout(500);
+is_deeply $cursor->build_query,
+  {'$query' => {}, '$comment' => 'Test!', '$maxTimeMS' => 500}, 'right query';
 
 # Clone cursor
 $cursor
-  = $collection->find({test => {'$exists' => 1}})->batch_size(2)->limit(3)
-  ->skip(1)->sort({test => 1})->fields({test => 1})->max_scan(100);
+  = $collection->find({test => {'$exists' => 1}})->batch_size(2)
+  ->comment('Test')->limit(3)->skip(1)->sort({test => 1})->fields({test => 1})
+  ->max_scan(100);
 my $doc = $cursor->next;
 ok defined $cursor->id, 'has a cursor id';
 ok $doc->{test}, 'right document';
-my $clone = $cursor->snapshot(1)->hint({test => 1})->tailable(1)->clone;
+my $clone
+  = $cursor->snapshot(1)->hint({test => 1})->max({foo => 5})->timeout(500)
+  ->min({foo => 2})->tailable(1)->clone;
 isnt $cursor, $clone, 'different objects';
 ok !defined $clone->id, 'has no cursor id';
-is $clone->batch_size, 2, 'right batch size';
+is $clone->batch_size, 2,      'right batch size';
+is $clone->comment,    'Test', 'right comment';
 is_deeply $clone->fields, {test => 1}, 'right fields';
 is_deeply $clone->hint,   {test => 1}, 'right hint value';
 is $clone->limit, 3, 'right limit';
 is_deeply $clone->query, {test => {'$exists' => 1}}, 'right query';
-is $clone->skip,     1,   'right skip value';
-is $clone->snapshot, 1,   'right snapshot value';
+is $clone->skip,     1, 'right skip value';
+is $clone->snapshot, 1, 'right snapshot value';
+is_deeply $clone->max, {foo => 5}, 'right max value';
 is $clone->max_scan, 100, 'right max_scan value';
-is $clone->tailable, 1,   'is tailable';
+is $clone->timeout,  500, 'right timeout value';
+is_deeply $clone->min, {foo => 2}, 'right min value';
+is $clone->tailable, 1, 'is tailable';
 is_deeply $clone->sort, {test => 1}, 'right sort value';
 $cursor = $collection->find({foo => 'bar'}, {foo => 1});
 is_deeply $cursor->clone->query,  {foo => 'bar'}, 'right query';
