@@ -536,7 +536,7 @@ Number of queued operations that have not yet been assigned to a connection.
   my $db = $mango->db;
   my $db = $mango->db('test');
 
-Get L<Mango::Database> object for database, uses L</"default_db"> if no name
+Build L<Mango::Database> object for database, uses L</"default_db"> if no name
 is provided. Note that the reference L<Mango::Database/"mango"> is weakened,
 so the L<Mango> object needs to be referenced elsewhere as well.
 

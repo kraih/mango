@@ -157,7 +157,7 @@ List files. You can also append a callback to perform operation non-blocking.
 
   my $reader = $gridfs->reader;
 
-Get L<Mango::GridFS::Reader> object.
+Build L<Mango::GridFS::Reader> object.
 
   # Read all data at once from newest version of file
   my $oid  = $gridfs->find_version('test.txt', 1);
@@ -171,7 +171,7 @@ Get L<Mango::GridFS::Reader> object.
 
   my $writer = $gridfs->writer;
 
-Get L<Mango::GridFS::Writer> object.
+Build L<Mango::GridFS::Writer> object.
 
   # Write all data at once to file with name
   my $oid = $gridfs->writer->filename('test.txt')->write('Hello!')->close;

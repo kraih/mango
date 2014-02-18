@@ -377,7 +377,10 @@ append a callback to perform operation non-blocking.
   my $cursor = $collection->find({foo => 'bar'});
   my $cursor = $collection->find({foo => 'bar'}, {foo => 1});
 
-Get L<Mango::Cursor> object for query.
+Build L<Mango::Cursor> object for query.
+
+  # Exclude "_id" field from results
+  my $docs = $collection->find({foo => 'bar'}, {_id => 0})->all;
 
 =head2 find_and_modify
 

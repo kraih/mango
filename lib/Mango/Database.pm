@@ -118,7 +118,7 @@ following new ones.
 
   my $collection = $db->collection('foo');
 
-Get L<Mango::Collection> object for collection.
+Build L<Mango::Collection> object for collection.
 
 =head2 collection_names
 
@@ -165,7 +165,7 @@ operation non-blocking.
 
   my $gridfs = $db->gridfs;
 
-Get L<Mango::GridFS> object.
+Build L<Mango::GridFS> object.
 
 =head2 stats
 
