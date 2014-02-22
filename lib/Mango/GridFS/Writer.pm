@@ -76,7 +76,7 @@ sub write {
   if ($cb) {
     my $delay = Mojo::IOLoop->delay(sub { shift; $self->_err($cb, @_) });
     $self->_chunk($delay->begin) while length $self->{buffer} >= $size;
-    $delay->begin->(undef, undef);
+    $delay->pass;
   }
 
   # Blocking
