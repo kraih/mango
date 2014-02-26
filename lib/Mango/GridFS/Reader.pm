@@ -36,7 +36,7 @@ sub read {
   # EOF
   if ($self->{pos} >= ($self->size // 0)) {
     return undef unless $cb;
-    return Mojo::IOLoop->timer(0 => sub { $self->$cb(undef, undef) });
+    return Mojo::IOLoop->next_tick(sub { $self->$cb(undef, undef) });
   }
 
   # Blocking

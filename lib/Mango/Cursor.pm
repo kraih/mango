@@ -153,7 +153,7 @@ sub _continue {
 
 sub _defer {
   my ($self, $cb, @args) = @_;
-  Mojo::IOLoop->timer(0 => sub { $self->$cb(@args) });
+  Mojo::IOLoop->next_tick(sub { $self->$cb(@args) });
 }
 
 sub _dequeue {
