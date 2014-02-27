@@ -78,31 +78,31 @@ my $delay = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $err, $oid) = @_;
-    $fail    = $err;
+    return $delay->pass($err) if $err;
     $created = $oid;
     $collection->find_one({foo => 'bar'} => $delay->begin);
   },
   sub {
     my ($delay, $err, $doc) = @_;
-    $fail ||= $err;
+    return $delay->pass($err) if $err;
     $doc->{foo} = 'yada';
     $collection->update(({foo => 'bar'}, $doc) => $delay->begin);
   },
   sub {
     my ($delay, $err, $doc) = @_;
-    $fail ||= $err;
+    return $delay->pass($err) if $err;
     $updated = $doc;
     $collection->find_one($created => $delay->begin);
   },
   sub {
     my ($delay, $err, $doc) = @_;
-    $fail ||= $err;
+    return $delay->pass($err) if $err;
     $found = $doc;
     $collection->remove($delay->begin);
   },
   sub {
     my ($delay, $err, $doc) = @_;
-    $fail ||= $err;
+    $fail    = $err;
     $removed = $doc;
   }
 );

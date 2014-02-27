@@ -157,13 +157,13 @@ my $delay = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $err, $count) = @_;
-    $fail = $err;
+    return $delay->pass($err) if $err;
     push @results, $count;
     $collection->find({foo => 'bar'})->count($delay->begin);
   },
   sub {
     my ($delay, $err, $count) = @_;
-    $fail ||= $err;
+    $fail = $err;
     push @results, $count;
   }
 );
@@ -182,19 +182,19 @@ $delay  = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $err, $doc) = @_;
+    return $delay->pass($err) if $err;
+    push @docs, $doc;
+    $cursor->next($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $doc) = @_;
+    return $delay->pass($err) if $err;
+    push @docs, $doc;
+    $cursor->next($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $doc) = @_;
     $fail = $err;
-    push @docs, $doc;
-    $cursor->next($delay->begin);
-  },
-  sub {
-    my ($delay, $err, $doc) = @_;
-    $fail ||= $err;
-    push @docs, $doc;
-    $cursor->next($delay->begin);
-  },
-  sub {
-    my ($delay, $err, $doc) = @_;
-    $fail ||= $err;
     push @docs, $doc;
   }
 );
@@ -244,18 +244,18 @@ $delay  = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $err, $doc) = @_;
-    $fail = $err;
+    return $delay->pass($err) if $err;
     push @docs, $doc;
     $cursor->rewind($delay->begin);
   },
   sub {
     my ($delay, $err) = @_;
-    $fail ||= $err;
+    return $delay->pass($err) if $err;
     $cursor->next($delay->begin);
   },
   sub {
     my ($delay, $err, $doc) = @_;
-    $fail ||= $err;
+    $fail = $err;
     push @docs, $doc;
   }
 );

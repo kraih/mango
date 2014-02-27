@@ -39,18 +39,18 @@ sub close {
     sub { $self->_chunk(shift->begin) },
     sub {
       my ($delay, $err) = @_;
-      return $self->$cb($err) if $err;
+      return $delay->pass($err) if $err;
       $files->ensure_index({filename => 1} => $delay->begin);
       $gridfs->chunks->ensure_index(@index => $delay->begin);
     },
     sub {
       my ($delay, $files_err, $chunks_err) = @_;
-      if (my $err = $files_err || $chunks_err) { return $self->$cb($err) }
+      if (my $err = $files_err || $chunks_err) { return $delay->pass($err) }
       $gridfs->db->command($command => $delay->begin);
     },
     sub {
       my ($delay, $err, $doc) = @_;
-      return $self->$cb($err) if $err;
+      return $delay->pass($err) if $err;
       $files->insert($self->_meta($doc->{md5}) => $delay->begin);
     },
     sub { shift; $self->$cb(shift, $self->{files_id}) }

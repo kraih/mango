@@ -60,23 +60,23 @@ my $delay = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $err) = @_;
-    $fail = $err;
+    return $delay->pass($err) if $err;
     $writer->write('llo ' => $delay->begin);
   },
   sub {
     my ($delay, $err) = @_;
-    $fail ||= $err;
+    return $delay->pass($err) if $err;
     $writer->write('w'     => $delay->begin);
     $writer->write('orld!' => $delay->begin);
   },
   sub {
     my ($delay, $err) = @_;
-    $fail ||= $err;
+    return $delay->pass($err) if $err;
     $writer->close($delay->begin);
   },
   sub {
     my ($delay, $err, $oid) = @_;
-    $fail ||= $err;
+    $fail   = $err;
     $result = $oid;
   }
 );
@@ -119,18 +119,18 @@ $delay = Mojo::IOLoop->delay(
   sub { $gridfs->list(shift->begin) },
   sub {
     my ($delay, $err, $names) = @_;
-    $fail   = $err;
+    return $delay->pass($err) if $err;
     $before = $names;
     $gridfs->delete($result => $delay->begin);
   },
   sub {
     my ($delay, $err) = @_;
-    $fail ||= $err;
+    return $delay->pass($err) if $err;
     $gridfs->list($delay->begin);
   },
   sub {
     my ($delay, $err, $names) = @_;
-    $fail ||= $err;
+    $fail  = $err;
     $after = $names;
   }
 );
@@ -190,13 +190,13 @@ $delay = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $one_err, $two_err) = @_;
-    $fail = $one_err || $two_err;
+    if (my $err = $one_err || $two_err) { return $delay->pass($err) }
     $one_reader->slurp($delay->begin);
     $two_reader->slurp($delay->begin);
   },
   sub {
     my ($delay, $one_err, $one, $two_err, $two) = @_;
-    $fail ||= $one_err || $two_err;
+    $fail = $one_err || $two_err;
     @results = ($one, $two);
   }
 );
@@ -251,13 +251,13 @@ $delay = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $reader1, $err1, $reader2, $err2) = @_;
-    $fail = $err1 || $err2;
+    if (my $err = $err1 || $err2) { return $delay->pass($err) }
     $reader1->slurp($delay->begin);
     $reader2->slurp($delay->begin);
   },
   sub {
     my ($delay, $err1, $data1, $err2, $data2) = @_;
-    $fail ||= $err2 || $err2;
+    $fail = $err1 || $err2;
     @results = ($data1, $data2);
   }
 );

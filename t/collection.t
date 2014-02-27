@@ -210,12 +210,12 @@ SKIP: {
     },
     sub {
       my ($delay, $err, $cursor) = @_;
-      $fail = $err;
+      return $delay->pass($err) if $err;
       $cursor->all($delay->begin);
     },
     sub {
       my ($delay, $err, $docs) = @_;
-      $fail ||= $err;
+      $fail   = $err;
       $result = $docs;
     }
   );
@@ -335,12 +335,12 @@ my $delay = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $err) = @_;
-    $fail = $err;
+    return $delay->pass($err) if $err;
     $collection->index_information($delay->begin);
   },
   sub {
     my ($delay, $err, $info) = @_;
-    $fail ||= $err;
+    $fail   = $err;
     $result = $info;
   }
 );
@@ -356,12 +356,12 @@ $delay = Mojo::IOLoop->delay(
   },
   sub {
     my ($delay, $err) = @_;
-    $fail = $err;
+    return $delay->pass($err) if $err;
     $collection->index_information($delay->begin);
   },
   sub {
     my ($delay, $err, $info) = @_;
-    $fail ||= $err;
+    $fail   = $err;
     $result = $info;
   }
 );
