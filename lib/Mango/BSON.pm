@@ -389,10 +389,10 @@ Mango::BSON - BSON
 L<Mango::BSON> is a minimalistic implementation of L<http://bsonspec.org>.
 
 In addition to a bunch of custom BSON data types it supports normal Perl data
-types like C<Scalar>, C<Regexp>, C<undef>, C<Array> reference, C<Hash>
+types like scalar, regular expression, C<undef>, array reference, hash
 reference and will try to call the C<TO_JSON> method on blessed references, or
-stringify them if it doesn't exist. C<Scalar> references will be used to
-generate booleans, based on if their values are true or false.
+stringify them if it doesn't exist. Scalar references will be used to generate
+booleans, based on if their values are true or false.
 
 =head1 FUNCTIONS
 
