@@ -6,7 +6,7 @@ use List::Util 'first';
 use Mango::BSON qw(bson_bin bson_doc bson_oid bson_time bson_true);
 use Mojo::IOLoop;
 
-has chunk_size => 262144;
+has chunk_size => 261120;
 has [qw(content_type filename gridfs metadata)];
 
 sub close {
@@ -150,7 +150,7 @@ L<Mango::GridFS::Writer> implements the following attributes.
   my $size = $writer->chunk_size;
   $writer  = $writer->chunk_size(1024);
 
-Chunk size in bytes, defaults to C<262144>.
+Chunk size in bytes, defaults to C<261120>.
 
 =head2 content_type
 

@@ -28,7 +28,7 @@ is $reader->filename,     'foo.txt',    'right filename';
 is $reader->content_type, 'text/plain', 'right content type';
 is_deeply $reader->metadata, {foo => 'bar'}, 'right structure';
 is $reader->size,       12,     'right size';
-is $reader->chunk_size, 262144, 'right chunk size';
+is $reader->chunk_size, 261120, 'right chunk size';
 is length $reader->upload_date, length(time) + 3, 'right time format';
 my $data;
 while (defined(my $chunk = $reader->read)) { $data .= $chunk }

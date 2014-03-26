@@ -1,5 +1,7 @@
 
-0.25  2014-03-15
+0.25  2014-03-26
+  - Improved storage efficiency of Mango::GridFS::Writer by lowering the
+    default chunk size to 255KB.
 
 0.24  2014-02-27
   - Added comment and timeout attributes to Mango::Cursor.
