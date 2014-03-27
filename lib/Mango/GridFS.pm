@@ -106,8 +106,8 @@ L</"prefix">.
 
 =head2 prefix
 
-  my $db  = $gridfs->prefix;
-  $gridfs = $gridfs->prefix('foo');
+  my $prefix = $gridfs->prefix;
+  $gridfs    = $gridfs->prefix('foo');
 
 Prefix for GridFS collections, defaults to C<fs>.
 
