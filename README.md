@@ -44,6 +44,6 @@ app->start;
 
   All you need is a oneliner, it takes less than a minute.
 
-    $ curl -L cpanmin.us | perl - -n  Mango
+    $ curl -L cpanmin.us | perl - -n Mango
 
   We recommend the use of a [Perlbrew](http://perlbrew.pl) environment.
