@@ -87,9 +87,7 @@ sub bson_encode {
   my $doc = shift;
 
   my $bson = '';
-  while (my ($key, $value) = each %$doc) {
-    $bson .= _encode_value(encode_cstring($key), $value);
-  }
+  $bson .= _encode_value(encode_cstring($_), $doc->{$_}) for keys %$doc;
 
   # Document ends with null byte
   return encode_int32(length($bson) + 5) . $bson . "\x00";
