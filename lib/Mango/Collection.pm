@@ -298,8 +298,8 @@ the following new ones.
     [{'$match' => {'$gt' => 23}}, {'$out' => 'some_collection'}]);
 
 Aggregate collection with aggregation framework, additional options will be
-passed along to the server verbatim.. You can also append a callback to
-perform operation non-blocking.
+passed along to the server verbatim. You can also append a callback to perform
+operation non-blocking.
 
   my $pipeline = [{'$group' => {_id => undef, total => {'$sum' => '$foo'}}}];
   $collection->aggregate($pipeline => sub {
