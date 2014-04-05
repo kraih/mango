@@ -1,5 +1,6 @@
 
 0.25  2014-04-05
+  - Renamed timeout attribute in Mango::Cursor to max_time_ms.
   - Improved command performance.
   - Improved storage efficiency of Mango::GridFS::Writer by lowering the
     default chunk size to 255KB.

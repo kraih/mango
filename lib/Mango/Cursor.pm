@@ -5,7 +5,8 @@ use Mango::BSON 'bson_doc';
 use Mojo::IOLoop;
 
 has [qw(batch_size limit skip)] => 0;
-has [qw(collection comment hint id max_scan snapshot sort tailable timeout)];
+has [
+  qw(collection comment hint id max_scan max_time_ms snapshot sort tailable)];
 has [qw(fields query)] => sub { {} };
 
 sub add_batch {
@@ -32,11 +33,11 @@ sub build_query {
   my %ext;
   if (my $comment = $self->comment) { $ext{'$comment'} = $comment }
   if ($explain) { $ext{'$explain'} = 1 }
-  if (my $hint     = $self->hint)     { $ext{'$hint'}      = $hint }
-  if (my $max_scan = $self->max_scan) { $ext{'$maxScan'}   = $max_scan }
-  if (my $snapshot = $self->snapshot) { $ext{'$snapshot'}  = 1 }
-  if (my $sort     = $self->sort)     { $ext{'$orderby'}   = $sort }
-  if (my $timeout  = $self->timeout)  { $ext{'$maxTimeMS'} = $timeout }
+  if (my $hint     = $self->hint)        { $ext{'$hint'}      = $hint }
+  if (my $max_scan = $self->max_scan)    { $ext{'$maxScan'}   = $max_scan }
+  if (my $max      = $self->max_time_ms) { $ext{'$maxTimeMS'} = $max }
+  if (my $snapshot = $self->snapshot)    { $ext{'$snapshot'}  = 1 }
+  if (my $sort     = $self->sort)        { $ext{'$orderby'}   = $sort }
 
   my $query = $self->query;
   return $query unless keys %ext;
@@ -48,7 +49,7 @@ sub clone {
   my $clone = $self->new;
   $clone->$_($self->$_)
     for qw(batch_size collection comment fields hint limit max_scan);
-  $clone->$_($self->$_) for qw(query skip snapshot sort tailable timeout);
+  $clone->$_($self->$_) for qw(max_time_ms query skip snapshot sort tailable);
   return $clone;
 }
 
@@ -286,6 +287,13 @@ Limit the number of documents, defaults to C<0>.
 
 Limit the number of documents to scan.
 
+=head2 max_time_ms
+
+  my $max = $cursor->max_time_ms;
+  $cursor = $cursor->max_time_ms(500);
+
+Timeout for query in milliseconds.
+
 =head2 query
 
   my $query = $cursor->query;
@@ -321,13 +329,6 @@ Sort documents, the order of keys matters.
   $cursor      = $cursor->tailable(1);
 
 Tailable cursor.
-
-=head2 timeout
-
-  my $timeout = $cursor->timeout;
-  $cursor     = $cursor->timeout(500);
-
-Timeout for query in milliseconds.
 
 =head1 METHODS
 
