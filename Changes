@@ -6,6 +6,7 @@
   - Renamed timeout attribute in Mango::Cursor to max_time_ms.
   - Added support for MongoDB 2.6 wire protocol, MongoDB 2.4 is no longer
     supported.
+  - Added build_write_concern method to Mango::Collection.
   - Improved command performance.
   - Improved storage efficiency of Mango::GridFS::Writer by lowering the
     default chunk size to 255KB.

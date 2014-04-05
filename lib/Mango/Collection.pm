@@ -2,7 +2,7 @@ package Mango::Collection;
 use Mojo::Base -base;
 
 use Carp 'croak';
-use Mango::BSON qw(bson_code bson_false bson_doc bson_oid bson_true);
+use Mango::BSON qw(bson_code bson_doc bson_oid);
 use Mango::Cursor;
 
 has [qw(db name)];
@@ -22,6 +22,15 @@ sub aggregate {
 }
 
 sub build_index_name { join '_', keys %{$_[1]} }
+
+sub build_write_concern {
+  my $mango = shift->db->mango;
+  return {
+    j => $mango->j ? \1 : \0,
+    w => $mango->w,
+    wtimeout => $mango->wtimeout
+  };
+}
 
 sub create {
   my $self = shift;
@@ -107,8 +116,8 @@ sub insert {
   my $command = bson_doc
     insert       => $self->name,
     documents    => $docs,
-    ordered      => bson_true,
-    writeConcern => $self->_write_concern;
+    ordered      => \1,
+    writeConcern => $self->build_write_concern;
 
   # Non-blocking
   return $self->db->command(
@@ -158,8 +167,8 @@ sub remove {
   my $command = bson_doc
     delete       => $self->name,
     deletes      => [{q => $query, limit => $flags->{single} ? 1 : 0}],
-    ordered      => bson_true,
-    writeConcern => $self->_write_concern;
+    ordered      => \1,
+    writeConcern => $self->build_write_concern;
 
   return $self->_command($command, undef, $cb);
 }
@@ -190,14 +199,14 @@ sub update {
   $update = {
     q      => $query,
     u      => $update,
-    upsert => $flags->{upsert} ? bson_true : bson_false,
-    multi  => $flags->{multi} ? bson_true : bson_false
+    upsert => $flags->{upsert} ? \1 : \0,
+    multi  => $flags->{multi} ? \1 : \0
   };
   my $command = bson_doc
     update       => $self->name,
     updates      => [$update],
-    ordered      => bson_true,
-    writeConcern => $self->_write_concern;
+    ordered      => \1,
+    writeConcern => $self->build_write_concern;
 
   return $self->_command($command, undef, $cb);
 }
@@ -262,15 +271,6 @@ sub _map_reduce {
   my ($self, $doc) = @_;
   return $doc->{results} unless $doc->{result};
   return $self->db->collection($doc->{result});
-}
-
-sub _write_concern {
-  my $mango = shift->db->mango;
-  return {
-    j => $mango->j ? bson_true : bson_false,
-    w => $mango->w,
-    wtimeout => $mango->wtimeout
-  };
 }
 
 1;
@@ -343,6 +343,12 @@ operation non-blocking.
 
 Build name for index specification, the order of keys matters for compound
 indexes.
+
+=head2 build_write_concern
+
+  my $concern = $collection->build_write_concern;
+
+Build write concern for collection based on l<Mango> settings.
 
 =head2 create
 

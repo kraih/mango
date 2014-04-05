@@ -3,7 +3,7 @@ use Mojo::Base -base;
 
 use Carp 'croak';
 use List::Util 'first';
-use Mango::BSON qw(bson_bin bson_doc bson_oid bson_time bson_true);
+use Mango::BSON qw(bson_bin bson_doc bson_oid bson_time);
 use Mojo::IOLoop;
 
 has chunk_size => 261120;
@@ -19,7 +19,7 @@ sub close {
     return Mojo::IOLoop->next_tick(sub { $self->$cb(undef, $files_id) });
   }
 
-  my @index   = (bson_doc(files_id => 1, n => 1), {unique => bson_true});
+  my @index   = (bson_doc(files_id => 1, n => 1), {unique => \1});
   my $gridfs  = $self->gridfs;
   my $command = bson_doc filemd5 => $self->{files_id}, root => $gridfs->prefix;
 
