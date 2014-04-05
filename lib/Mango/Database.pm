@@ -38,20 +38,21 @@ sub command {
   $command = ref $command ? $command : bson_doc($command => 1, @_);
 
   # Non-blocking
-  my $collection = $self->collection('$cmd');
-  my $protocol   = $self->mango->protocol;
-  return $collection->find_one(
-    $command => sub {
-      my ($collection, $err, $doc) = @_;
-      $err ||= $protocol->command_error({docs => [$doc]});
-      $self->$cb($err, $doc // {});
+  my $mango    = $self->mango;
+  my $name     = $self->name;
+  my $protocol = $mango->protocol;
+  return $mango->query(
+    ("$name.\$cmd", {}, 0, -1, $command, {}) => sub {
+      my ($collection, $err, $reply) = @_;
+      $err ||= $protocol->command_error($reply);
+      $self->$cb($err, $reply->{docs}[0] // {});
     }
   ) if $cb;
 
   # Blocking
-  my $doc = $collection->find_one($command);
-  if (my $err = $protocol->command_error({docs => [$doc]})) { croak $err }
-  return $doc;
+  my $reply = $mango->query("$name.\$cmd", {}, 0, -1, $command, {});
+  if (my $err = $protocol->command_error($reply)) { croak $err }
+  return $reply->{docs}[0];
 }
 
 sub dereference {
