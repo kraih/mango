@@ -9,28 +9,6 @@ is $protocol->next_id(1),          2,          'right id';
 is $protocol->next_id(2147483646), 2147483647, 'right id';
 is $protocol->next_id(2147483647), 1,          'right id';
 
-# Build minimal update
-is $protocol->build_update(1, 'foo', {}, {}, {}),
-    "\x26\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\xd1\x07\x00\x00\x00\x00"
-  . "\x00\x00\x66\x6f\x6f\x00\x00\x00\x00\x00\x05\x00\x00\x00\x00\x05\x00\x00"
-  . "\x00\x00", 'minimal update';
-
-# Build update with all flags
-is $protocol->build_update(1, 'foo', {upsert => 1, multi_update => 1}, {}, {}),
-    "\x26\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\xd1\x07\x00\x00\x00\x00"
-  . "\x00\x00\x66\x6f\x6f\x00\x03\x00\x00\x00\x05\x00\x00\x00\x00\x05\x00\x00"
-  . "\x00\x00", 'update with all flags';
-
-# Build minimal insert
-is $protocol->build_insert(1, 'foo', {}, {}),
-  "\x1d\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\xd2\x07\x00\x00\x00\x00"
-  . "\x00\x00\x66\x6f\x6f\x00\x05\x00\x00\x00\x00", 'minimal insert';
-
-# Build insert with all flags
-is $protocol->build_insert(1, 'foo', {continue_on_error => 1}, {}),
-  "\x1d\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\xd2\x07\x00\x00\x01\x00"
-  . "\x00\x00\x66\x6f\x6f\x00\x05\x00\x00\x00\x00", 'insert with all flags';
-
 # Build minimal query
 is $protocol->build_query(1, 'foo', {}, 0, 10, {}, {}),
     "\x2a\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\xd4\x07\x00\x00\x00\x00"
@@ -56,18 +34,6 @@ is $protocol->build_get_more(1, 'foo', 10, 1),
   "\x24\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\xd5\x07\x00\x00\x00\x00"
   . "\x00\x00\x66\x6f\x6f\x00\x0a\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00",
   'minimal get_more';
-
-# Build minimal delete
-is $protocol->build_delete(1, 'foo', {}, {}),
-  "\x21\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\xd6\x07\x00\x00\x00\x00"
-  . "\x00\x00\x66\x6f\x6f\x00\x00\x00\x00\x00\x05\x00\x00\x00\x00",
-  'minimal delete';
-
-# Build delete with all flags
-is $protocol->build_delete(1, 'foo', {single_remove => 1}, {}),
-  "\x21\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\xd6\x07\x00\x00\x00\x00"
-  . "\x00\x00\x66\x6f\x6f\x00\x01\x00\x00\x00\x05\x00\x00\x00\x00",
-  'delete with all flags';
 
 # Build minimal kill_cursors
 is $protocol->build_kill_cursors(1, 1),
@@ -121,7 +87,7 @@ is $protocol->parse_reply(\$after), undef, 'nothing';
 is $before, $after, 'no changes';
 
 # Parse wrong message type
-$buffer = $protocol->build_insert(1, 'foo', {}, {}) . "\x00";
+$buffer = $protocol->build_query(1, 'foo', {}, 0, 10, {}, {}) . "\x00";
 is $protocol->parse_reply(\$buffer), undef, 'nothing';
 is $buffer, "\x00", 'message has been removed';
 

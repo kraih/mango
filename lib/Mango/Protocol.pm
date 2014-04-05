@@ -5,33 +5,8 @@ use Mango::BSON qw(bson_decode bson_encode bson_length decode_int32),
   qw(decode_int64 encode_cstring encode_int32 encode_int64);
 
 # Opcodes
-use constant {
-  REPLY        => 1,
-  UPDATE       => 2001,
-  INSERT       => 2002,
-  QUERY        => 2004,
-  GET_MORE     => 2005,
-  DELETE       => 2006,
-  KILL_CURSORS => 2007
-};
-
-sub build_delete {
-  my ($self, $id, $name, $flags, $query) = @_;
-
-  # Zero and name
-  my $msg = encode_int32(0) . encode_cstring($name);
-
-  # Flags
-  my $vec = pack 'B*', '0' x 32;
-  vec($vec, 0, 1) = 1 if $flags->{single_remove};
-  $msg .= encode_int32(unpack 'V', $vec);
-
-  # Query
-  $msg .= bson_encode $query;
-
-  # Header
-  return _build_header($id, length($msg), DELETE) . $msg;
-}
+use constant {REPLY => 1, QUERY => 2004, GET_MORE => 2005,
+  KILL_CURSORS => 2007};
 
 sub build_get_more {
   my ($self, $id, $name, $return, $cursor) = @_;
@@ -44,24 +19,6 @@ sub build_get_more {
 
   # Header
   return _build_header($id, length($msg), GET_MORE) . $msg;
-}
-
-sub build_insert {
-  my ($self, $id, $name, $flags) = (shift, shift, shift, shift);
-
-  # Flags
-  my $vec = pack 'B*', '0' x 32;
-  vec($vec, 0, 1) = 1 if $flags->{continue_on_error};
-  my $msg = encode_int32(unpack 'V', $vec);
-
-  # Name
-  $msg .= encode_cstring $name;
-
-  # Documents
-  $msg .= bson_encode $_ for @_;
-
-  # Header
-  return _build_header($id, length($msg), INSERT) . $msg;
 }
 
 sub build_kill_cursors {
@@ -104,25 +61,6 @@ sub build_query {
 
   # Header
   return _build_header($id, length($msg), QUERY) . $msg;
-}
-
-sub build_update {
-  my ($self, $id, $name, $flags, $query, $update) = @_;
-
-  # Zero and name
-  my $msg = encode_int32(0) . encode_cstring($name);
-
-  # Flags
-  my $vec = pack 'B*', '0' x 32;
-  vec($vec, 0, 1) = 1 if $flags->{upsert};
-  vec($vec, 1, 1) = 1 if $flags->{multi_update};
-  $msg .= encode_int32(unpack 'V', $vec);
-
-  # Query and update specification
-  $msg .= bson_encode($query) . bson_encode($update);
-
-  # Header
-  return _build_header($id, length($msg), UPDATE) . $msg;
 }
 
 sub command_error {
@@ -200,7 +138,7 @@ Mango::Protocol - The MongoDB wire protocol
   use Mango::Protocol;
 
   my $protocol = Mango::Protocol->new;
-  my $bytes    = $protocol->insert(23, 'foo.bar', {}, {foo => 'bar'});
+  my $bytes    = $protocol->query(1, 'foo', {}, 0, 10, {}, {});
 
 =head1 DESCRIPTION
 
@@ -212,23 +150,11 @@ protocol.
 L<Mango::Protocol> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
 
-=head2 build_delete
-
-  my $bytes = $protocol->build_delete($id, $name, $flags, $query);
-
-Build message for C<delete> operation.
-
 =head2 build_get_more
 
   my $bytes = $protocol->build_get_more($id, $name, $return, $cursor);
 
 Build message for C<get_more> operation.
-
-=head2 build_insert
-
-  my $bytes = $protocol->build_insert($id, $name, $flags, @docs);
-
-Build message for C<insert> operation.
 
 =head2 build_kill_cursors
 
@@ -242,12 +168,6 @@ Build message for C<kill_cursors> operation.
     $query, $fields);
 
 Build message for C<query> operation.
-
-=head2 build_update
-
-  my $bytes = $protocol->build_update($id, $name, $flags, $query, $update);
-
-Build message for C<update> operation.
 
 =head2 command_error
 

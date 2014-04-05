@@ -2,7 +2,7 @@ package Mango::Collection;
 use Mojo::Base -base;
 
 use Carp 'croak';
-use Mango::BSON qw(bson_code bson_doc bson_oid bson_true);
+use Mango::BSON qw(bson_code bson_false bson_doc bson_oid bson_true);
 use Mango::Cursor;
 
 has [qw(db name)];
@@ -104,20 +104,19 @@ sub insert {
 
   # Make sure all documents have ids
   my @ids = map { $_->{_id} //= bson_oid } @$docs;
+  my $command = bson_doc
+    insert       => $self->name,
+    documents    => $docs,
+    ordered      => bson_true,
+    writeConcern => $self->_write_concern;
 
   # Non-blocking
-  my $mango = $self->db->mango;
-  return $mango->insert(
-    ($self->full_name, {}, @$docs) => sub {
-      my ($mango, $err, $reply) = @_;
-      $err ||= $mango->protocol->command_error($reply);
-      $self->$cb($err, @ids > 1 ? \@ids : $ids[0]);
-    }
-  ) if $cb;
+  return $self->db->command(
+    $command => sub { shift; $self->$cb(shift, @ids > 1 ? \@ids : $ids[0]) })
+    if $cb;
 
   # Blocking
-  my $reply = $mango->insert($self->full_name, {}, @$docs);
-  if (my $err = $mango->protocol->command_error($reply)) { croak $err }
+  $self->db->command($command);
   return @ids > 1 ? \@ids : $ids[0];
 }
 
@@ -152,10 +151,17 @@ sub options {
 
 sub remove {
   my $self  = shift;
-  my $query = ref $_[0] eq 'CODE' ? {} : shift // {};
-  my $flags = ref $_[0] eq 'CODE' ? {} : shift // {};
-  $flags->{single_remove} = 1 if delete $flags->{single};
-  return $self->_handle('delete', $flags, $query, @_);
+  my $cb    = ref $_[-1] eq 'CODE' ? pop : undef;
+  my $query = shift // {};
+  my $flags = shift // {};
+
+  my $command = bson_doc
+    delete       => $self->name,
+    deletes      => [{q => $query, limit => $flags->{single} ? 1 : 0}],
+    ordered      => bson_true,
+    writeConcern => $self->_write_concern;
+
+  return $self->_command($command, undef, $cb);
 }
 
 sub save {
@@ -178,9 +184,22 @@ sub stats { $_[0]->_command(bson_doc(collstats => $_[0]->name), undef, $_[1]) }
 
 sub update {
   my ($self, $query, $update) = (shift, shift, shift);
-  my $flags = ref $_[0] eq 'CODE' ? {} : shift // {};
-  $flags->{multi_update} = 1 if delete $flags->{multi};
-  return $self->_handle('update', $flags, $query, $update, @_);
+  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+  my $flags = shift // {};
+
+  $update = {
+    q      => $query,
+    u      => $update,
+    upsert => $flags->{upsert} ? bson_true : bson_false,
+    multi  => $flags->{multi} ? bson_true : bson_false
+  };
+  my $command = bson_doc
+    update       => $self->name,
+    updates      => [$update],
+    ordered      => bson_true,
+    writeConcern => $self->_write_concern;
+
+  return $self->_command($command, undef, $cb);
 }
 
 sub _aggregate {
@@ -243,6 +262,15 @@ sub _map_reduce {
   my ($self, $doc) = @_;
   return $doc->{results} unless $doc->{result};
   return $self->db->collection($doc->{result});
+}
+
+sub _write_concern {
+  my $mango = shift->db->mango;
+  return {
+    j => $mango->j ? bson_true : bson_false,
+    w => $mango->w,
+    wtimeout => $mango->wtimeout
+  };
 }
 
 1;

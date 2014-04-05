@@ -162,67 +162,61 @@ is $result->[0]{total}, 6, 'right result';
 is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
   'three documents removed';
 
-# Aggregate with cursors and collections
-SKIP: {
-  my $version = $mango->db->command('buildInfo')->{versionArray};
-  skip 'MongoDB 2.5 required!', 11 unless join('.', @$version[0, 1]) >= '2.5';
+# Aggregate with cursor
+$collection->insert({stuff => $_}) for 1 .. 30;
+my $cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
+  {cursor => {}});
+ok !$cursor->id, 'no cursor id';
+is scalar @{$cursor->all}, 30, 'thirty documents found';
+is $collection->remove->{n}, 30, 'thirty documents removed';
 
-  # Aggregate with cursor
-  $collection->insert({stuff => $_}) for 1 .. 30;
-  my $cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
-    {cursor => {}});
-  ok !$cursor->id, 'no cursor id';
-  is scalar @{$cursor->all}, 30, 'thirty documents found';
-  is $collection->remove->{n}, 30, 'thirty documents removed';
+# Aggregate with collections
+$collection->insert({stuff => $_}) for 1 .. 30;
+my $out = $collection->aggregate(
+  [
+    {'$match' => {stuff => {'$gt' => 0}}},
+    {'$out'   => 'collection_test_results'}
+  ]
+);
+is $out->name, 'collection_test_results', 'right name';
+is $out->find->count, 30, 'thirty documents found';
+$out->drop;
+is $collection->remove->{n}, 30, 'thirty documents removed';
 
-  # Aggregate with collections
-  $collection->insert({stuff => $_}) for 1 .. 30;
-  my $out = $collection->aggregate(
-    [
-      {'$match' => {stuff => {'$gt' => 0}}},
-      {'$out'   => 'collection_test_results'}
-    ]
-  );
-  is $out->name, 'collection_test_results', 'right name';
-  is $out->find->count, 30, 'thirty documents found';
-  $out->drop;
-  is $collection->remove->{n}, 30, 'thirty documents removed';
+# Aggregate with cursor blocking (multiple batches)
+$collection->insert({stuff => $_}) for 1 .. 30;
+$cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
+  {cursor => {batchSize => 5}});
+ok $cursor->id, 'cursor has id';
+is scalar @{$cursor->all}, 30, 'thirty documents found';
+is $collection->remove->{n}, 30, 'thirty documents removed';
 
-  # Aggregate with cursor blocking (multiple batches)
-  $collection->insert({stuff => $_}) for 1 .. 30;
-  $cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
-    {cursor => {batchSize => 5}});
-  ok $cursor->id, 'cursor has id';
-  is scalar @{$cursor->all}, 30, 'thirty documents found';
-  is $collection->remove->{n}, 30, 'thirty documents removed';
-
-  # Aggregate with cursor non-blocking (multiple batches)
-  $collection->insert({stuff => $_}) for 1 .. 30;
-  ($fail, $result) = ();
-  my $delay = Mojo::IOLoop->delay(
-    sub {
-      my $delay = shift;
-      $collection->aggregate(
-        [{'$match' => {stuff => {'$gt' => 0}}}],
-        {cursor => {batchSize => 5}},
-        $delay->begin
-      );
-    },
-    sub {
-      my ($delay, $err, $cursor) = @_;
-      return $delay->pass($err) if $err;
-      $cursor->all($delay->begin);
-    },
-    sub {
-      my ($delay, $err, $docs) = @_;
-      $fail   = $err;
-      $result = $docs;
-    }
-  );
-  $delay->wait;
-  is scalar @$result, 30, 'thirty documents found';
-  is $collection->remove->{n}, 30, 'thirty documents removed';
-}
+# Aggregate with cursor non-blocking (multiple batches)
+$collection->insert({stuff => $_}) for 1 .. 30;
+($fail, $result) = ();
+my $delay = Mojo::IOLoop->delay(
+  sub {
+    my $delay = shift;
+    $collection->aggregate(
+      [{'$match' => {stuff => {'$gt' => 0}}}],
+      {cursor => {batchSize => 5}},
+      $delay->begin
+    );
+  },
+  sub {
+    my ($delay, $err, $cursor) = @_;
+    return $delay->pass($err) if $err;
+    $cursor->all($delay->begin);
+  },
+  sub {
+    my ($delay, $err, $docs) = @_;
+    $fail   = $err;
+    $result = $docs;
+  }
+);
+$delay->wait;
+is scalar @$result, 30, 'thirty documents found';
+is $collection->remove->{n}, 30, 'thirty documents removed';
 
 # Save document blocking
 $oid = $collection->save({update => 'me'});
@@ -327,7 +321,7 @@ $collection->insert({test => 23, foo => 'bar'});
 $collection->insert({test => 23, foo => 'baz'});
 is $collection->find->count, 2, 'two documents';
 ($fail, $result) = ();
-my $delay = Mojo::IOLoop->delay(
+$delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
     $collection->ensure_index(
@@ -416,7 +410,7 @@ $collection->insert({x => 1, tags => [qw(dog cat)]});
 $collection->insert({x => 2, tags => ['cat']});
 $collection->insert({x => 3, tags => [qw(mouse cat dog)]});
 $collection->insert({x => 4, tags => []});
-my $out
+$out
   = $collection->map_reduce($map, $reduce, {out => 'collection_test_results'});
 $collection->drop;
 $docs = $out->find->sort({value => -1})->all;

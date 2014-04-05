@@ -2,7 +2,7 @@ package Mango;
 use Mojo::Base 'Mojo::EventEmitter';
 
 use Carp 'croak';
-use Mango::BSON qw(bson_doc bson_false bson_true);
+use Mango::BSON 'bson_doc';
 use Mango::Database;
 use Mango::Protocol;
 use Mojo::IOLoop;
@@ -23,7 +23,7 @@ has protocol        => sub { Mango::Protocol->new };
 has w               => 1;
 has wtimeout        => 1000;
 
-our $VERSION = '0.25';
+our $VERSION = '0.30';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
@@ -32,26 +32,6 @@ for my $name (qw(get_more query)) {
     my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
     my ($next, $msg) = $self->_build($name, @_);
     $self->_start({id => $next, safe => 1, msg => $msg, cb => $cb});
-  };
-}
-
-# Operations followed by getLastError
-for my $name (qw(delete insert update)) {
-  monkey_patch __PACKAGE__, $name, sub {
-    my ($self, $namespace) = (shift, shift);
-    my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-
-    # Make sure both operations can be written together
-    my ($next, $msg) = $self->_build($name, $namespace, @_);
-    $namespace =~ s/\..+$/\.\$cmd/;
-    my $gle = bson_doc
-      getLastError => 1,
-      j            => $self->j ? bson_true : bson_false,
-      w            => $self->w,
-      wtimeout     => $self->wtimeout;
-    ($next, $gle) = $self->_build('query', $namespace, {}, 0, -1, $gle, {});
-
-    $self->_start({id => $next, safe => 1, msg => "$msg$gle", cb => $cb});
   };
 }
 
@@ -540,19 +520,6 @@ Build L<Mango::Database> object for database, uses L</"default_db"> if no name
 is provided. Note that the reference L<Mango::Database/"mango"> is weakened,
 so the L<Mango> object needs to be referenced elsewhere as well.
 
-=head2 delete
-
-  my $reply = $mango->delete($namespace, $flags, $query);
-
-Perform low level C<delete> operation followed by C<getLastError> command. You
-can also append a callback to perform operation non-blocking.
-
-  $mango->delete(($namespace, $flags, $query) => sub {
-    my ($mango, $err, $reply) = @_;
-    ...
-  });
-  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
-
 =head2 from_string
 
   $mango
@@ -568,19 +535,6 @@ Perform low level C<get_more> operation. You can also append a callback to
 perform operation non-blocking.
 
   $mango->get_more(($namespace, $return, $cursor) => sub {
-    my ($mango, $err, $reply) = @_;
-    ...
-  });
-  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
-
-=head2 insert
-
-  my $reply = $mango->insert($namespace, $flags, @docs);
-
-Perform low level C<insert> operation followed by C<getLastError> command. You
-can also append a callback to perform operation non-blocking.
-
-  $mango->insert(($namespace, $flags, @docs) => sub {
     my ($mango, $err, $reply) = @_;
     ...
   });
@@ -616,19 +570,6 @@ Perform low level C<query> operation. You can also append a callback to
 perform operation non-blocking.
 
   $mango->query(($namespace, $flags, $skip, $return, $query, $fields) => sub {
-    my ($mango, $err, $reply) = @_;
-    ...
-  });
-  Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
-
-=head2 update
-
-  my $reply = $mango->update($namespace, $flags, $query, $update);
-
-Perform low level C<update> operation followed by C<getLastError> command. You
-can also append a callback to perform operation non-blocking.
-
-  $mango->update(($namespace, $flags, $query, $update) => sub {
     my ($mango, $err, $reply) = @_;
     ...
   });
