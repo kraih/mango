@@ -19,15 +19,15 @@ sub execute {
   if ($cb) {
     return Mojo::IOLoop->next_tick(sub { shift; $self->$cb(undef, $full) })
       unless my $op = shift @{$self->{ops}};
-    return $self->_execute($full, $offset, shift @$op, $op, $cb);
+    return $self->_execute($full, $offset, $op, $cb);
   }
 
   # Blocking
   my $db       = $self->collection->db;
   my $protocol = $db->mango->protocol;
   while (my $op = shift @{$self->{ops}}) {
-    my $type = shift @$op;
-    my $result = $db->command($self->_command($type, $op));
+    my ($type, $command) = $self->_command($op);
+    my $result = $db->command($command);
     _merge($full, $offset, $type, $result);
     if (my $err = $protocol->write_error($full)) { croak $err }
     $offset += @$op;
@@ -36,29 +36,7 @@ sub execute {
   return $full;
 }
 
-sub _execute {
-  my ($self, $full, $offset, $type, $op, $cb) = @_;
-
-  $self->collection->db->command(
-    $self->_command($type, $op) => sub {
-      my ($db, $err, $result) = @_;
-
-      _merge($full, $offset, $type, $result);
-      $err ||= $self->collection->db->mango->protocol->write_error($full);
-      return $self->$cb($err, $full) if $err;
-      $offset += @$op;
-
-      return $self->$cb(undef, $full) unless my $next = shift @{$self->{ops}};
-      $self->_execute($full, $offset, shift @$next, $next, $cb);
-    }
-  );
-}
-
-sub find {
-  my ($self, $query) = @_;
-  $self->{query} = $query;
-  return $self;
-}
+sub find { shift->_set(query => shift) }
 
 sub insert {
   my ($self, $doc) = @_;
@@ -72,20 +50,36 @@ sub remove_one { shift->_remove(1) }
 sub update     { shift->_update(\1, @_) }
 sub update_one { shift->_update(\0, @_) }
 
-sub upsert {
-  my $self = shift;
-  $self->{upsert} = 1;
-  return $self;
-}
+sub upsert { shift->_set(upsert => 1) }
 
 sub _command {
-  my ($self, $type, $docs) = @_;
+  my ($self, $op) = @_;
 
+  my $type       = shift @$op;
   my $collection = $self->collection;
-  return bson_doc $type => $collection->name,
-    $type eq 'insert' ? 'documents' : "${type}s" => $docs,
+  return $type, bson_doc $type => $collection->name,
+    $type eq 'insert' ? 'documents' : "${type}s" => $op,
     ordered => $self->ordered ? \1 : \0,
     writeConcern => $collection->build_write_concern;
+}
+
+sub _execute {
+  my ($self, $full, $offset, $op, $cb) = @_;
+
+  my ($type, $command) = $self->_command($op);
+  $self->collection->db->command(
+    $command => sub {
+      my ($db, $err, $result) = @_;
+
+      _merge($full, $offset, $type, $result);
+      $err ||= $self->collection->db->mango->protocol->write_error($full);
+      return $self->$cb($err, $full) if $err;
+
+      $offset += @$op;
+      return $self->$cb(undef, $full) unless my $next = shift @{$self->{ops}};
+      $self->_execute($full, $offset, $next, $cb);
+    }
+  );
 }
 
 sub _merge {
@@ -124,6 +118,7 @@ sub _merge {
 sub _op {
   my ($self, $type, $doc) = @_;
 
+  # Pre-encode documents and distribute them based on type and size
   my $ops  = $self->{ops} ||= [];
   my $bson = bson_encode $doc;
   my $size = length $bson;
@@ -140,6 +135,12 @@ sub _remove {
   my ($self, $limit) = @_;
   my $query = delete $self->{query} // {};
   return $self->_op(delete => {q => $query, limit => $limit});
+}
+
+sub _set {
+  my ($self, $key, $value) = @_;
+  $self->{$key} = $value;
+  return $self;
 }
 
 sub _update {
