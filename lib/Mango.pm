@@ -387,8 +387,7 @@ warning!
 
 Most of the API is not changing much anymore, but you should wait for a stable
 1.0 release before using any of the modules in this distribution in a
-production environment. Unsafe operations are not supported, so far this is
-considered a feature.
+production environment.
 
 Many arguments passed to methods as well as values of attributes get
 serialized to BSON with L<Mango::BSON>, which provides many helper functions
