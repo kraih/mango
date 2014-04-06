@@ -360,7 +360,7 @@ sub _encode_value {
   return STRING . $e . _encode_string("$value");
 }
 
-# Embedding
+# Pre-encoded BSON
 package Mango::BSON::_Raw;
 
 # Constants
@@ -433,7 +433,7 @@ Create new BSON element of the code type with L<Mango::BSON::Code>.
 
 =head2 bson_dbref
 
-  my $dbref = bson_dbref('test', $oid);
+  my $dbref = bson_dbref 'test', $oid;
 
 Create a new database reference.
 
@@ -501,9 +501,13 @@ defaults to generating a new unique object id.
 
 =head2 bson_raw
 
-  my $raw = bson_raw bson_encode {foo => 'bar'};
+  my $raw = bson_raw $bson;
 
-Pre-encoded BSON document for embedding.
+Pre-encoded BSON document.
+
+  # Embed pre-encoded BSON document
+  my $first  = bson_encode {foo => 'bar'};
+  my $second = bson_encode {test => bson_raw $first};
 
 =head2 bson_time
 
