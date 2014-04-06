@@ -1,12 +1,16 @@
 
-0.30  2014-04-05
+0.30  2014-04-06
   - Removed delete, insert and update methods from Mango.
   - Removed build_delete, build_insert and build_update methods from
     Mango::Protocol.
   - Renamed timeout attribute in Mango::Cursor to max_time_ms.
   - Added support for MongoDB 2.6 wire protocol, MongoDB 2.4 is no longer
     supported.
-  - Added build_write_concern method to Mango::Collection.
+  - Added support for bulk operations.
+  - Added max_bson_size attribute to Mango.
+  - Added build_write_concern and bulk methods to Mango::Collection.
+  - Added write_error method to Mango::Protocol.
+  - Added bson_raw function to Mango::BSON.
   - Improved command performance.
   - Improved storage efficiency of Mango::GridFS::Writer by lowering the
     default chunk size to 255KB.

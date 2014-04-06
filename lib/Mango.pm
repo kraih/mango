@@ -18,6 +18,7 @@ has default_db  => 'admin';
 has hosts       => sub { [['localhost']] };
 has ioloop      => sub { Mojo::IOLoop->new };
 has j           => 0;
+has max_bson_size   => 16777216;
 has max_connections => 5;
 has protocol        => sub { Mango::Protocol->new };
 has w               => 1;
@@ -190,7 +191,7 @@ sub _fast {
   my $protocol = $self->protocol;
   my $wrapper  = sub {
     my ($self, $err, $reply) = @_;
-    $err ||= $protocol->command_error($reply);
+    $err ||= $protocol->command_error($reply->{docs}[0]);
     return $err ? $self->_error($id, $err) : $self->$cb($err, $reply);
   };
 
@@ -468,6 +469,13 @@ L<Mojo::IOLoop> object.
   $mango = $mango->j(1);
 
 Wait for all operations to have reached the journal, defaults to C<0>.
+
+=head2 max_bson_size
+
+  my $max = $mango->max_bson_size;
+  $mango  = $mango->max_bson_size(16777216);
+
+Maximum size for BSON documents in bytes, defaults to C<16777216>.
 
 =head2 max_connections
 

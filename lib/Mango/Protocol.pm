@@ -64,9 +64,8 @@ sub build_query {
 }
 
 sub command_error {
-  my ($self, $reply) = @_;
-  my $doc = $reply->{docs}[0];
-  return $doc->{ok} ? $doc->{err} : $doc->{errmsg};
+  my ($self, $doc) = @_;
+  return $doc->{ok} ? undef : $doc->{errmsg};
 }
 
 sub next_id { $_[1] > 2147483646 ? 1 : $_[1] + 1 }
@@ -120,6 +119,13 @@ sub query_failure {
   return $reply->{flags}{query_failure} ? $reply->{docs}[0]{'$err'} : undef;
 }
 
+sub write_error {
+  my ($self, $doc) = @_;
+  return undef unless my $errors = $doc->{writeErrors};
+  return join "\n",
+    map {"Write error at index $_->{index}: $_->{errmsg}"} @$errors;
+}
+
 sub _build_header {
   my ($id, $length, $op) = @_;
   return join '', map { encode_int32($_) } $length + 16, $id, 0, $op;
@@ -171,9 +177,9 @@ Build message for C<query> operation.
 
 =head2 command_error
 
-  my $err = $protocol->command_error($reply);
+  my $err = $protocol->command_error($doc);
 
-Check reply for command error.
+Check document for command error.
 
 =head2 next_id
 
@@ -192,6 +198,12 @@ Extract and parse C<reply> message.
   my $err = $protocol->query_failure($reply);
 
 Check reply for query failure.
+
+=head2 write_error
+
+  my $err = $protocol->write_error($doc);
+
+Check document for write error.
 
 =head1 SEE ALSO
 

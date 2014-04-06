@@ -481,6 +481,48 @@ is_deeply $result->[0], {_id => 'cat',   value => 3}, 'right document';
 is_deeply $result->[1], {_id => 'dog',   value => 2}, 'right document';
 is_deeply $result->[2], {_id => 'mouse', value => 1}, 'right document';
 
+# Insert same document twice blocking
+$doc = bson_doc _id => bson_oid, foo => 'bar';
+$collection->insert($doc);
+eval { $collection->insert($doc) };
+like $@, qr/^Write error at index 0: .+/, 'right error';
+$collection->drop;
+
+# Insert same document twice non-blocking
+$doc = bson_doc _id => bson_oid, foo => 'bar';
+$collection->insert($doc);
+$fail = undef;
+$collection->insert(
+  $doc => sub {
+    my ($collection, $err) = @_;
+    $fail = $err;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+like $fail, qr/^Write error at index 0: .+/, 'right error';
+
+# Insert same document twice blocking (upsert)
+$doc = bson_doc _id => bson_oid, foo => 'bar';
+$collection->insert($doc);
+eval { $collection->update({foo => 'baz'}, $doc, {upsert => 1}) };
+like $@, qr/^Write error at index 0: .+/, 'right error';
+$collection->drop;
+
+# Insert same document twice non-blocking (upsert)
+$doc = bson_doc _id => bson_oid, foo => 'bar';
+$collection->insert($doc);
+$fail = undef;
+$collection->update(
+  {foo => 'baz'} => $doc => {upsert => 1} => sub {
+    my ($collection, $err) = @_;
+    $fail = $err;
+    Mojo::IOLoop->stop;
+  }
+);
+Mojo::IOLoop->start;
+like $fail, qr/^Write error at index 0: .+/, 'right error';
+
 # Interrupted non-blocking remove
 my $port = Mojo::IOLoop->generate_port;
 $mango = Mango->new("mongodb://localhost:$port");

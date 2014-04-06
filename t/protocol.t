@@ -92,41 +92,31 @@ is $protocol->parse_reply(\$buffer), undef, 'nothing';
 is $buffer, "\x00", 'message has been removed';
 
 # Extract error messages from reply
-my $unknown = {
-  id     => 316991,
-  to     => 1,
-  flags  => {await_capable => 1},
-  cursor => 0,
-  from   => 0,
-  docs   => [
-    {errmsg => 'no such cmd: whatever', 'bad cmd' => {whatever => 1}, ok => 0}
-  ]
-};
-my $gle = {
-  to     => 9,
-  cursor => 0,
-  flags  => {await_capable => 1},
-  from   => 0,
-  id     => 462265,
-  docs   => [
+is $protocol->query_failure($query), '$or requires nonempty array',
+  'right query failure';
+is $protocol->query_failure(undef), undef, 'no query failure';
+is $protocol->query_failure($nonce), undef, 'no query failure';
+
+# Extract error messages from documents
+my $unknown
+  = {errmsg => 'no such cmd: whatever', 'bad cmd' => {whatever => 1}, ok => 0};
+my $write = {
+  n           => 0,
+  ok          => 1,
+  writeErrors => [
     {
-      err          => 'E11000 duplicate key error index...',
-      code         => 11000,
-      n            => 0,
-      connectionId => 41981,
-      ok           => 1
+      code   => 11000,
+      errmsg => 'insertDocument :: caused by :: 11000 E11000 duplicate'
+        . ' key error index: test.collection_test.$_id_  dup key: '
+        . '{ : ObjectId(\'53408aad5867b46961a50000\') }',
+      index => 0
     }
   ]
 };
-is $protocol->query_failure(undef), undef, 'no query failure';
-is $protocol->query_failure($unknown), undef, 'no query failure';
-is $protocol->query_failure($gle),     undef, 'no query failure';
-is $protocol->query_failure($query), '$or requires nonempty array',
-  'right query failure';
 is $protocol->command_error($unknown), 'no such cmd: whatever', 'right error';
-is $protocol->command_error($gle), 'E11000 duplicate key error index...',
-  'right error';
-is $protocol->command_error($query), undef, 'no error';
-is $protocol->command_error($nonce), undef, 'no error';
+is $protocol->command_error($write), undef, 'no error';
+like $protocol->write_error($write),
+  qr/^Write error at index 0: insertDocument/, 'right error';
+is $protocol->write_error($unknown), undef, 'no error';
 
 done_testing();

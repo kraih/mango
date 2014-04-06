@@ -101,18 +101,16 @@ $mango->ioloop->remove($id);
 $port  = Mojo::IOLoop->generate_port;
 $mango = Mango->new("mongodb://localhost:$port");
 $id    = Mojo::IOLoop->server((port => $port) => sub { $_[1]->close });
-($fail, $result) = ();
+$fail  = undef;
 $mango->db->command(
   'getnonce' => sub {
-    my ($db, $err, $doc) = @_;
-    $fail   = $err;
-    $result = $doc;
+    my ($db, $err) = @_;
+    $fail = $err;
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 Mojo::IOLoop->remove($id);
 like $fail, qr/Premature connection close/, 'right error';
-is_deeply $result, {}, 'command was not successful';
 
 done_testing();

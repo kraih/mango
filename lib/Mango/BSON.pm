@@ -16,8 +16,8 @@ use Scalar::Util 'blessed';
 
 my @BSON = (
   qw(bson_bin bson_code bson_dbref bson_decode bson_doc bson_encode),
-  qw(bson_false bson_length bson_max bson_min bson_oid bson_time bson_true),
-  qw(bson_ts)
+  qw(bson_false bson_length bson_max bson_min bson_oid bson_raw bson_time),
+  qw(bson_true bson_ts)
 );
 our @EXPORT_OK = (
   @BSON,
@@ -102,6 +102,8 @@ sub bson_max {$MAXKEY}
 sub bson_min {$MINKEY}
 
 sub bson_oid { Mango::BSON::ObjectID->new(@_) }
+
+sub bson_raw { bless \(my $dummy = shift), 'Mango::BSON::_Raw' }
 
 sub bson_time { Mango::BSON::Time->new(@_) }
 
@@ -311,6 +313,9 @@ sub _encode_value {
   # Blessed
   if (my $class = blessed $value) {
 
+    # Embedded BSON
+    return DOCUMENT . $e . $$value if $class eq 'Mango::BSON::_Raw';
+
     # Max
     return MAX_KEY . $e if $value eq $MAXKEY;
 
@@ -329,10 +334,8 @@ sub _encode_value {
 
     # Array
     if ($ref eq 'ARRAY') {
-      my $array = bson_doc();
-      my $i     = 0;
-      $array->{$i++} = $_ for @$value;
-      return ARRAY . $e . bson_encode($array);
+      my $i = 0;
+      return ARRAY . $e . bson_encode(bson_doc(map { $i++ => $_ } @$value));
     }
 
     # Scalar (boolean shortcut)
@@ -356,6 +359,9 @@ sub _encode_value {
   # String
   return STRING . $e . _encode_string("$value");
 }
+
+# Embedding
+package Mango::BSON::_Raw;
 
 # Constants
 package Mango::BSON::_MaxKey;
@@ -492,6 +498,12 @@ defaults to generating a new unique object id.
 
   # Generate object id with specific epoch time
   my $oid = bson_oid->from_epoch(1359840145);
+
+=head2 bson_raw
+
+  my $raw = bson_raw bson_encode {foo => 'bar'};
+
+Pre-encoded BSON document for embedding.
 
 =head2 bson_time
 

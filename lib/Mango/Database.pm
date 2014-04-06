@@ -44,15 +44,16 @@ sub command {
   return $mango->query(
     ("$name.\$cmd", {}, 0, -1, $command, {}) => sub {
       my ($collection, $err, $reply) = @_;
-      $err ||= $protocol->command_error($reply);
-      $self->$cb($err, $reply->{docs}[0] // {});
+      my $doc = $reply->{docs}[0];
+      $err ||= $protocol->command_error($doc);
+      $self->$cb($err, $doc);
     }
   ) if $cb;
 
   # Blocking
-  my $reply = $mango->query("$name.\$cmd", {}, 0, -1, $command, {});
-  if (my $err = $protocol->command_error($reply)) { croak $err }
-  return $reply->{docs}[0];
+  my $doc = $mango->query("$name.\$cmd", {}, 0, -1, $command, {})->{docs}[0];
+  if (my $err = $protocol->command_error($doc)) { croak $err }
+  return $doc;
 }
 
 sub dereference {

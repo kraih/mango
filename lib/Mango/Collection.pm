@@ -3,6 +3,7 @@ use Mojo::Base -base;
 
 use Carp 'croak';
 use Mango::BSON qw(bson_code bson_doc bson_oid);
+use Mango::Bulk;
 use Mango::Cursor;
 
 has [qw(db name)];
@@ -32,19 +33,20 @@ sub build_write_concern {
   };
 }
 
+sub bulk { Mango::Bulk->new(collection => shift) }
+
 sub create {
   my $self = shift;
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-  return $self->_command(bson_doc(create => $self->name, %{shift // {}}),
-    undef, $cb);
+  return $self->_command(bson_doc(create => $self->name, %{shift // {}}), $cb);
 }
 
-sub drop { $_[0]->_command(bson_doc(drop => $_[0]->name), undef, $_[1]) }
+sub drop { $_[0]->_command(bson_doc(drop => $_[0]->name), $_[1]) }
 
 sub drop_index {
   my ($self, $name) = (shift, shift);
   return $self->_command(bson_doc(dropIndexes => $self->name, index => $name),
-    undef, @_);
+    shift);
 }
 
 sub ensure_index {
@@ -75,7 +77,7 @@ sub find {
 sub find_and_modify {
   my ($self, $opts) = (shift, shift);
   return $self->_command(bson_doc(findAndModify => $self->name, %$opts),
-    'value', @_);
+    shift, sub { shift->{value} });
 }
 
 sub find_one {
@@ -119,14 +121,7 @@ sub insert {
     ordered      => \1,
     writeConcern => $self->build_write_concern;
 
-  # Non-blocking
-  return $self->db->command(
-    $command => sub { shift; $self->$cb(shift, @ids > 1 ? \@ids : $ids[0]) })
-    if $cb;
-
-  # Blocking
-  $self->db->command($command);
-  return @ids > 1 ? \@ids : $ids[0];
+  return $self->_command($command, $cb, sub { @ids > 1 ? \@ids : $ids[0] });
 }
 
 sub map_reduce {
@@ -170,7 +165,7 @@ sub remove {
     ordered      => \1,
     writeConcern => $self->build_write_concern;
 
-  return $self->_command($command, undef, $cb);
+  return $self->_command($command, $cb);
 }
 
 sub save {
@@ -189,7 +184,7 @@ sub save {
   return $doc->{_id};
 }
 
-sub stats { $_[0]->_command(bson_doc(collstats => $_[0]->name), undef, $_[1]) }
+sub stats { $_[0]->_command(bson_doc(collstats => $_[0]->name), $_[1]) }
 
 sub update {
   my ($self, $query, $update) = (shift, shift, shift);
@@ -208,7 +203,7 @@ sub update {
     ordered      => \1,
     writeConcern => $self->build_write_concern;
 
-  return $self->_command($command, undef, $cb);
+  return $self->_command($command, $cb);
 }
 
 sub _aggregate {
@@ -219,19 +214,24 @@ sub _aggregate {
 }
 
 sub _command {
-  my ($self, $command, $field, $cb) = @_;
+  my ($self, $command, $cb, $return) = @_;
+  $return ||= sub {shift};
 
   # Non-blocking
-  return $self->db->command(
+  my $db       = $self->db;
+  my $protocol = $db->mango->protocol;
+  return $db->command(
     $command => sub {
-      my ($db, $err, $doc) = @_;
-      $self->$cb($err, $field ? $doc->{$field} : $doc);
+      my ($self, $err, $doc) = @_;
+      $err ||= $protocol->write_error($doc);
+      $self->$cb($err, $return->($doc));
     }
   ) if $cb;
 
   # Blocking
-  my $doc = $self->db->command($command);
-  return $field ? $doc->{$field} : $doc;
+  my $doc = $db->command($command);
+  if (my $err = $protocol->write_error($doc)) { croak $err }
+  return $return->($doc);
 }
 
 sub _cursor {
@@ -239,26 +239,6 @@ sub _cursor {
   my $cursor = $doc->{cursor};
   return Mango::Cursor->new(collection => $self, id => $cursor->{id})
     ->add_batch($cursor->{firstBatch});
-}
-
-sub _handle {
-  my ($self, $method) = (shift, shift);
-  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-
-  # Non-blocking
-  my $mango = $self->db->mango;
-  return $mango->$method(
-    ($self->full_name, @_) => sub {
-      my ($mango, $err, $reply) = @_;
-      $err ||= $mango->protocol->command_error($reply);
-      $self->$cb($err, $reply->{docs}[0]);
-    }
-  ) if $cb;
-
-  # Blocking
-  my $reply = $mango->$method($self->full_name, @_);
-  if (my $err = $mango->protocol->command_error($reply)) { croak $err }
-  return $reply->{docs}[0];
 }
 
 sub _indexes {
@@ -349,6 +329,18 @@ indexes.
   my $concern = $collection->build_write_concern;
 
 Build write concern for collection based on l<Mango> settings.
+
+=head2 bulk
+
+  my $bulk = $collection->bulk;
+
+Build L<Mango::Bulk> object.
+
+  my $bulk = $collection->bulk;
+  $bulk->insert({foo => $_}) for 1 .. 10;
+  $bulk->find({foo => 4})->update_one({'$set' => {bar => 'baz'}});
+  $bulk->find({foo => 7})->remove_one;
+  my $results = $bulk->execute;
 
 =head2 create
 
