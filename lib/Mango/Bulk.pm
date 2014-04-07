@@ -11,6 +11,7 @@ has ordered => 1;
 sub execute {
   my ($self, $cb) = @_;
 
+  # Full results shared with all operations
   my $full = {upserted => [], writeConcernErrors => [], writeErrors => []};
   $full->{$_} = 0 for qw(nInserted nMatched nModified nRemoved nUpserted);
   my $offset = 0;
@@ -75,9 +76,8 @@ sub _execute {
       $err ||= $self->collection->db->mango->protocol->write_error($full);
       return $self->$cb($err, $full) if $err;
 
-      $offset += @$op;
       return $self->$cb(undef, $full) unless my $next = shift @{$self->{ops}};
-      $self->_execute($full, $offset, $next, $cb);
+      $self->_execute($full, $offset + @$op, $next, $cb);
     }
   );
 }
@@ -94,8 +94,7 @@ sub _merge {
 
     # Upsert
     if (my $upserted = $result->{upserted}) {
-      $_->{index} += $offset for @$upserted;
-      push @{$full->{upserted}}, @$upserted;
+      push @{$full->{upserted}}, map { $_->{index} += $offset; $_ } @$upserted;
       $full->{nUpserted} += @$upserted;
       $full->{nMatched}  += $result->{n} - @$upserted;
     }
@@ -109,21 +108,19 @@ sub _merge {
   # Errors
   push @{$full->{writeConcernErrors}}, $result->{writeConcernError}
     if $result->{writeConcernError};
-  if (my $errors = $result->{writeErrors}) {
-    $_->{index} += $offset for @$errors;
-    push @{$full->{writeErrors}}, @$errors;
-  }
+  push @{$full->{writeErrors}},
+    map { $_->{index} += $offset; $_ } @{$result->{writeErrors}};
 }
 
 sub _op {
   my ($self, $type, $doc) = @_;
 
-  # Pre-encode documents and distribute them based on type and size
+  # Pre-encode documents and group them based on type and size
   my $ops  = $self->{ops} ||= [];
   my $bson = bson_encode $doc;
   my $size = length $bson;
   my $max  = $self->collection->db->mango->max_bson_size;
-  push(@$ops, [$type]) and delete $self->{size}
+  push @$ops, [$type] and delete $self->{size}
     if !@$ops || $ops->[-1][0] ne $type || ($self->{size} + $size) > $max;
   push @{$ops->[-1]}, bson_raw $bson;
   $self->{size} += $size;
@@ -168,7 +165,8 @@ Mango::Bulk - MongoDB bulk operations
 
 =head1 DESCRIPTION
 
-L<Mango::Bulk> is a container for MongoDB bulk operations.
+L<Mango::Bulk> is a container for MongoDB bulk operations, all operations will
+be automatically grouped so they don't exceed L<Mango/"max_bson_size">.
 
 =head1 ATTRIBUTES
 
