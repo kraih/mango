@@ -14,24 +14,21 @@ sub execute {
   # Full results shared with all operations
   my $full = {upserted => [], writeConcernErrors => [], writeErrors => []};
   $full->{$_} = 0 for qw(nInserted nMatched nModified nRemoved nUpserted);
-  my $offset = 0;
 
   # Non-blocking
   if ($cb) {
     return Mojo::IOLoop->next_tick(sub { shift; $self->$cb(undef, $full) })
-      unless my $op = shift @{$self->{ops}};
-    return $self->_execute($full, $offset, $op, $cb);
+      unless my $group = shift @{$self->{ops}};
+    return $self->_next($group, $full, $cb);
   }
 
   # Blocking
   my $db       = $self->collection->db;
   my $protocol = $db->mango->protocol;
-  while (my $op = shift @{$self->{ops}}) {
-    my ($type, $command) = $self->_command($op);
-    my $result = $db->command($command);
-    _merge($full, $offset, $type, $result);
+  while (my $group = shift @{$self->{ops}}) {
+    my ($type, $offset, $command) = $self->_group($group);
+    _merge($type, $offset, $full, $db->command($command));
     if (my $err = $protocol->write_error($full)) { croak $err }
-    $offset += @$op;
   }
 
   return $full;
@@ -53,37 +50,19 @@ sub update_one { shift->_update(\0, @_) }
 
 sub upsert { shift->_set(upsert => 1) }
 
-sub _command {
-  my ($self, $op) = @_;
+sub _group {
+  my ($self, $group) = @_;
 
-  my $type       = shift @$op;
+  my ($type, $offset) = splice @$group, 0, 2;
   my $collection = $self->collection;
-  return $type, bson_doc $type => $collection->name,
-    $type eq 'insert' ? 'documents' : "${type}s" => $op,
+  return $type, $offset, bson_doc $type => $collection->name,
+    $type eq 'insert' ? 'documents' : "${type}s" => $group,
     ordered => $self->ordered ? \1 : \0,
     writeConcern => $collection->build_write_concern;
 }
 
-sub _execute {
-  my ($self, $full, $offset, $op, $cb) = @_;
-
-  my ($type, $command) = $self->_command($op);
-  $self->collection->db->command(
-    $command => sub {
-      my ($db, $err, $result) = @_;
-
-      _merge($full, $offset, $type, $result);
-      $err ||= $self->collection->db->mango->protocol->write_error($full);
-      return $self->$cb($err, $full) if $err;
-
-      return $self->$cb(undef, $full) unless my $next = shift @{$self->{ops}};
-      $self->_execute($full, $offset + @$op, $next, $cb);
-    }
-  );
-}
-
 sub _merge {
-  my ($full, $offset, $type, $result) = @_;
+  my ($type, $offset, $full, $result) = @_;
 
   # Insert
   if ($type eq 'insert') { $full->{nInserted} += $result->{n} }
@@ -112,6 +91,24 @@ sub _merge {
     map { $_->{index} += $offset; $_ } @{$result->{writeErrors}};
 }
 
+sub _next {
+  my ($self, $group, $full, $cb) = @_;
+
+  my ($type, $offset, $command) = $self->_group($group);
+  $self->collection->db->command(
+    $command => sub {
+      my ($db, $err, $result) = @_;
+
+      _merge($type, $offset, $full, $result);
+      $err ||= $self->collection->db->mango->protocol->write_error($full);
+      return $self->$cb($err, $full) if $err;
+
+      return $self->$cb(undef, $full) unless my $next = shift @{$self->{ops}};
+      $self->_next($next, $full, $cb);
+    }
+  );
+}
+
 sub _op {
   my ($self, $type, $doc) = @_;
 
@@ -120,10 +117,11 @@ sub _op {
   my $bson = bson_encode $doc;
   my $size = length $bson;
   my $max  = $self->collection->db->mango->max_bson_size;
-  push @$ops, [$type] and delete $self->{size}
+  push @$ops, [$type, $self->{offset} || 0] and delete $self->{size}
     if !@$ops || $ops->[-1][0] ne $type || ($self->{size} + $size) > $max;
   push @{$ops->[-1]}, bson_raw $bson;
   $self->{size} += $size;
+  $self->{offset}++;
 
   return $self;
 }
