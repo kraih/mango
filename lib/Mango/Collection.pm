@@ -55,15 +55,15 @@ sub ensure_index {
   my $doc = shift // {};
 
   $doc->{name} //= $self->build_index_name($spec);
-  $doc->{ns}  = $self->full_name;
   $doc->{key} = $spec;
 
   # Non-blocking
-  my $collection = $self->db->collection('system.indexes');
-  return $collection->insert($doc => sub { shift; $self->$cb(shift) }) if $cb;
+  my $command = bson_doc createIndexes => $self->name, indexes => [$doc];
+  return $self->db->command($command => sub { shift; $self->$cb(shift) })
+    if $cb;
 
   # Blocking
-  $collection->insert($doc);
+  $self->db->command($command);
 }
 
 sub find {
