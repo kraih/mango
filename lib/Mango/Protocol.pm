@@ -1,8 +1,7 @@
 package Mango::Protocol;
 use Mojo::Base -base;
 
-use Mango::BSON qw(bson_decode bson_encode bson_length decode_int32),
-  qw(decode_int64 encode_cstring encode_int32 encode_int64);
+use Mango::BSON qw(bson_decode bson_encode bson_length encode_cstring);
 
 # Opcodes
 use constant {REPLY => 1, QUERY => 2004, GET_MORE => 2005,
@@ -12,10 +11,10 @@ sub build_get_more {
   my ($self, $id, $name, $return, $cursor) = @_;
 
   # Zero and name
-  my $msg = encode_int32(0) . encode_cstring($name);
+  my $msg = pack('l<', 0) . encode_cstring($name);
 
   # Number to return and cursor id
-  $msg .= encode_int32($return) . encode_int64($cursor);
+  $msg .= pack('l<', $return) . pack('q<', $cursor);
 
   # Header
   return _build_header($id, length($msg), GET_MORE) . $msg;
@@ -25,10 +24,10 @@ sub build_kill_cursors {
   my ($self, $id) = (shift, shift);
 
   # Zero and number of cursor ids
-  my $msg = encode_int32(0) . encode_int32(scalar @_);
+  my $msg = pack('l<', 0) . pack('l<', scalar @_);
 
   # Cursor ids
-  $msg .= encode_int64 $_ for @_;
+  $msg .= pack 'q<', $_ for @_;
 
   # Header
   return _build_header($id, length($msg), KILL_CURSORS) . $msg;
@@ -45,13 +44,13 @@ sub build_query {
   vec($vec, 5, 1) = 1 if $flags->{await_data};
   vec($vec, 6, 1) = 1 if $flags->{exhaust};
   vec($vec, 7, 1) = 1 if $flags->{partial};
-  my $msg = encode_int32(unpack 'V', $vec);
+  my $msg = pack 'l<', unpack('V', $vec);
 
   # Name
   $msg .= encode_cstring $name;
 
   # Skip and number to return
-  $msg .= encode_int32($skip) . encode_int32($return);
+  $msg .= pack('l<', $skip) . pack('l<', $return);
 
   # Query
   $msg .= bson_encode $query;
@@ -80,9 +79,9 @@ sub parse_reply {
   substr $msg, 0, 4, '';
 
   # Header
-  my $id = decode_int32(substr $msg, 0, 4, '');
-  my $to = decode_int32(substr $msg, 0, 4, '');
-  my $op = decode_int32(substr $msg, 0, 4, '');
+  my $id = unpack 'l<', substr($msg, 0, 4, '');
+  my $to = unpack 'l<', substr($msg, 0, 4, '');
+  my $op = unpack 'l<', substr($msg, 0, 4, '');
   return undef unless $op == REPLY;
 
   # Flags
@@ -93,10 +92,10 @@ sub parse_reply {
   $flags->{await_capable}    = 1 if vec $vec, 3, 1;
 
   # Cursor id
-  my $cursor = decode_int64(substr $msg, 0, 8, '');
+  my $cursor = unpack 'q<', substr($msg, 0, 8, '');
 
   # Starting from
-  my $from = decode_int32(substr $msg, 0, 4, '');
+  my $from = unpack 'l<', substr($msg, 0, 4, '');
 
   # Documents (remove number of documents prefix)
   substr $msg, 0, 4, '';
@@ -128,7 +127,7 @@ sub write_error {
 
 sub _build_header {
   my ($id, $length, $op) = @_;
-  return join '', map { encode_int32($_) } $length + 16, $id, 0, $op;
+  return join '', map { pack 'l<', $_ } $length + 16, $id, 0, $op;
 }
 
 1;

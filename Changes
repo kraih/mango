@@ -3,6 +3,8 @@
   - Removed delete, insert and update methods from Mango.
   - Removed build_delete, build_insert and build_update methods from
     Mango::Protocol.
+  - Removed decode_int32, decode_int64, encode_int32 and encode_int64 methods
+    from Mango::BSON.
   - Renamed timeout attribute in Mango::Cursor to max_time_ms.
   - Added support for MongoDB 2.6 wire protocol, MongoDB 2.4 is no longer
     supported.
