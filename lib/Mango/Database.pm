@@ -8,6 +8,15 @@ use Mango::GridFS;
 
 has [qw(mango name)];
 
+sub build_write_concern {
+  my $mango = shift->mango;
+  return {
+    j => $mango->j ? \1 : \0,
+    w => $mango->w,
+    wtimeout => $mango->wtimeout
+  };
+}
+
 sub collection {
   my ($self, $name) = @_;
   return Mango::Collection->new(db => $self, name => $name);
@@ -115,6 +124,12 @@ Name of this database.
 
 L<Mango::Database> inherits all methods from L<Mojo::Base> and implements the
 following new ones.
+
+=head2 build_write_concern
+
+  my $concern = $db->build_write_concern;
+
+Build write concern based on l<Mango> settings.
 
 =head2 collection
 

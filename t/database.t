@@ -28,6 +28,12 @@ Mojo::IOLoop->start;
 ok !$fail, 'no error';
 ok $result, 'command was successful';
 
+# Write concern
+my $mango2  = Mango->new->w(2)->wtimeout(5000);
+my $concern = $mango2->db('test')->build_write_concern;
+is $concern->{w},        2,    'right w value';
+is $concern->{wtimeout}, 5000, 'right wtimeout value';
+
 # Get database statistics blocking
 ok exists $db->stats->{objects}, 'has objects';
 

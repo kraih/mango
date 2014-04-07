@@ -58,7 +58,7 @@ sub _group {
   return $type, $offset, bson_doc $type => $collection->name,
     $type eq 'insert' ? 'documents' : "${type}s" => $group,
     ordered => $self->ordered ? \1 : \0,
-    writeConcern => $collection->build_write_concern;
+    writeConcern => $collection->db->build_write_concern;
 }
 
 sub _merge {

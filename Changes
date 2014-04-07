@@ -10,7 +10,8 @@
     supported.
   - Added support for bulk operations.
   - Added max_bson_size attribute to Mango.
-  - Added build_write_concern and bulk methods to Mango::Collection.
+  - Added build_write_concern method to Mango::Database.
+  - Added bulk method to Mango::Collection.
   - Added write_error method to Mango::Protocol.
   - Added bson_raw function to Mango::BSON.
   - Improved Mango::BSON performance.

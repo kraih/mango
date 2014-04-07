@@ -24,15 +24,6 @@ sub aggregate {
 
 sub build_index_name { join '_', keys %{$_[1]} }
 
-sub build_write_concern {
-  my $mango = shift->db->mango;
-  return {
-    j => $mango->j ? \1 : \0,
-    w => $mango->w,
-    wtimeout => $mango->wtimeout
-  };
-}
-
 sub bulk { Mango::Bulk->new(collection => shift) }
 
 sub create {
@@ -119,7 +110,7 @@ sub insert {
     insert       => $self->name,
     documents    => $docs,
     ordered      => \1,
-    writeConcern => $self->build_write_concern;
+    writeConcern => $self->db->build_write_concern;
 
   return $self->_command($command, $cb, sub { @ids > 1 ? \@ids : $ids[0] });
 }
@@ -163,7 +154,7 @@ sub remove {
     delete       => $self->name,
     deletes      => [{q => $query, limit => $flags->{single} ? 1 : 0}],
     ordered      => \1,
-    writeConcern => $self->build_write_concern;
+    writeConcern => $self->db->build_write_concern;
 
   return $self->_command($command, $cb);
 }
@@ -201,7 +192,7 @@ sub update {
     update       => $self->name,
     updates      => [$update],
     ordered      => \1,
-    writeConcern => $self->build_write_concern;
+    writeConcern => $self->db->build_write_concern;
 
   return $self->_command($command, $cb);
 }
@@ -323,12 +314,6 @@ operation non-blocking.
 
 Build name for index specification, the order of keys matters for compound
 indexes.
-
-=head2 build_write_concern
-
-  my $concern = $collection->build_write_concern;
-
-Build write concern for collection based on l<Mango> settings.
 
 =head2 bulk
 
