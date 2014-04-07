@@ -1,5 +1,5 @@
 
-0.30  2014-04-06
+0.30  2014-04-07
   - Removed delete, insert and update methods from Mango.
   - Removed build_delete, build_insert and build_update methods from
     Mango::Protocol.
@@ -11,6 +11,7 @@
   - Added build_write_concern and bulk methods to Mango::Collection.
   - Added write_error method to Mango::Protocol.
   - Added bson_raw function to Mango::BSON.
+  - Improved Mango::BSON performance.
   - Improved command performance.
   - Improved storage efficiency of Mango::GridFS::Writer by lowering the
     default chunk size to 255KB.

@@ -86,8 +86,8 @@ sub bson_doc {
 sub bson_encode {
   my $doc = shift;
 
-  my $bson = '';
-  $bson .= _encode_value(encode_cstring($_), $doc->{$_}) for keys %$doc;
+  my $bson = join '',
+    map { _encode_value(encode_cstring($_), $doc->{$_}) } keys %$doc;
 
   # Document ends with null byte
   return encode_int32(length($bson) + 5) . $bson . "\x00";
@@ -142,9 +142,9 @@ sub _decode_binary {
 
 sub _decode_cstring {
   my $bsonref = shift;
-  $$bsonref =~ s/^([^\x00]*)\x00//;
-  my $str = $1;
+  my $str = substr $$bsonref, 0, index($$bsonref, "\x00"), '';
   utf8::decode $str;
+  substr $$bsonref, 0, 1, '';
   return $str;
 }
 
@@ -169,10 +169,10 @@ sub _decode_doc {
 sub _decode_string {
   my $bsonref = shift;
 
-  my $len = decode_int32(substr $$bsonref, 0, 4, '');
-  substr $$bsonref, $len - 1, 1, '';
-  my $str = substr $$bsonref, 0, $len - 1, '';
+  my $len = decode_int32(substr $$bsonref, 0, 4, '') - 1;
+  my $str = substr $$bsonref, 0, $len, '';
   utf8::decode $str;
+  substr $$bsonref, 0, 1, '';
 
   return $str;
 }
