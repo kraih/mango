@@ -306,9 +306,7 @@ ok !$collection->find_one($oid), 'no document';
 
 # Ensure and drop index blocking
 $collection->insert({test => 23, foo => 'bar'});
-$collection->insert({test => 23, foo => 'baz'});
-is $collection->find->count, 2, 'two documents';
-$collection->ensure_index({test => 1}, {unique => \1, dropDups => \1});
+$collection->ensure_index({test => 1}, {unique => \1});
 is $collection->find->count, 1, 'one document';
 is $collection->index_information->{test}{unique}, bson_true,
   'index is unique';
@@ -318,14 +316,11 @@ $collection->drop;
 
 # Ensure and drop index non-blocking
 $collection->insert({test => 23, foo => 'bar'});
-$collection->insert({test => 23, foo => 'baz'});
-is $collection->find->count, 2, 'two documents';
 ($fail, $result) = ();
 $delay = Mojo::IOLoop->delay(
   sub {
     my $delay = shift;
-    $collection->ensure_index(
-      ({test => 1}, {unique => \1, dropDups => \1}) => $delay->begin);
+    $collection->ensure_index(({test => 1}, {unique => \1}) => $delay->begin);
   },
   sub {
     my ($delay, $err) = @_;
