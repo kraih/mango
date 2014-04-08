@@ -1,5 +1,5 @@
 
-0.30  2014-04-07
+0.30  2014-04-08
   - Removed delete, insert and update methods from Mango.
   - Removed build_delete, build_insert and build_update methods from
     Mango::Protocol.

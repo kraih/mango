@@ -129,7 +129,7 @@ following new ones.
 
   my $concern = $db->build_write_concern;
 
-Build write concern based on l<Mango> settings.
+Build write concern based on l</"mango"> settings.
 
 =head2 collection
 
