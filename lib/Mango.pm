@@ -18,12 +18,11 @@ has default_db  => 'admin';
 has hosts       => sub { [['localhost']] };
 has ioloop      => sub { Mojo::IOLoop->new };
 has j           => 0;
-has max_bson_size        => 16777216;
-has max_connections      => 5;
-has max_write_batch_size => 1000;
-has protocol             => sub { Mango::Protocol->new };
-has w                    => 1;
-has wtimeout             => 1000;
+has max_bson_size   => 16777216;
+has max_connections => 5;
+has [qw(max_write_batch_size wtimeout)] => 1000;
+has protocol => sub { Mango::Protocol->new };
+has w => 1;
 
 our $VERSION = '0.30';
 
