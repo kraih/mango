@@ -105,14 +105,14 @@ is $results->{nRemoved},  1, 'one removal';
 $results = $collection->bulk->find->remove->execute;
 is $results->{nRemoved}, 2, 'two removals';
 
-# Split up large documents into multiple operations (many documents)
+# Split up documents into multiple commands (many documents)
 is $mango->max_write_batch_size, 1000, 'right value';
 $bulk = $collection->bulk;
 $bulk->insert({foo => $_}) for 1 .. 1001;
 $results = $bulk->execute;
 is $results->{nInserted}, 1001, 'over one thousand inserts';
 
-# Split up large documents into multiple operations (large documents)
+# Split up documents into multiple commands (large documents)
 is $mango->max_bson_size, 16777216, 'right value';
 my $large = 'x' x 5242880;
 $bulk = $collection->bulk;

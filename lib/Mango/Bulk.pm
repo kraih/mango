@@ -112,6 +112,7 @@ sub _next {
 sub _op {
   my ($self, $type, $doc) = @_;
 
+  # Pre-encode documents
   my $mango     = $self->collection->db->mango;
   my $bson_max  = $mango->max_bson_size;
   my $batch_max = $mango->max_write_batch_size;
@@ -122,7 +123,7 @@ sub _op {
   my $new       = ($self->{size} // 0) + $size;
   my $limit     = $new > $bson_max || @$previous >= $batch_max + 2;
 
-  # Pre-encode documents and group them based on type and size
+  # Group documents based on type and limits
   push @$ops, [$type, $self->{offset} || 0] and delete $self->{size}
     if !@$previous || $previous->[0] ne $type || $limit;
   push @{$ops->[-1]}, bson_raw $bson;
