@@ -11,8 +11,10 @@ has [qw(db name)];
 sub aggregate {
   my ($self, $pipeline) = (shift, shift);
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
+
   my $command = bson_doc(aggregate => $self->name, pipeline => $pipeline,
     %{shift // {}});
+  $command->{cursor} //= {} unless $command->{explain};
 
   # Blocking
   return $self->_aggregate($pipeline, $self->db->command($command)) unless $cb;
@@ -200,8 +202,7 @@ sub update {
 sub _aggregate {
   my ($self, $pipeline, $doc) = @_;
   my $out = $pipeline->[-1]{'$out'};
-  return $self->db->collection($out) if defined $out;
-  return $doc->{cursor} ? $self->_cursor($doc) : $doc->{result};
+  return defined $out ? $self->db->collection($out) : $self->_cursor($doc);
 }
 
 sub _command {
@@ -289,10 +290,8 @@ the following new ones.
 
 =head2 aggregate
 
-  my $docs = $collection->aggregate(
-    [{'$group' => {_id => undef, total => {'$sum' => '$foo'}}}]);
   my $cursor = $collection->aggregate(
-    [{'$match' => {'$gt' => 23}}], {cursor => {}});
+    [{'$group' => {_id => undef, total => {'$sum' => '$foo'}}}]);
   my $collection = $collection->aggregate(
     [{'$match' => {'$gt' => 23}}, {'$out' => 'some_collection'}]);
 
@@ -302,7 +301,7 @@ operation non-blocking.
 
   my $pipeline = [{'$group' => {_id => undef, total => {'$sum' => '$foo'}}}];
   $collection->aggregate($pipeline => sub {
-    my ($collection, $err, $docs) = @_;
+    my ($collection, $err, $cursor) = @_;
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
@@ -458,7 +457,7 @@ to perform operation non-blocking.
 
 =head2 map_reduce
 
-  my $foo  = $collection->map_reduce($map, $reduce, {out => 'foo'});
+  my $collection = $collection->map_reduce($map, $reduce, {out => 'foo'});
   my $docs = $collection->map_reduce($map, $reduce, {out => {inline => 1}});
   my $docs = $collection->map_reduce(
     bson_code($map), bson_code($reduce), {out => {inline => 1}});

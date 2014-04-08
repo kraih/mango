@@ -139,9 +139,10 @@ is $result, undef, 'collection does not exist';
 
 # Aggregate collection blocking
 $collection->insert([{more => 1}, {more => 2}, {more => 3}]);
-my $docs = $collection->aggregate(
+my $cursor = $collection->aggregate(
   [{'$group' => {_id => undef, total => {'$sum' => '$more'}}}]);
-is $docs->[0]{total}, 6, 'right result';
+ok !$cursor->id, 'no cursor id';
+is $cursor->next->{total}, 6, 'right result';
 is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
   'three documents removed';
 
@@ -150,25 +151,17 @@ $collection->insert([{more => 1}, {more => 2}, {more => 3}]);
 ($fail, $result) = ();
 $collection->aggregate(
   [{'$group' => {_id => undef, total => {'$sum' => '$more'}}}] => sub {
-    my ($collection, $err, $docs) = @_;
+    my ($collection, $err, $cursor) = @_;
     $fail   = $err;
-    $result = $docs;
+    $result = $cursor;
     Mojo::IOLoop->stop;
   }
 );
 Mojo::IOLoop->start;
 ok !$fail, 'no error';
-is $result->[0]{total}, 6, 'right result';
+is $result->next->{total}, 6, 'right result';
 is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
   'three documents removed';
-
-# Aggregate with cursor
-$collection->insert({stuff => $_}) for 1 .. 30;
-my $cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
-  {cursor => {}});
-ok !$cursor->id, 'no cursor id';
-is scalar @{$cursor->all}, 30, 'thirty documents found';
-is $collection->remove->{n}, 30, 'thirty documents removed';
 
 # Aggregate with collections
 $collection->insert({stuff => $_}) for 1 .. 30;
@@ -408,7 +401,7 @@ $collection->insert({x => 4, tags => []});
 $out
   = $collection->map_reduce($map, $reduce, {out => 'collection_test_results'});
 $collection->drop;
-$docs = $out->find->sort({value => -1})->all;
+my $docs = $out->find->sort({value => -1})->all;
 is_deeply $docs->[0], {_id => 'cat',   value => 3}, 'right document';
 is_deeply $docs->[1], {_id => 'dog',   value => 2}, 'right document';
 is_deeply $docs->[2], {_id => 'mouse', value => 1}, 'right document';
