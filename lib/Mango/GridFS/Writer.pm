@@ -23,20 +23,11 @@ sub close {
   my $gridfs  = $self->gridfs;
   my $command = bson_doc filemd5 => $self->{files_id}, root => $gridfs->prefix;
 
-  # Blocking
-  my $files = $gridfs->files;
-  unless ($cb) {
-    $self->_chunk;
-    $files->ensure_index({filename => 1});
-    $gridfs->chunks->ensure_index(@index);
-    my $md5 = $gridfs->db->command($command)->{md5};
-    $files->insert($self->_meta($md5));
-    return $self->{files_id};
-  }
-
   # Non-blocking
-  Mojo::IOLoop->delay(
-    sub { $self->_chunk(shift->begin) },
+  my $bulk  = $self->gridfs->chunks->bulk;
+  my $files = $gridfs->files;
+  return Mojo::IOLoop->delay(
+    sub { $self->_chunk($bulk)->execute(shift->begin) },
     sub {
       my ($delay, $err) = @_;
       return $delay->pass($err) if $err;
@@ -54,7 +45,15 @@ sub close {
       $files->insert($self->_meta($doc->{md5}) => $delay->begin);
     },
     sub { shift; $self->$cb(shift, $self->{files_id}) }
-  );
+  ) if $cb;
+
+  # Blocking
+  $self->_chunk($bulk)->execute;
+  $files->ensure_index({filename => 1});
+  $gridfs->chunks->ensure_index(@index);
+  my $md5 = $gridfs->db->command($command)->{md5};
+  $files->insert($self->_meta($md5));
+  return $self->{files_id};
 }
 
 sub is_closed { !!shift->{closed} }
@@ -71,39 +70,27 @@ sub write {
   $self->{buffer} .= $chunk;
   $self->{len} += length $chunk;
 
-  # Non-blocking
+  my $bulk = $self->gridfs->chunks->bulk->ordered(0);
   my $size = $self->chunk_size;
-  if ($cb) {
-    my $delay = Mojo::IOLoop->delay(sub { shift; $self->_err($cb, @_) });
-    $self->_chunk($delay->begin) while length $self->{buffer} >= $size;
-    $delay->pass;
-  }
+  $self->_chunk($bulk) while length $self->{buffer} >= $size;
+
+  # Non-blocking
+  return $bulk->execute(sub { shift; $self->$cb(shift) }) if $cb;
 
   # Blocking
-  else { $self->_chunk while length $self->{buffer} >= $size }
-
+  $bulk->execute;
   return $self;
 }
 
 sub _chunk {
-  my ($self, $cb) = @_;
+  my ($self, $bulk) = @_;
 
   my $chunk = substr $self->{buffer}, 0, $self->chunk_size, '';
-  return $cb ? Mojo::IOLoop->next_tick($cb) : () unless length $chunk;
+  return $bulk unless length $chunk;
 
-  # Blocking
-  my $n   = $self->{n}++;
+  my $n = $self->{n}++;
   my $oid = $self->{files_id} //= bson_oid;
-  my $doc = {files_id => $oid, n => $n, data => bson_bin($chunk)};
-  return $self->gridfs->chunks->insert($doc) unless $cb;
-
-  # Non-blocking
-  $self->gridfs->chunks->insert($doc => $cb);
-}
-
-sub _err {
-  my ($self, $cb) = (shift, shift);
-  $self->$cb(first {defined} @_[map { 2 * $_ } 0 .. @_ / 2]);
+  return $bulk->insert({files_id => $oid, n => $n, data => bson_bin($chunk)});
 }
 
 sub _meta {

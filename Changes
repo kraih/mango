@@ -14,6 +14,9 @@
   - Added bulk method to Mango::Collection.
   - Added write_error method to Mango::Protocol.
   - Added bson_raw function to Mango::BSON.
+  - Improved aggregate method in Mango::Collection to return cursors by
+    default.
+  - Improved aggregate method in Mango::Collection with explain support.
   - Improved connection management with wire protocol version check.
   - Improved Mango::BSON performance.
   - Improved command performance.
