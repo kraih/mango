@@ -185,10 +185,10 @@ L<Mango::Collection> object this bulk operation belongs to.
 
 =head2 ordered
 
-  my $ordered = $bulk->ordered;
-  $bulk       = $bulk->ordered(1);
+  my $bool = $bulk->ordered;
+  $bulk    = $bulk->ordered($bool);
 
-Bulk operations are ordered, defaults to C<1>.
+Bulk operations are ordered, defaults to a true value.
 
 =head1 METHODS
 
