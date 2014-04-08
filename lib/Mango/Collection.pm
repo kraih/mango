@@ -17,11 +17,11 @@ sub aggregate {
   $command->{cursor} //= {} unless $command->{explain};
 
   # Blocking
-  return $self->_aggregate($pipeline, $self->db->command($command)) unless $cb;
+  return $self->_aggregate($command, $self->db->command($command)) unless $cb;
 
   # Non-blocking
   return $self->db->command($command,
-    sub { shift; $self->$cb(shift, $self->_aggregate($pipeline, shift)) });
+    sub { shift; $self->$cb(shift, $self->_aggregate($command, shift)) });
 }
 
 sub build_index_name { join '_', keys %{$_[1]} }
@@ -200,9 +200,19 @@ sub update {
 }
 
 sub _aggregate {
-  my ($self, $pipeline, $doc) = @_;
-  my $out = $pipeline->[-1]{'$out'};
-  return defined $out ? $self->db->collection($out) : $self->_cursor($doc);
+  my ($self, $command, $doc) = @_;
+
+  # Document (explain)
+  return $doc if $command->{explain};
+
+  # Collection
+  my $out = $command->{pipeline}[-1]{'$out'};
+  return $self->db->collection($out) if defined $out;
+
+  # Cursor
+  my $cursor = $doc->{cursor};
+  return Mango::Cursor->new(collection => $self, id => $cursor->{id})
+    ->add_batch($cursor->{firstBatch});
 }
 
 sub _command {
@@ -224,13 +234,6 @@ sub _command {
   my $doc = $db->command($command);
   if (my $err = $protocol->write_error($doc)) { croak $err }
   return $return->($doc);
-}
-
-sub _cursor {
-  my ($self, $doc) = @_;
-  my $cursor = $doc->{cursor};
-  return Mango::Cursor->new(collection => $self, id => $cursor->{id})
-    ->add_batch($cursor->{firstBatch});
 }
 
 sub _indexes {
@@ -294,6 +297,8 @@ the following new ones.
     [{'$group' => {_id => undef, total => {'$sum' => '$foo'}}}]);
   my $collection = $collection->aggregate(
     [{'$match' => {'$gt' => 23}}, {'$out' => 'some_collection'}]);
+  my $doc = $collection->aggregate(
+    [{'$match' => {'$gt' => 23}}], {explain => bson_true});
 
 Aggregate collection with aggregation framework, additional options will be
 passed along to the server verbatim. You can also append a callback to perform

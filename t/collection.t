@@ -163,6 +163,13 @@ is $result->next->{total}, 6, 'right result';
 is $collection->remove({more => {'$exists' => 1}})->{n}, 3,
   'three documents removed';
 
+# Explain aggregation
+$collection->insert({stuff => $_}) for 1 .. 30;
+$doc = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
+  {explain => \1});
+ok $doc->{stages}, 'right result';
+is $collection->remove->{n}, 30, 'thirty documents removed';
+
 # Aggregate with collections
 $collection->insert({stuff => $_}) for 1 .. 30;
 my $out = $collection->aggregate(
