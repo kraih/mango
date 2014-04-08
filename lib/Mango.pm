@@ -18,11 +18,12 @@ has default_db  => 'admin';
 has hosts       => sub { [['localhost']] };
 has ioloop      => sub { Mojo::IOLoop->new };
 has j           => 0;
-has max_bson_size   => 16777216;
-has max_connections => 5;
-has protocol        => sub { Mango::Protocol->new };
-has w               => 1;
-has wtimeout        => 1000;
+has max_bson_size        => 16777216;
+has max_connections      => 5;
+has max_write_batch_size => 1000;
+has protocol             => sub { Mango::Protocol->new };
+has w                    => 1;
+has wtimeout             => 1000;
 
 our $VERSION = '0.30';
 
@@ -493,6 +494,13 @@ Maximum size for BSON documents in bytes, defaults to C<16777216>.
 
 Maximum number of connections to use for non-blocking operations, defaults to
 C<5>.
+
+=head2 max_write_batch_size
+
+  my $max = $mango->max_write_batch_size;
+  $mango  = $mango->max_write_batch_size(1000);
+
+ Maximum number of write operations to batch together, defaults to C<1000>.
 
 =head2 protocol
 
