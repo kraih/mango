@@ -24,15 +24,16 @@ sub close {
   my $command = bson_doc filemd5 => $self->{files_id}, root => $gridfs->prefix;
 
   # Non-blocking
-  my $bulk  = $self->gridfs->chunks->bulk;
-  my $files = $gridfs->files;
+  my $chunks = $gridfs->chunks;
+  my $bulk   = $chunks->bulk;
+  my $files  = $gridfs->files;
   return Mojo::IOLoop->delay(
     sub { $self->_chunk($bulk)->execute(shift->begin) },
     sub {
       my ($delay, $err) = @_;
       return $delay->pass($err) if $err;
       $files->ensure_index({filename => 1} => $delay->begin);
-      $gridfs->chunks->ensure_index(@index => $delay->begin);
+      $chunks->ensure_index(@index => $delay->begin);
     },
     sub {
       my ($delay, $files_err, $chunks_err) = @_;
@@ -50,7 +51,7 @@ sub close {
   # Blocking
   $self->_chunk($bulk)->execute;
   $files->ensure_index({filename => 1});
-  $gridfs->chunks->ensure_index(@index);
+  $chunks->ensure_index(@index);
   my $md5 = $gridfs->db->command($command)->{md5};
   $files->insert($self->_meta($md5));
   return $self->{files_id};
