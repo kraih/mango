@@ -24,7 +24,7 @@ has [qw(max_write_batch_size wtimeout)] => 1000;
 has protocol => sub { Mango::Protocol->new };
 has w => 1;
 
-our $VERSION = '0.30';
+our $VERSION = '0.31';
 
 # Operations with reply
 for my $name (qw(get_more query)) {
