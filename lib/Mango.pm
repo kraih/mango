@@ -96,16 +96,16 @@ sub _active {
 }
 
 sub _auth {
-  my ($self, $id, $credentials, $auth, $err, $reply) = @_;
+  my ($self, $id, $credentials, $auth, $err, $doc) = @_;
   my ($db, $user, $pass) = @$auth;
 
   # Run "authenticate" command with "nonce" value
-  my $nonce = $reply->{docs}[0]{nonce} // '';
+  my $nonce = $doc->{nonce} // '';
   my $key = md5_sum $nonce . $user . md5_sum "$user:mongo:$pass";
-  my $authenticate
+  my $command
     = bson_doc(authenticate => 1, user => $user, nonce => $nonce, key => $key);
   my $cb = sub { shift->_connected($id, $credentials) };
-  $self->_fast($id, $db, $authenticate, $cb);
+  $self->_fast($id, $db, $command, $cb);
 }
 
 sub _build {
@@ -127,7 +127,8 @@ sub _cleanup {
 
   # Clean up active operations
   my $queue = delete $self->{queue} || [];
-  $_->{last} and unshift @$queue, $_->{last} for values %$connections;
+  $_->{last} && !$_->{start} && unshift @$queue, $_->{last}
+    for values %$connections;
   $self->_finish(undef, $_->{cb}, 'Premature connection close') for @$queue;
 }
 
@@ -165,11 +166,13 @@ sub _connect {
 sub _connected {
   my ($self, $id, $credentials) = @_;
 
-  # No authentication
-  return $self->_next unless my $auth = shift @$credentials;
+  # No authentication (check version with "isMaster" command)
+  my $cb = sub { shift->_version($id, @_) };
+  return $self->_fast($id, $self->default_db, {isMaster => 1}, $cb)
+    unless my $auth = shift @$credentials;
 
   # Run "getnonce" command followed by "authenticate"
-  my $cb = sub { shift->_auth($id, $credentials, $auth, @_) };
+  $cb = sub { shift->_auth($id, $credentials, $auth, @_) };
   $self->_fast($id, $auth->[0], {getnonce => 1}, $cb);
 }
 
@@ -191,8 +194,9 @@ sub _fast {
   my $protocol = $self->protocol;
   my $wrapper  = sub {
     my ($self, $err, $reply) = @_;
-    $err ||= $protocol->command_error($reply->{docs}[0]);
-    return $err ? $self->_error($id, $err) : $self->$cb($err, $reply);
+    my $doc = $reply->{docs}[0];
+    $err ||= $protocol->command_error($doc);
+    return $err ? $self->_error($id, $err) : $self->$cb($err, $doc);
   };
 
   # Skip the queue and run command right away
@@ -277,6 +281,12 @@ sub _start {
   croak $err if $err;
 
   return $reply;
+}
+
+sub _version {
+  my ($self, $id, $err, $doc) = @_;
+  return $self->_next if ($doc->{maxWireVersion} || 0) >= 2;
+  $self->_error($id, 'MongoDB wire protocol version 2 required');
 }
 
 sub _write {
