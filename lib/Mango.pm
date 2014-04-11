@@ -69,18 +69,13 @@ sub from_string {
   return $self;
 }
 
-sub get_more { shift->_op(get_more => @_) }
+sub get_more { shift->_op('get_more', 1, @_) }
 
-sub kill_cursors {
-  my $self = shift;
-  my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
-  my ($next, $msg) = $self->_build('kill_cursors', @_);
-  $self->_start({id => $next, safe => 0, msg => $msg, cb => $cb});
-}
+sub kill_cursors { shift->_op('kill_cursors', 0, @_) }
 
 sub new { shift->SUPER::new->from_string(@_) }
 
-sub query { shift->_op(query => @_) }
+sub query { shift->_op('query', 1, @_) }
 
 sub _active {
   my $self = shift;
@@ -223,10 +218,10 @@ sub _next {
 }
 
 sub _op {
-  my ($self, $op) = (shift, shift);
+  my ($self, $op, $safe) = (shift, shift, shift);
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
   my ($next, $msg) = $self->_build($op, @_);
-  $self->_start({id => $next, safe => 1, msg => $msg, cb => $cb});
+  $self->_start({id => $next, safe => $safe, msg => $msg, cb => $cb});
 }
 
 sub _read {
