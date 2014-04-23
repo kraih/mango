@@ -274,8 +274,10 @@ is_deeply $doc, {foo => bson_bin('12345')->type('user_defined')},
   'right document';
 is bson_encode($doc), $bytes, 'successful roundtrip';
 
-# Embedded BSON roundtrip
+# Pre-encoded BSON document roundtrip
 my $raw = bson_raw bson_encode {bar => 'baz'};
+is_deeply bson_decode(bson_encode $raw), {bar => 'baz'},
+  'successful roundtrip';
 is_deeply bson_decode(bson_encode {foo => $raw}), {foo => {bar => 'baz'}},
   'successful roundtrip';
 is_deeply bson_decode(bson_encode {foo => [$raw]}), {foo => [{bar => 'baz'}]},

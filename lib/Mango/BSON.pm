@@ -83,6 +83,9 @@ sub bson_doc {
 sub bson_encode {
   my $doc = shift;
 
+  # Embedded BSON
+  return $doc->{'$bson'} if exists $doc->{'$bson'};
+
   my $bson = join '',
     map { _encode_value(encode_cstring($_), $doc->{$_}) } keys %$doc;
 
@@ -100,7 +103,7 @@ sub bson_min {$MINKEY}
 
 sub bson_oid { Mango::BSON::ObjectID->new(@_) }
 
-sub bson_raw { bless \(my $dummy = shift), 'Mango::BSON::_Raw' }
+sub bson_raw { bson_doc('$bson' => shift) }
 
 sub bson_time { Mango::BSON::Time->new(@_) }
 
@@ -304,9 +307,6 @@ sub _encode_value {
   # Blessed
   if (my $class = blessed $value) {
 
-    # Embedded BSON
-    return DOCUMENT . $e . $$value if $class eq 'Mango::BSON::_Raw';
-
     # Max
     return MAX_KEY . $e if $value eq $MAXKEY;
 
@@ -350,9 +350,6 @@ sub _encode_value {
   # String
   return STRING . $e . _encode_string("$value");
 }
-
-# Pre-encoded BSON
-package Mango::BSON::_Raw;
 
 # Constants
 package Mango::BSON::_MaxKey;
