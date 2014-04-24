@@ -146,18 +146,17 @@ sub _decode_doc {
   my $bsonref = shift;
 
   # Every element starts with a type
-  my $doc = bson_doc();
+  my @doc;
   substr $$bsonref, 0, 4, '';
   while (my $type = substr $$bsonref, 0, 1, '') {
 
     # Null byte (end of document)
     last if $type eq "\x00";
 
-    my $name = _decode_cstring($bsonref);
-    $doc->{$name} = _decode_value($type, $bsonref);
+    push @doc, _decode_cstring($bsonref), _decode_value($type, $bsonref);
   }
 
-  return $doc;
+  return bson_doc(@doc);
 }
 
 sub _decode_string {
@@ -238,7 +237,7 @@ sub _encode_object {
   my ($e, $value, $class) = @_;
 
   # ObjectID
-  return OBJECT_ID . $e . pack('H*', $value)
+  return OBJECT_ID . $e . $value->to_bytes
     if $class eq 'Mango::BSON::ObjectID';
 
   # Boolean
@@ -246,6 +245,12 @@ sub _encode_object {
 
   # Time
   return DATETIME . $e . pack('q<', $value) if $class eq 'Mango::BSON::Time';
+
+  # Max
+  return MAX_KEY . $e if $value eq $MAXKEY;
+
+  # Min
+  return MIN_KEY . $e if $value eq $MINKEY;
 
   # Regex
   if ($class eq 'Regexp') {
@@ -279,7 +284,7 @@ sub _encode_object {
   }
 
   # Timestamp
-  return join '', TIMESTAMP, $e, map { pack 'l<', $_ } $value->increment,
+  return TIMESTAMP, $e, map { pack 'l<', $_ } $value->increment,
     $value->seconds
     if $class eq 'Mango::BSON::Timestamp';
 
@@ -304,21 +309,11 @@ sub _encode_value {
   # Null
   return NULL . $e unless defined $value;
 
-  # Blessed
-  if (my $class = blessed $value) {
-
-    # Max
-    return MAX_KEY . $e if $value eq $MAXKEY;
-
-    # Min
-    return MIN_KEY . $e if $value eq $MINKEY;
-
-    # Multiple classes
-    return _encode_object($e, $value, $class);
-  }
-
   # Reference
-  elsif (my $ref = ref $value) {
+  if (my $ref = ref $value) {
+
+    # Blessed
+    return _encode_object($e, $value, $ref) if blessed $value;
 
     # Hash (Document)
     return DOCUMENT . $e . bson_encode($value) if $ref eq 'HASH';
@@ -330,7 +325,7 @@ sub _encode_value {
     }
 
     # Scalar (boolean shortcut)
-    return _encode_value($e, $$value ? $TRUE : $FALSE) if $ref eq 'SCALAR';
+    return _encode_object($e, !!$$value, $BOOL) if $ref eq 'SCALAR';
   }
 
   # Double

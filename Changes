@@ -1,5 +1,7 @@
 
 0.32  2014-04-24
+  - Added to_bytes method to Mango::BSON::ObjectID.
+  - Improved Mango::BSON performance.
 
 0.31  2014-04-23
   - Improved support for pre-encoded BSON documents.

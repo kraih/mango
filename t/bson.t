@@ -386,7 +386,7 @@ is encode_json(
 # Validate object id
 is bson_oid('123456789012345678abcdef'), '123456789012345678abcdef',
   'valid object id';
-is bson_oid('123456789012345678ABCDEF'), '123456789012345678ABCDEF',
+is bson_oid('123456789012345678ABCDEF'), '123456789012345678abcdef',
   'valid object id';
 eval { bson_oid('123456789012345678abcde') };
 like $@, qr/Invalid object id "123456789012345678abcde"/,

@@ -19,15 +19,17 @@ sub from_epoch {
 }
 
 sub new {
-  my ($class, $oid) = @_;
-  croak qq{Invalid object id "$oid"}
-    if defined $oid && $oid !~ /^[0-9a-fA-F]{24}$/;
-  return defined $oid ? $class->SUPER::new(oid => $oid) : $class->SUPER::new;
+  my $class = shift;
+  return $class->SUPER::new unless defined(my $oid = shift);
+  croak qq{Invalid object id "$oid"} if $oid !~ /^[0-9a-fA-F]{24}$/;
+  return $class->SUPER::new(oid => pack('H*', $oid));
 }
 
-sub to_epoch { unpack 'N', substr(pack('H*', shift->to_string), 0, 4) }
+sub to_bytes { shift->{oid} //= _generate() }
 
-sub to_string { shift->{oid} //= _generate() }
+sub to_epoch { unpack 'N', substr(shift->to_bytes, 0, 4) }
+
+sub to_string { unpack 'H*', shift->to_bytes }
 
 sub _generate {
 
@@ -36,7 +38,7 @@ sub _generate {
 
   # 3 byte counter
   $COUNTER = ($COUNTER + 1) % 0xffffff;
-  return unpack 'H*', $oid . substr(pack('V', $COUNTER), 0, 3);
+  return $oid . substr pack('V', $COUNTER), 0, 3;
 }
 
 1;
@@ -76,6 +78,12 @@ Generate new object id with specific epoch time.
   my $oid = Mango::BSON::ObjectID->new('1a2b3c4e5f60718293a4b5c6');
 
 Construct a new L<Mango::BSON::ObjectID> object.
+
+=head2 to_bytes
+
+  my $bytes = $oid->to_bytes;
+
+Object id in binary form.
 
 =head2 to_epoch
 
