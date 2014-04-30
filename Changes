@@ -1,5 +1,6 @@
 
-0.33  2014-04-25
+0.33  2014-04-30
+  - Improved error message for old MongoDB versions.
 
 0.32  2014-04-24
   - Added to_bytes method to Mango::BSON::ObjectID.

@@ -282,7 +282,7 @@ sub _start {
 sub _version {
   my ($self, $id, $err, $doc) = @_;
   return $self->_next if ($doc->{maxWireVersion} || 0) >= 2;
-  $self->_error($id, 'MongoDB wire protocol version 2 required');
+  $self->_error($id, 'MongoDB version 2.6 required');
 }
 
 sub _write {
