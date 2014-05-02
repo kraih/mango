@@ -1,5 +1,7 @@
 
-0.34  2014-05-01
+0.34  2014-05-02
+  - Fixed bug where some Mango::Collection methods passed the wrong invocant
+    to callbacks. (alexbyk)
 
 0.33  2014-04-30
   - Improved error message for old MongoDB versions.

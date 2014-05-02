@@ -224,7 +224,7 @@ sub _command {
   my $protocol = $db->mango->protocol;
   return $db->command(
     $command => sub {
-      my ($self, $err, $doc) = @_;
+      my ($db, $err, $doc) = @_;
       $err ||= $protocol->write_error($doc);
       $self->$cb($err, $return->($doc));
     }
