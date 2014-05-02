@@ -1,4 +1,6 @@
 
+0.35  2014-05-03
+
 0.34  2014-05-02
   - Fixed bug where some Mango::Collection methods passed the wrong invocant
     to callbacks. (alexbyk)
