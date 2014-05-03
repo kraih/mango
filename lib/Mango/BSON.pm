@@ -12,7 +12,7 @@ use Mango::BSON::ObjectID;
 use Mango::BSON::Time;
 use Mango::BSON::Timestamp;
 use Mojo::JSON;
-use Scalar::Util 'blessed';
+use Scalar::Util qw(blessed looks_like_number);
 
 my @BSON = (
   qw(bson_bin bson_code bson_dbref bson_decode bson_doc bson_encode),
@@ -81,13 +81,15 @@ sub bson_doc {
 }
 
 sub bson_encode {
-  my $doc = shift;
+  my ($doc, $numberize) = @_;
+  $numberize //= 0;
 
   # Embedded BSON
   return $doc->{'$bson'} if exists $doc->{'$bson'};
 
   my $bson = join '',
-    map { _encode_value(encode_cstring($_), $doc->{$_}) } keys %$doc;
+    map { _encode_value(encode_cstring($_), $doc->{$_}, $numberize) }
+    keys %$doc;
 
   # Document ends with null byte
   return pack('l<', length($bson) + 5) . $bson . "\x00";
@@ -234,7 +236,7 @@ sub _encode_binary {
 }
 
 sub _encode_object {
-  my ($e, $value, $class) = @_;
+  my ($e, $value, $class, $numberize) = @_;
 
   # ObjectID
   return OBJECT_ID . $e . $value->to_bytes
@@ -275,7 +277,8 @@ sub _encode_object {
 
     # With scope
     if (my $scope = $value->scope) {
-      my $code = _encode_string($value->code) . bson_encode($scope);
+      my $code
+        = _encode_string($value->code) . bson_encode($scope, $numberize);
       return CODE_SCOPE . $e . pack('l<', length $code) . $code;
     }
 
@@ -290,7 +293,7 @@ sub _encode_object {
 
   # Blessed reference with TO_JSON method
   if (my $sub = $value->can('TO_JSON')) {
-    return _encode_value($e, $value->$sub);
+    return _encode_value($e, $value->$sub, $numberize);
   }
 
   # Stringify
@@ -304,7 +307,7 @@ sub _encode_string {
 }
 
 sub _encode_value {
-  my ($e, $value) = @_;
+  my ($e, $value, $numberize) = @_;
 
   # Null
   return NULL . $e unless defined $value;
@@ -316,17 +319,20 @@ sub _encode_value {
     return _encode_object($e, $value, $ref) if blessed $value;
 
     # Hash (Document)
-    return DOCUMENT . $e . bson_encode($value) if $ref eq 'HASH';
+    return DOCUMENT . $e . bson_encode($value, $numberize) if $ref eq 'HASH';
 
     # Array
     if ($ref eq 'ARRAY') {
       my $i = 0;
-      return ARRAY . $e . bson_encode(bson_doc(map { $i++ => $_ } @$value));
+      return ARRAY . $e
+        . bson_encode(bson_doc(map { $i++ => $_ } @$value), $numberize);
     }
 
     # Scalar (boolean shortcut)
     return _encode_object($e, !!$$value, $BOOL) if $ref eq 'SCALAR';
   }
+
+  $value += 0 if $numberize && looks_like_number($value);
 
   # Double
   my $flags = B::svref_2object(\$value)->FLAGS;
