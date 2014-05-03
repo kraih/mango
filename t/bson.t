@@ -399,4 +399,13 @@ like $@, qr/Invalid object id "123456789012345678abcdgf"/, 'invalid object id';
 eval { bson_oid(0) };
 like $@, qr/Invalid object id "0"/, 'invalid object id';
 
+# numberize
+is bson_encode({foo => 1}), bson_encode({foo => '1'}, 1);
+isnt bson_encode({foo => 1}), bson_encode({foo => '1'});
+
+# more complex numberize
+my $doc_num = bson_doc(a => 1,   f => {b => -1},   c => [1.1,   0,   -0.1]);
+my $doc_str = bson_doc(a => '1', f => {b => '-1'}, c => ['1.1', '0', '-0.1']);
+is bson_encode($doc_num), bson_encode($doc_str, 1);
+
 done_testing();
