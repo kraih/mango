@@ -1,5 +1,7 @@
 
 0.35  2014-05-04
+  - Added num_to_return method to Mango::Cursor.
+  - Fixed bug where Mango::Cursor would request too many documents.
 
 0.34  2014-05-02
   - Fixed bug where some Mango::Collection methods passed the wrong invocant

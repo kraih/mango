@@ -101,6 +101,24 @@ $cursor = $collection->find({foo => 'bar'}, {foo => 1});
 is_deeply $cursor->clone->query,  {foo => 'bar'}, 'right query';
 is_deeply $cursor->clone->fields, {foo => 1},     'right fields';
 
+# Number of results to return
+is $collection->find->num_to_return, 0, 'right number of results';
+$cursor = $collection->find;
+is $cursor->batch_size(5)->num_to_return, 5, 'right number of results';
+$cursor = $collection->find;
+is $cursor->limit(5)->num_to_return, 5, 'right number of results';
+$cursor = $collection->find;
+is $cursor->limit(-5)->num_to_return, -5, 'right number of results';
+$cursor = $collection->find;
+is $cursor->limit(4)->batch_size(2)->num_to_return, 2,
+  'right number of results';
+is $cursor->limit(2)->batch_size(4)->num_to_return, 2,
+  'right number of results';
+is $cursor->limit(-4)->batch_size(2)->num_to_return, -4,
+  'right number of results';
+is $cursor->limit(-2)->batch_size(4)->num_to_return, -2,
+  'right number of results';
+
 # Explain blocking
 $cursor = $collection->find({test => 2});
 $doc = $cursor->explain;

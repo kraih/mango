@@ -106,6 +106,13 @@ sub explain {
   return $clone->next;
 }
 
+sub num_to_return {
+  my $self  = shift;
+  my $limit = $self->limit;
+  my $size  = $self->batch_size;
+  return $limit == 0 || ($size > 0 && $size < $limit) ? $size : $limit;
+}
+
 sub next {
   my ($self, $cb) = @_;
   return defined $self->id ? $self->_continue($cb) : $self->_start($cb);
@@ -143,13 +150,14 @@ sub _continue {
   # Non-blocking
   if ($cb) {
     return $self->_defer($cb, undef, $self->_dequeue) if $self->_enough;
-    return $mango->get_more(($name, $self->_max, $self->id) =>
+    return $mango->get_more(($name, $self->num_to_return, $self->id) =>
         sub { shift; $self->$cb(shift, $self->_enqueue(shift)) });
   }
 
   # Blocking
   return $self->_dequeue if $self->_enough;
-  return $self->_enqueue($mango->get_more($name, $self->_max, $self->id));
+  return $self->_enqueue(
+    $mango->get_more($name, $self->num_to_return, $self->id));
 }
 
 sub _defer {
@@ -181,13 +189,6 @@ sub _finished {
   return ($self->{num} // 0) >= abs($limit) ? 1 : undef;
 }
 
-sub _max {
-  my $self  = shift;
-  my $limit = $self->limit;
-  my $size  = $self->batch_size;
-  return $limit == 0 || $size < $limit ? $size : $limit;
-}
-
 sub _start {
   my ($self, $cb) = @_;
 
@@ -195,7 +196,8 @@ sub _start {
   my $name       = $collection->full_name;
   my $flags = $self->tailable ? {tailable_cursor => 1, await_data => 1} : {};
   my @query = (
-    $name, $flags, $self->skip, $self->_max, $self->build_query, $self->fields
+    $name, $flags, $self->skip, $self->num_to_return, $self->build_query,
+    $self->fields
   );
 
   # Non-blocking
@@ -405,6 +407,13 @@ perform operation non-blocking.
     ...
   });
   Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
+
+=head2 num_to_return
+
+  my $num = $cursor->num_to_return;
+
+Number of results to return with next C<QUERY> or C<GET_MORE> operation based
+on L</"batch_size"> and L</"limit">.
 
 =head2 next
 
