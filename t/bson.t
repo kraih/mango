@@ -353,16 +353,32 @@ is_deeply bson_decode(bson_encode {test => Mojo::JSON->false}),
 # Upgraded numbers
 my $num = 3;
 my $str = "$num";
-is_deeply bson_decode(bson_encode {test => [$num, $str]}), {test => [3, "3"]},
-  'upgraded number detected';
+is bson_encode({test => [$num, $str]}),
+    "\x20\x00\x00\x00\x04\x74\x65\x73\x74"
+  . "\x00\x15\x00\x00\x00\x10\x30\x00\x03\x00\x00\x00\x02\x31\x00\x02\x00\x00"
+  . "\x00\x33\x00\x00\x00", 'upgraded number detected';
 $num = 1.5;
 $str = "$num";
-is_deeply bson_decode(bson_encode {test => [$num, $str]}),
-  {test => [1.5, "1.5"]}, 'upgraded number detected';
+is bson_encode({test => [$num, $str]}),
+    "\x26\x00\x00\x00\x04\x74\x65\x73\x74"
+  . "\x00\x1b\x00\x00\x00\x01\x30\x00\x00\x00\x00\x00\x00\x00\xf8\x3f\x02\x31"
+  . "\x00\x04\x00\x00\x00\x31\x2e\x35\x00\x00\x00", 'upgraded number detected';
 $str = '0 but true';
 $num = 1 + $str;
-is_deeply bson_decode(bson_encode {test => [$num, $str]}), {test => [1, 0]},
-  'upgraded number detected';
+is bson_encode({test => [$num, $str]}),
+    "\x1e\x00\x00\x00\x04\x74\x65\x73\x74"
+  . "\x00\x13\x00\x00\x00\x10\x30\x00\x01\x00\x00\x00\x10\x31\x00\x00\x00\x00"
+  . "\x00\x00\x00", 'upgraded number detected';
+
+# Ensure numbers and strings are not upgraded
+my $mixed = {test => [3, 'three', '3', 0, "0"]};
+$bson
+  = "\x3d\x00\x00\x00\x04\x74\x65\x73\x74\x00\x32\x00\x00\x00\x10\x30\x00"
+  . "\x03\x00\x00\x00\x02\x31\x00\x06\x00\x00\x00\x74\x68\x72\x65\x65\x00\x02"
+  . "\x32\x00\x02\x00\x00\x00\x33\x00\x10\x33\x00\x00\x00\x00\x00\x02\x34\x00"
+  . "\x02\x00\x00\x00\x30\x00\x00\x00";
+is bson_encode($mixed), $bson, 'all have been detected correctly';
+is bson_encode($mixed), $bson, 'all have been detected correctly again';
 
 # "inf" and "nan"
 is_deeply bson_decode(bson_encode {test => [9**9**9]}), {test => [9**9**9]},
