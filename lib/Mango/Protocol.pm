@@ -159,20 +159,20 @@ following new ones.
 
   my $bytes = $protocol->build_get_more($id, $name, $return, $cursor);
 
-Build message for C<get_more> operation.
+Build message for C<GET_MORE> operation.
 
 =head2 build_kill_cursors
 
   my $bytes = $protocol->build_kill_cursors($id, @ids);
 
-Build message for C<kill_cursors> operation.
+Build message for C<KILL_CURSORS> operation.
 
 =head2 build_query
 
   my $bytes = $protocol->build_query($id, $name, $flags, $skip, $return,
     $query, $fields);
 
-Build message for C<query> operation.
+Build message for C<QUERY> operation.
 
 =head2 command_error
 

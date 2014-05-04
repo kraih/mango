@@ -551,7 +551,7 @@ Parse configuration from connection string.
 
   my $reply = $mango->get_more($namespace, $return, $cursor);
 
-Perform low level C<get_more> operation. You can also append a callback to
+Perform low level C<GET_MORE> operation. You can also append a callback to
 perform operation non-blocking.
 
   $mango->get_more(($namespace, $return, $cursor) => sub {
@@ -564,7 +564,7 @@ perform operation non-blocking.
 
   $mango->kill_cursors(@ids);
 
-Perform low level C<kill_cursors> operation. You can also append a callback to
+Perform low level C<KILL_CURSORS> operation. You can also append a callback to
 perform operation non-blocking.
 
     $mango->kill_cursors(@ids => sub {
@@ -586,7 +586,7 @@ L</"from_string"> if necessary.
   my $reply
     = $mango->query($namespace, $flags, $skip, $return, $query, $fields);
 
-Perform low level C<query> operation. You can also append a callback to
+Perform low level C<QUERY> operation. You can also append a callback to
 perform operation non-blocking.
 
   $mango->query(($namespace, $flags, $skip, $return, $query, $fields) => sub {
