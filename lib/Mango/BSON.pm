@@ -289,7 +289,7 @@ sub _encode_object {
     if $class eq 'Mango::BSON::Timestamp';
 
   # Blessed reference with TO_JSON method
-  if (my $sub = $value->can('TO_JSON')) {
+  if (my $sub = $value->can('TO_BSON') // $value->can('TO_JSON')) {
     return _encode_value($e, $value->$sub);
   }
 
@@ -377,9 +377,9 @@ L<Mango::BSON> is a minimalistic implementation of L<http://bsonspec.org>.
 
 In addition to a bunch of custom BSON data types it supports normal Perl data
 types like scalar, regular expression, C<undef>, array reference, hash
-reference and will try to call the C<TO_JSON> method on blessed references, or
-stringify them if it doesn't exist. Scalar references will be used to generate
-booleans, based on if their values are true or false.
+reference and will try to call the C<TO_BSON> and C<TO_JSON> methods on
+blessed references, or stringify them if it doesn't exist. Scalar references
+will be used to generate booleans, based on if their values are true or false.
 
 =head1 FUNCTIONS
 

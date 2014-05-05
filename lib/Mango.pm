@@ -619,6 +619,8 @@ In alphabetical order:
 
 Andrey Khozov
 
+Colin Cyr
+
 =back
 
 =head1 COPYRIGHT AND LICENSE

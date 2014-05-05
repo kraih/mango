@@ -5,6 +5,11 @@ has 'something' => sub { {} };
 
 sub TO_JSON { shift->something }
 
+package BSONTest2;
+use Mojo::Base 'BSONTest';
+
+sub TO_BSON { {something => shift->something} }
+
 package main;
 use Mojo::Base -strict;
 
@@ -326,6 +331,21 @@ $bytes = bson_encode(
   }
 );
 is_deeply bson_decode($bytes), {test => {just => 'works'}},
+  'successful roundtrip';
+
+# Blessed reference with TO_BSON method
+$bytes = bson_encode({test => BSONTest2->new});
+is_deeply bson_decode($bytes), {test => {something => {}}},
+  'successful roundtrip';
+$bytes = bson_encode(
+  {
+    test => BSONTest2->new(
+      something => {just => 'works'},
+      else      => {not  => 'working'}
+    )
+  }
+);
+is_deeply bson_decode($bytes), {test => {something => {just => 'works'}}},
   'successful roundtrip';
 
 # Boolean shortcut
