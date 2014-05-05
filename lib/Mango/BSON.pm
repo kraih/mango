@@ -288,8 +288,8 @@ sub _encode_object {
     $value->seconds
     if $class eq 'Mango::BSON::Timestamp';
 
-  # Blessed reference with TO_JSON method
-  if (my $sub = $value->can('TO_JSON')) {
+  # Blessed reference with a TO_BSON or TO_JSON method
+  if (my $sub = $value->can('TO_BSON') || $value->can('TO_JSON')) {
     return _encode_value($e, $value->$sub);
   }
 
