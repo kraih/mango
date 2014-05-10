@@ -15,5 +15,7 @@ before_install:
 install:
   - "cpanm -n Test::Pod Test::Pod::Coverage"
   - "cpanm -n --installdeps ."
+before_script:
+  - "sleep 15"
 notifications:
   email: false
