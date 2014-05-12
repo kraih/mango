@@ -513,9 +513,10 @@ Mojo::IOLoop->start;
 like $fail, qr/^Write error at index 0: .+/, 'right error';
 
 # Interrupted non-blocking remove
-my $port = Mojo::IOLoop->generate_port;
+my $id
+  = Mojo::IOLoop->server((address => '127.0.0.1') => sub { $_[1]->close });
+my $port = Mojo::IOLoop->acceptor($id)->handle->sockport;
 $mango = Mango->new("mongodb://localhost:$port");
-my $id = Mojo::IOLoop->server((port => $port) => sub { $_[1]->close });
 ($fail, $result) = ();
 $mango->db->collection('collection_test')->remove(
   sub {

@@ -107,12 +107,12 @@ sub _build {
 
 sub _cleanup {
   my $self = shift;
-  return unless my $loop = $self->_loop;
+  return unless $self->_loop(0);
 
   # Clean up connections
   delete $self->{pid};
   my $connections = delete $self->{connections};
-  $loop->remove($_) for keys %$connections;
+  $self->_loop($connections->{$_}{nb})->remove($_) for keys %$connections;
 
   # Clean up active operations
   my $queue = delete $self->{queue} || [];
@@ -122,12 +122,12 @@ sub _cleanup {
 }
 
 sub _connect {
-  my ($self, $hosts) = @_;
+  my ($self, $nb, $hosts) = @_;
   my ($host, $port) = @{shift @{$hosts ||= [@{$self->hosts}]}};
 
   weaken $self;
   my $id;
-  $id = $self->_loop->client(
+  $id = $self->_loop($nb)->client(
     {address => $host, port => $port //= DEFAULT_PORT} => sub {
       my ($loop, $err, $stream) = @_;
 
@@ -135,7 +135,7 @@ sub _connect {
       if ($err) {
         return $self->_error($id, $err) unless @$hosts;
         delete $self->{connections}{$id};
-        return $self->_connect($hosts);
+        return $self->_connect($nb, $hosts);
       }
 
       # Connection established
@@ -146,7 +146,7 @@ sub _connect {
       $self->emit(connection => $id)->_connected($id, [@{$self->credentials}]);
     }
   );
-  $self->{connections}{$id} = {start => 1};
+  $self->{connections}{$id} = {nb => $nb, start => 1};
 
   my $num = scalar keys %{$self->{connections}};
   warn "-- New connection ($host:$port:$num)\n" if DEBUG;
@@ -171,7 +171,7 @@ sub _error {
   my $c    = delete $self->{connections}{$id};
   my $last = $c->{last};
   $last //= shift @{$self->{queue}} if $err;
-  $self->_connect if @{$self->{queue}};
+  $self->_connect($c->{nb}) if @{$self->{queue}};
   return $err ? $self->emit(error => $err) : $self unless $last;
   $self->_finish(undef, $last->{cb}, $err || 'Premature connection close');
 }
@@ -203,25 +203,34 @@ sub _finish {
 
 sub _id { $_[0]{id} = $_[0]->protocol->next_id($_[0]{id} // 0) }
 
-sub _loop { $_[0]{nb} ? Mojo::IOLoop->singleton : $_[0]->ioloop }
+sub _loop { $_[1] ? Mojo::IOLoop->singleton : $_[0]->ioloop }
 
 sub _next {
   my ($self, $op) = @_;
 
   push @{$self->{queue} ||= []}, $op if $op;
 
-  my @ids = keys %{$self->{connections}};
+  my $connections = $self->{connections};
+  my @ids         = keys %$connections;
   my $start;
   $self->_write($_) and $start++ for @ids;
-  $self->_connect
-    if $op && !$start && @{$self->{queue}} && @ids < $self->max_connections;
+  return unless $op;
+
+  # Blocking
+  return $self->_connect(0)
+    if !$op->{nb} && !grep { !$connections->{$_}{nb} } @ids;
+
+  # Non-blocking
+  $self->_connect(1)
+    if !$start && @{$self->{queue}} && @ids < $self->max_connections;
 }
 
 sub _op {
   my ($self, $op, $safe) = (shift, shift, shift);
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
   my ($next, $msg) = $self->_build($op, @_);
-  $self->_start({id => $next, safe => $safe, msg => $msg, cb => $cb});
+  $self->_start(
+    {id => $next, safe => $safe, msg => $msg, nb => !!$cb, cb => $cb});
 }
 
 sub _read {
@@ -244,26 +253,7 @@ sub _start {
   $self->_cleanup unless ($self->{pid} //= $$) eq $$;
 
   # Non-blocking
-  if ($op->{cb}) {
-
-    # Start non-blocking
-    unless ($self->{nb}) {
-      croak 'Blocking operation in progress' if $self->_active;
-      warn "-- Switching to non-blocking mode\n" if DEBUG;
-      $self->_cleanup;
-      $self->{nb}++;
-    }
-
-    return $self->_next($op);
-  }
-
-  # Start blocking
-  if ($self->{nb}) {
-    croak 'Non-blocking operations in progress' if $self->_active;
-    warn "-- Switching to blocking mode\n" if DEBUG;
-    $self->_cleanup;
-    delete $self->{nb};
-  }
+  return $self->_next($op) if $op->{cb};
 
   my ($err, $reply);
   $op->{cb} = sub {
@@ -291,15 +281,22 @@ sub _write {
   # Make sure connection has not been corrupted while event loop was stopped
   my $c = $self->{connections}{$id};
   return $c->{start} if $c->{last};
-  my $loop = $self->_loop;
+  my $loop = $self->_loop($c->{nb});
   return undef unless my $stream = $loop->stream($id);
   if (!$loop->is_running && $stream->is_readable) {
     $stream->close;
     return undef;
   }
 
+  # Fast operation
   delete $c->{start} unless my $last = delete $c->{fast};
-  return $c->{start} unless $c->{last} = $last ||= shift @{$self->{queue}};
+
+  # Blocking or non-blocking
+  return $c->{start}
+    unless $last || ($c->{nb} xor !($self->{queue}->[-1] || {})->{nb});
+  $last ||= $c->{nb} ? shift @{$self->{queue}} : pop @{$self->{queue}};
+
+  return $c->{start} unless $c->{last} = $last;
   warn "-- Client >>> Server (#$last->{id})\n" if DEBUG;
   $stream->write(delete $last->{msg});
 

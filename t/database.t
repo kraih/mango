@@ -96,17 +96,18 @@ is $result->{test}, 23, 'right result';
 $collection->drop;
 
 # Interrupted blocking command
-my $port = Mojo::IOLoop->generate_port;
-$mango = Mango->new("mongodb://localhost:$port");
-my $id = $mango->ioloop->server((port => $port) => sub { $_[1]->close });
+my $loop = $mango->ioloop;
+my $id   = $loop->server((address => '127.0.0.1') => sub { $_[1]->close });
+my $port = $loop->acceptor($id)->handle->sockport;
+$mango = Mango->new("mongodb://localhost:$port")->ioloop($loop);
 eval { $mango->db->command('getnonce') };
 like $@, qr/Premature connection close/, 'right error';
 $mango->ioloop->remove($id);
 
 # Interrupted non-blocking command
-$port  = Mojo::IOLoop->generate_port;
+$id = Mojo::IOLoop->server((address => '127.0.0.1') => sub { $_[1]->close });
+$port = Mojo::IOLoop->acceptor($id)->handle->sockport;
 $mango = Mango->new("mongodb://localhost:$port");
-$id    = Mojo::IOLoop->server((port => $port) => sub { $_[1]->close });
 $fail  = undef;
 $mango->db->command(
   'getnonce' => sub {
