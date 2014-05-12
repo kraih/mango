@@ -7,6 +7,7 @@ plan skip_all => 'set TEST_ONLINE to enable this test'
 
 use Mango;
 use Mojo::IOLoop;
+use Mojo::IOLoop::Server;
 
 # Defaults
 my $mango = Mango->new;
@@ -47,7 +48,7 @@ $mango = Mango->new->from_string('mongodb://127.0.0.1,127.0.0.1:5000');
 is_deeply $mango->hosts, [['127.0.0.1'], ['127.0.0.1', 5000]], 'right hosts';
 
 # Connection error
-my $port = Mojo::IOLoop->generate_port;
+my $port = Mojo::IOLoop::Server->generate_port;
 eval { Mango->new("mongodb://127.0.0.1:$port/test")->db->command('getnonce') };
 ok $@, 'has error';
 
@@ -179,7 +180,7 @@ is $collection->remove->{n}, 3, 'three documents removed';
 
 # Fallback server
 $mango = Mango->new($ENV{TEST_ONLINE});
-$port  = Mojo::IOLoop->generate_port;
+$port  = Mojo::IOLoop::Server->generate_port;
 unshift @{$mango->hosts}, ['127.0.0.1', $port];
 ok $mango->db->command('getnonce')->{nonce}, 'command was successful';
 is_deeply $mango->hosts->[0], ['127.0.0.1', $port], 'right server';
