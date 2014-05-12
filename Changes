@@ -1,4 +1,6 @@
 
+0.38  2014-05-13
+
 0.37  2014-05-12
   - Added support for performing blocking and non-blocking operations at the
     same time.
