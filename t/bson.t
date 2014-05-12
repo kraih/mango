@@ -17,6 +17,7 @@ use Test::More;
 use Mango::BSON ':bson';
 use Mojo::ByteStream 'b';
 use Mojo::JSON 'encode_json';
+use Scalar::Util 'dualvar';
 
 # Ordered document
 my $doc = bson_doc(a => 1, c => 2, b => 3);
@@ -386,9 +387,23 @@ is bson_encode({test => [$num, $str]}),
 $str = '0 but true';
 $num = 1 + $str;
 is bson_encode({test => [$num, $str]}),
-    "\x1e\x00\x00\x00\x04\x74\x65\x73\x74"
-  . "\x00\x13\x00\x00\x00\x10\x30\x00\x01\x00\x00\x00\x10\x31\x00\x00\x00\x00"
-  . "\x00\x00\x00", 'upgraded number detected';
+    "\x29\x00\x00\x00\x04\x74\x65\x73\x74\x00\x1e\x00\x00\x00\x10\x30\x00\x01"
+  . "\x00\x00\x00\x02\x31\x00\x0b\x00\x00\x00\x30\x20\x62\x75\x74\x20\x74\x72"
+  . "\x75\x65\x00\x00\x00", 'upgraded number detected';
+
+# Upgraded string
+$str = "bar";
+{ no warnings 'numeric'; $num = 23 + $str }
+is bson_encode({test => [$num, $str]}),
+    "\x26\x00\x00\x00\x04\x74\x65\x73\x74\x00\x1b\x00\x00\x00\x01\x30\x00\x00"
+  . "\x00\x00\x00\x00\x00\x37\x40\x02\x31\x00\x04\x00\x00\x00\x62\x61\x72\x00"
+  . "\x00\x00", 'upgraded string detected';
+
+# dualvar
+my $dual = dualvar 23, 'twenty three';
+is bson_encode({test => $dual}),
+  "\x1c\x00\x00\x00\x02\x74\x65\x73\x74\x00\x0d\x00\x00\x00\x74\x77\x65\x6e"
+  . "\x74\x79\x20\x74\x68\x72\x65\x65\x00\x00", 'dualvar stringified';
 
 # Ensure numbers and strings are not upgraded
 my $mixed = {test => [3, 'three', '3', 0, "0"]};
