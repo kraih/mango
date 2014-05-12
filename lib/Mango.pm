@@ -256,10 +256,7 @@ sub _start {
   return $self->_next($op) if $op->{cb};
 
   my ($err, $reply);
-  $op->{cb} = sub {
-    (my $self, $err, $reply) = @_;
-    $self->ioloop->stop;
-  };
+  $op->{cb} = sub { shift->ioloop->stop; ($err, $reply) = @_ };
   $self->_next($op);
   $self->ioloop->start;
 
@@ -291,7 +288,7 @@ sub _write {
   # Fast operation
   delete $c->{start} unless my $last = delete $c->{fast};
 
-  # Blocking or non-blocking
+  # Blocking operations have precedence
   return $c->{start}
     unless $last || ($c->{nb} xor !($self->{queue}->[-1] || {})->{nb});
   $last ||= $c->{nb} ? shift @{$self->{queue}} : pop @{$self->{queue}};
