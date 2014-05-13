@@ -24,7 +24,7 @@ has [qw(max_write_batch_size wtimeout)] => 1000;
 has protocol => sub { Mango::Protocol->new };
 has w => 1;
 
-our $VERSION = '0.39';
+our $VERSION = '0.40';
 
 sub DESTROY { shift->_cleanup }
 
