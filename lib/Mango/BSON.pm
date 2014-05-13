@@ -331,21 +331,17 @@ sub _encode_value {
   # Numeric
   my $flags = B::svref_2object(\$value)->FLAGS;
   if ($flags & (B::SVp_IOK | B::SVp_NOK)) {
-    no warnings 'numeric';
-    my $num = $value;
-    $num += 0;
-
-    if ($num eq $value && $num * 0 == 0) {
+    if (0 + $value eq $value && $value * 0 == 0) {
 
       # Double
-      return DOUBLE . $e . pack('d<', $num) if $flags & B::SVp_NOK;
+      return DOUBLE . $e . pack('d<', $value) if $flags & B::SVp_NOK;
 
       # Int32
-      return INT32 . $e . pack('l<', $num)
-        if $num <= INT32_MAX && $num >= INT32_MIN;
+      return INT32 . $e . pack('l<', $value)
+        if $value <= INT32_MAX && $value >= INT32_MIN;
 
       # Int64
-      return INT64 . $e . pack('q<', $num);
+      return INT64 . $e . pack('q<', $value);
     }
   }
 
