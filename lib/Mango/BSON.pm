@@ -423,6 +423,9 @@ Create new BSON element of the code type with L<Mango::BSON::Code>.
 
 Create a new database reference.
 
+  # Longer version
+  my $dbref = {'$ref' => 'test', '$id' => $oid};
+
 =head2 bson_decode
 
   my $doc = bson_decode $bson;
@@ -490,6 +493,9 @@ defaults to generating a new unique object id.
   my $raw = bson_raw $bson;
 
 Pre-encoded BSON document.
+
+  # Longer version
+  my $raw = {'$bson' => $bson};
 
   # Embed pre-encoded BSON document
   my $first  = bson_encode {foo => 'bar'};
