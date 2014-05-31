@@ -1,4 +1,6 @@
 
+0.41  2014-06-01
+
 0.40  2014-05-31
   - Added inactivity_timeout attribute to Mango.
   - Fixed Mojolicious 5.0 support.
