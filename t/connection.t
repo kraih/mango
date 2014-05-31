@@ -14,10 +14,11 @@ my $mango = Mango->new;
 is_deeply $mango->hosts, [['localhost']], 'right hosts';
 is $mango->default_db, 'admin', 'right default database';
 is_deeply $mango->credentials, [], 'no credentials';
-is $mango->j,        0,    'right j value';
-is $mango->w,        1,    'right w value';
-is $mango->wtimeout, 1000, 'right wtimeout value';
-is $mango->backlog,  0,    'no operations waiting';
+is $mango->inactivity_timeout, 0,    'right timeout value';
+is $mango->j,                  0,    'right j value';
+is $mango->w,                  1,    'right w value';
+is $mango->wtimeout,           1000, 'right wtimeout value';
+is $mango->backlog,            0,    'no operations waiting';
 
 # Simple connection string
 $mango = Mango->new('mongodb://127.0.0.1:3000');
@@ -164,11 +165,12 @@ is $last, $current, 'same connection';
 # Mixed concurrent operations
 $collection->insert({test => $_}) for 1 .. 3;
 is $mango->backlog, 0, 'no operations waiting';
-$delay = Mojo::IOLoop->delay;
+my @results;
+$delay = Mojo::IOLoop->delay(sub { shift; @results = @_ });
 $collection->find_one(({test => $_}, {_id => 0}) => $delay->begin) for 1 .. 3;
 is $mango->backlog, 3, 'three operations waiting';
 is $collection->find_one({test => 1})->{test}, 1, 'right result';
-my @results = $delay->wait;
+$delay->wait;
 is $mango->backlog, 0, 'no operations waiting';
 ok !$results[0], 'no error';
 is_deeply $results[1], {test => 1}, 'right result';

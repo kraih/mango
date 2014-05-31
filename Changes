@@ -1,5 +1,7 @@
 
-0.40  2014-05-15
+0.40  2014-05-31
+  - Added inactivity_timeout attribute to Mango.
+  - Fixed Mojolicious 5.0 support.
 
 0.39  2014-05-14
   - Improved Mango::BSON performance.

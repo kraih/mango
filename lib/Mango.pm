@@ -16,8 +16,8 @@ use constant DEFAULT_PORT => 27017;
 has credentials => sub { [] };
 has default_db  => 'admin';
 has hosts       => sub { [['localhost']] };
-has ioloop      => sub { Mojo::IOLoop->new };
-has j           => 0;
+has [qw(inactivity_timeout j)] => 0;
+has ioloop => sub { Mojo::IOLoop->new };
 has max_bson_size   => 16777216;
 has max_connections => 5;
 has [qw(max_write_batch_size wtimeout)] => 1000;
@@ -139,7 +139,7 @@ sub _connect {
       }
 
       # Connection established
-      $stream->timeout(0);
+      $stream->timeout($self->inactivity_timeout);
       $stream->on(close => sub { $self->_error($id) });
       $stream->on(error => sub { $self && $self->_error($id, pop) });
       $stream->on(read => sub { $self->_read($id, pop) });
@@ -453,6 +453,15 @@ Default database, defaults to C<admin>.
   $mango    = $mango->hosts([['localhost', 3000], ['localhost', 4000]]);
 
 Servers to connect to, defaults to C<localhost> and port C<27017>.
+
+=head2 inactivity_timeout
+
+  my $timeout = $mango->inactivity_timeout;
+  $mango      = $mango->inactivity_timeout(15);
+
+Maximum amount of time in seconds a connection can be inactive before getting
+closed, defaults to C<0>. Setting the value to C<0> will allow connections to
+be inactive indefinitely.
 
 =head2 ioloop
 
