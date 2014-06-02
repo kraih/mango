@@ -4,9 +4,11 @@ use Mojo::Base -base;
 use Mango::BSON 'bson_doc';
 use Mojo::IOLoop;
 
-has [qw(batch_size limit skip)] => 0;
 has [
-  qw(collection comment hint id max_scan max_time_ms snapshot sort tailable)];
+  qw(await_data collection comment hint id max_scan max_time_ms snapshot),
+  qw(sort tailable)
+];
+has [qw(batch_size limit skip)] => 0;
 has [qw(fields query)] => sub { {} };
 
 sub add_batch {
@@ -48,8 +50,9 @@ sub clone {
   my $self  = shift;
   my $clone = $self->new;
   $clone->$_($self->$_)
-    for qw(batch_size collection comment fields hint limit max_scan);
-  $clone->$_($self->$_) for qw(max_time_ms query skip snapshot sort tailable);
+    for qw(await_data batch_size collection comment fields hint limit);
+  $clone->$_($self->$_)
+    for qw(max_scan max_time_ms query skip snapshot sort tailable);
   return $clone;
 }
 
@@ -194,7 +197,9 @@ sub _start {
 
   my $collection = $self->collection;
   my $name       = $collection->full_name;
-  my $flags = $self->tailable ? {tailable_cursor => 1, await_data => 1} : {};
+  my $flags      = {};
+  $flags->{tailable_cursor} = 1 if $self->tailable;
+  $flags->{await_data}      = 1 if $self->await_data;
   my @query = (
     $name, $flags, $self->skip, $self->num_to_return, $self->build_query,
     $self->fields
@@ -232,6 +237,13 @@ L<Mango::Collection>.
 =head1 ATTRIBUTES
 
 L<Mango::Cursor> implements the following attributes.
+
+=head2 await_data
+
+  my $await = $cursor->await_data;
+  $cursor   = $cursor->await_data(1);
+
+Await data.
 
 =head2 batch_size
 

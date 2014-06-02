@@ -82,7 +82,7 @@ ok defined $cursor->id, 'has a cursor id';
 ok $doc->{test}, 'right document';
 my $clone
   = $cursor->snapshot(1)->hint({test => 1})->max_time_ms(500)->tailable(1)
-  ->clone;
+  ->await_data(1)->clone;
 isnt $cursor, $clone, 'different objects';
 ok !defined $clone->id, 'has no cursor id';
 is $clone->batch_size, 2,      'right batch size';
@@ -96,6 +96,7 @@ is $clone->snapshot,    1,   'right snapshot value';
 is $clone->max_scan,    100, 'right max_scan value';
 is $clone->max_time_ms, 500, 'right max_time_ms value';
 is $clone->tailable,    1,   'is tailable';
+is $clone->await_data,  1,   'is awaiting data';
 is_deeply $clone->sort, {test => 1}, 'right sort value';
 $cursor = $collection->find({foo => 'bar'}, {foo => 1});
 is_deeply $cursor->clone->query,  {foo => 'bar'}, 'right query';
@@ -287,7 +288,7 @@ $collection->drop;
 $collection->create({capped => \1, max => 2, size => 100000});
 my $collection2 = $mango->db->collection('cursor_test');
 $collection2->insert([{test => 1}, {test => 2}]);
-$cursor = $collection->find->tailable(1);
+$cursor = $collection->find->tailable(1)->await_data(1);
 is $cursor->next->{test}, 1, 'right document';
 is $cursor->next->{test}, 2, 'right document';
 ($fail, $result) = ();
