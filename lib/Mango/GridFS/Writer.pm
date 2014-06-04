@@ -14,14 +14,14 @@ sub close {
 
   # Already closed
   if ($self->{closed}++) {
-    my $files_id = $self->{files_id};
+    my $files_id = $self->_files_id;
     return $files_id unless $cb;
     return Mojo::IOLoop->next_tick(sub { $self->$cb(undef, $files_id) });
   }
 
   my @index   = (bson_doc(files_id => 1, n => 1), {unique => \1});
   my $gridfs  = $self->gridfs;
-  my $command = bson_doc filemd5 => $self->{files_id}, root => $gridfs->prefix;
+  my $command = bson_doc filemd5 => $self->_files_id, root => $gridfs->prefix;
 
   # Non-blocking
   my $chunks = $gridfs->chunks;
@@ -45,7 +45,7 @@ sub close {
       return $delay->pass($err) if $err;
       $files->insert($self->_meta($doc->{md5}) => $delay->begin);
     },
-    sub { shift; $self->$cb(shift, $self->{files_id}) }
+    sub { shift; $self->$cb(shift, $self->_files_id) }
   ) if $cb;
 
   # Blocking
@@ -54,7 +54,7 @@ sub close {
   $chunks->ensure_index(@index);
   my $md5 = $gridfs->db->command($command)->{md5};
   $files->insert($self->_meta($md5));
-  return $self->{files_id};
+  return $self->_files_id;
 }
 
 sub is_closed { !!shift->{closed} }
@@ -90,15 +90,17 @@ sub _chunk {
   return $bulk unless length $chunk;
 
   my $n = $self->{n}++;
-  my $oid = $self->{files_id} //= bson_oid;
-  return $bulk->insert({files_id => $oid, n => $n, data => bson_bin($chunk)});
+  return $bulk->insert(
+    {files_id => $self->_files_id, n => $n, data => bson_bin($chunk)});
 }
+
+sub _files_id { shift->{files_id} //= bson_oid }
 
 sub _meta {
   my ($self, $md5) = @_;
 
   my $doc = {
-    _id        => $self->{files_id},
+    _id        => $self->_files_id,
     length     => $self->{len},
     chunkSize  => $self->chunk_size,
     uploadDate => bson_time,

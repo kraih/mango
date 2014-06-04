@@ -1,5 +1,8 @@
 
-0.42  2014-06-03
+0.42  2014-06-04
+  - Added md5 method to Mango::GridFS::Readers.
+  - Fixed bug in Mango::GridFS::Writer where files could get the wrong MD5
+    checksum.
 
 0.41  2014-06-02
   - Added await_data attribute to Mango::Cursor.

@@ -8,6 +8,7 @@ has 'gridfs';
 sub chunk_size   { shift->{meta}{chunkSize} }
 sub content_type { shift->{meta}{contentType} }
 sub filename     { shift->{meta}{filename} }
+sub md5          { shift->{meta}{md5} }
 sub metadata     { shift->{meta}{metadata} }
 
 sub open {
@@ -153,6 +154,12 @@ Content type of file.
   my $name = $reader->filename;
 
 Name of file.
+
+=head2 md5
+
+  my $checksum = $reader->md5;
+
+MD5 checksum for file.
 
 =head2 metadata
 
