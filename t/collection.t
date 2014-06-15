@@ -226,7 +226,7 @@ $doc->{update} = 'too';
 is $collection->save($doc), $oid, 'same object id';
 $doc = $collection->find_one($oid);
 is $doc->{update}, 'too', 'right document';
-is $collection->remove({_id => $oid})->{n}, 1, 'one document removed';
+is $collection->remove($oid)->{n}, 1, 'one document removed';
 $oid = bson_oid;
 $doc = bson_doc _id => $oid, save => 'me';
 is $collection->save($doc), $oid, 'same object id';
@@ -264,7 +264,7 @@ ok !$fail, 'no error';
 is $oid, $result, 'same object id';
 $doc = $collection->find_one($oid);
 is $doc->{update}, 'too', 'right document';
-is $collection->remove({_id => $oid})->{n}, 1, 'one document removed';
+is $collection->remove($oid)->{n}, 1, 'one document removed';
 $oid = bson_oid;
 $doc = bson_doc _id => $oid, save => 'me';
 ($fail, $result) = ();
@@ -281,7 +281,7 @@ ok !$fail, 'no error';
 is $oid, $result, 'same object id';
 $doc = $collection->find_one($oid, {_id => 0});
 is_deeply $doc, {save => 'me'}, 'right document';
-is $collection->remove({_id => $oid})->{n}, 1, 'one document removed';
+is $collection->remove($oid)->{n}, 1, 'one document removed';
 
 # Drop collection blocking
 $oid = $collection->insert({just => 'works'});

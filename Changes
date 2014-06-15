@@ -1,5 +1,6 @@
 
-0.43  2014-06-05
+0.43  2014-06-15
+  - Improved remove method in Mango::Collection to accept object ids.
 
 0.42  2014-06-04
   - Added md5 method to Mango::GridFS::Readers.

@@ -152,6 +152,8 @@ sub remove {
   my $query = shift // {};
   my $flags = shift // {};
 
+  ($query, $flags) = ({_id => $query}, {single => 1})
+    if ref $query eq 'Mango::BSON::ObjectID';
   my $command = bson_doc
     delete       => $self->name,
     deletes      => [{q => $query, limit => $flags->{single} ? 1 : 0}],
@@ -494,6 +496,7 @@ operation non-blocking.
 =head2 remove
 
   my $doc = $collection->remove;
+  my $doc = $collection->remove($oid);
   my $doc = $collection->remove({foo => 'bar'});
   my $doc = $collection->remove({foo => 'bar'}, {single => 1});
 
