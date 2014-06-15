@@ -483,7 +483,7 @@ Wait for all operations to have reached the journal, defaults to C<0>.
   my $max = $mango->max_bson_size;
   $mango  = $mango->max_bson_size(16777216);
 
-Maximum size for BSON documents in bytes, defaults to C<16777216>.
+Maximum size for BSON documents in bytes, defaults to C<16777216> (16MB).
 
 =head2 max_connections
 

@@ -140,7 +140,7 @@ L<Mango::GridFS::Writer> implements the following attributes.
   my $size = $writer->chunk_size;
   $writer  = $writer->chunk_size(1024);
 
-Chunk size in bytes, defaults to C<261120>.
+Chunk size in bytes, defaults to C<261120> (255KB).
 
 =head2 content_type
 
