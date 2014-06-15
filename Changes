@@ -1,4 +1,6 @@
 
+0.44  2014-06-16
+
 0.43  2014-06-15
   - Improved remove method in Mango::Collection to accept object ids.
 
