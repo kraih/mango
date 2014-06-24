@@ -24,7 +24,7 @@ has [qw(max_write_batch_size wtimeout)] => 1000;
 has protocol => sub { Mango::Protocol->new };
 has w => 1;
 
-our $VERSION = '0.44';
+our $VERSION = '1.0';
 
 sub DESTROY { shift->_cleanup }
 
@@ -381,13 +381,6 @@ version is supported.
 To learn more about MongoDB you should take a look at the
 L<official documentation|http://docs.mongodb.org>, the documentation included
 in this distribution is no replacement for it.
-
-Note that this whole distribution is EXPERIMENTAL and will change without
-warning!
-
-Most of the API is not changing much anymore, but you should wait for a stable
-1.0 release before using any of the modules in this distribution in a
-production environment.
 
 Many arguments passed to methods as well as values of attributes get
 serialized to BSON with L<Mango::BSON>, which provides many helper functions
