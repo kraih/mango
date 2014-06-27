@@ -550,6 +550,7 @@ non-blocking.
 
 =head2 update
 
+  my $doc = $collection->update($oid, {foo => 'baz'});
   my $doc = $collection->update({foo => 'bar'}, {foo => 'baz'});
   my $doc = $collection->update({foo => 'bar'}, {foo => 'baz'}, {multi => 1});
 
