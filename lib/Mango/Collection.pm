@@ -186,6 +186,7 @@ sub update {
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
   my $flags = shift // {};
 
+  $query = {_id => $query} if ref $query eq 'Mango::BSON::ObjectID';
   $update = {
     q      => $query,
     u      => $update,

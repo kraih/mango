@@ -53,6 +53,14 @@ ok !$fail, 'no error';
 is $result->{count}, 2, 'right number of documents';
 
 # Update documents blocking
+my $oid = bson_oid;
+is $collection->update($oid, {foo => 'bar'})->{n}, 0, 'upsert is 0 by default';
+is $collection->update($oid, {foo => 'bar'}, {upsert => 1})->{n}, 1,
+  '1 document created';
+is $collection->update($oid, {foo => 'works'})->{n}, 1, '1 document updated';
+is $collection->find_one($oid)->{foo}, 'works', 'right value';
+is $collection->remove($oid)->{n},     1,       'one doc removed';
+
 is $collection->update({}, {'$set' => {bar => 'works'}}, {multi => 1})->{n},
   2, 'two documents updated';
 is $collection->update({}, {'$set' => {baz => 'too'}})->{n}, 1,
@@ -76,7 +84,7 @@ is $collection->remove->{n}, 1, 'one document removed';
 ok !$collection->find_one($oids->[0]), 'no document';
 
 # Find and modify document blocking
-my $oid = $collection->insert({atomic => 1});
+$oid = $collection->insert({atomic => 1});
 is $collection->find_one($oid)->{atomic}, 1, 'right document';
 my $doc = $collection->find_and_modify(
   {query => {atomic => 1}, update => {'$set' => {atomic => 2}}});
