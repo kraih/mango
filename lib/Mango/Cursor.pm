@@ -182,7 +182,7 @@ sub _enough {
 
 sub _enqueue {
   my ($self, $reply) = @_;
-  return unless $reply;
+  return undef unless $reply;
   return $self->add_batch($reply->{docs})->id($reply->{cursor})->_dequeue;
 }
 
