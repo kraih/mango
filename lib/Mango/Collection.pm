@@ -187,10 +187,10 @@ sub update {
   my $flags = shift // {};
 
   $update = {
-    q      => $query,
-    u      => $update,
+    q => ref $query eq 'Mango::BSON::ObjectID' ? {_id => $query} : $query,
+    u => $update,
     upsert => $flags->{upsert} ? \1 : \0,
-    multi  => $flags->{multi} ? \1 : \0
+    multi  => $flags->{multi}  ? \1 : \0
   };
   my $command = bson_doc
     update       => $self->name,
@@ -549,6 +549,7 @@ non-blocking.
 
 =head2 update
 
+  my $doc = $collection->update($oid, {foo => 'baz'});
   my $doc = $collection->update({foo => 'bar'}, {foo => 'baz'});
   my $doc = $collection->update({foo => 'bar'}, {foo => 'baz'}, {multi => 1});
 

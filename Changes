@@ -1,5 +1,7 @@
 
 1.01  2014-06-28
+  - Improved update method in Mango::Collection to accept object ids.
+    (alexbyk)
   - Fixed small bug in Mango::Cursor where callbacks would sometimes get the
     wrong number of arguments.
 

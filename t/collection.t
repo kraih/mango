@@ -67,6 +67,13 @@ is $collection->remove({now => 'there'}, {single => 1})->{n}, 1,
   'one document removed';
 is $collection->remove({now => 'there'}, {single => 1})->{n}, 1,
   'one document removed';
+my $oid = bson_oid;
+is $collection->update($oid, {foo => 'bar'})->{n}, 0, 'no documents updated';
+is $collection->update($oid, {foo => 'bar'}, {upsert => 1})->{n}, 1,
+  'one document updated';
+is $collection->update($oid, {foo => 'works'})->{n}, 1, 'one document updated';
+is $collection->find_one($oid)->{foo}, 'works', 'right value';
+is $collection->remove($oid)->{n},     1,       'one document removed';
 
 # Remove one document blocking
 is $collection->remove({foo => 'baz'})->{n}, 1, 'one document removed';
@@ -76,7 +83,7 @@ is $collection->remove->{n}, 1, 'one document removed';
 ok !$collection->find_one($oids->[0]), 'no document';
 
 # Find and modify document blocking
-my $oid = $collection->insert({atomic => 1});
+$oid = $collection->insert({atomic => 1});
 is $collection->find_one($oid)->{atomic}, 1, 'right document';
 my $doc = $collection->find_and_modify(
   {query => {atomic => 1}, update => {'$set' => {atomic => 2}}});
