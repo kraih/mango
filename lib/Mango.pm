@@ -140,7 +140,7 @@ sub _connect {
 
       # Connection established
       $stream->timeout($self->inactivity_timeout);
-      $stream->on(close => sub { $self->_error($id) });
+      $stream->on(close => sub { $self && $self->_error($id) });
       $stream->on(error => sub { $self && $self->_error($id, pop) });
       $stream->on(read => sub { $self->_read($id, pop) });
       $self->emit(connection => $id)->_connected($id, [@{$self->credentials}]);

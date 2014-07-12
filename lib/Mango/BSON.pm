@@ -221,7 +221,7 @@ sub _decode_value {
 
   # Timestamp
   return bson_ts(
-    reverse map({unpack 'l<', substr($$_, 0, 4, '')} $bsonref, $bsonref))
+    reverse map({ unpack 'l<', substr($$_, 0, 4, '') } $bsonref, $bsonref))
     if $type eq TIMESTAMP;
 
   # Unknown
