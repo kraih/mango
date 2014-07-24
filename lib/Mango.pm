@@ -77,13 +77,6 @@ sub new { shift->SUPER::new->from_string(@_) }
 
 sub query { shift->_op('query', 1, @_) }
 
-sub _active {
-  my $self = shift;
-  return 1 if $self->backlog;
-  return !!grep { $_->{last} && !$_->{start} }
-    values %{$self->{connections} || {}};
-}
-
 sub _auth {
   my ($self, $id, $credentials, $auth, $err, $doc) = @_;
   my ($db, $user, $pass) = @$auth;
@@ -93,8 +86,7 @@ sub _auth {
   my $key = md5_sum $nonce . $user . md5_sum "$user:mongo:$pass";
   my $command
     = bson_doc(authenticate => 1, user => $user, nonce => $nonce, key => $key);
-  my $cb = sub { shift->_connected($id, $credentials) };
-  $self->_fast($id, $db, $command, $cb);
+  $self->_fast($id, $db, $command, sub { shift->_nonce($id, $credentials) });
 }
 
 sub _build {
@@ -143,26 +135,17 @@ sub _connect {
       $stream->on(close => sub { $self && $self->_error($id) });
       $stream->on(error => sub { $self && $self->_error($id, pop) });
       $stream->on(read => sub { $self->_read($id, pop) });
-      $self->emit(connection => $id)->_connected($id, [@{$self->credentials}]);
+      $self->emit(connection => $id);
+
+      # Check version with "isMaster" command
+      my $cb = sub { shift->_version($id, @_) };
+      $self->_fast($id, $self->default_db, {isMaster => 1}, $cb);
     }
   );
   $self->{connections}{$id} = {nb => $nb, start => 1};
 
   my $num = scalar keys %{$self->{connections}};
   warn "-- New connection ($host:$port:$num)\n" if DEBUG;
-}
-
-sub _connected {
-  my ($self, $id, $credentials) = @_;
-
-  # No authentication (check version with "isMaster" command)
-  my $cb = sub { shift->_version($id, @_) };
-  return $self->_fast($id, $self->default_db, {isMaster => 1}, $cb)
-    unless my $auth = shift @$credentials;
-
-  # Run "getnonce" command followed by "authenticate"
-  $cb = sub { shift->_auth($id, $credentials, $auth, @_) };
-  $self->_fast($id, $auth->[0], {getnonce => 1}, $cb);
 }
 
 sub _error {
@@ -225,6 +208,18 @@ sub _next {
     if !$start && @{$self->{queue}} && @ids < $self->max_connections;
 }
 
+sub _nonce {
+  my ($self, $id, $credentials) = @_;
+
+  # No authentication
+  $credentials ||= [@{$self->credentials}];
+  return $self->_next unless my $auth = shift @$credentials;
+
+  # Run "getnonce" command followed by "authenticate"
+  my $cb = sub { shift->_auth($id, $credentials, $auth, @_) };
+  $self->_fast($id, $auth->[0], {getnonce => 1}, $cb);
+}
+
 sub _op {
   my ($self, $op, $safe) = (shift, shift, shift);
   my $cb = ref $_[-1] eq 'CODE' ? pop : undef;
@@ -268,7 +263,7 @@ sub _start {
 
 sub _version {
   my ($self, $id, $err, $doc) = @_;
-  return $self->_next if ($doc->{maxWireVersion} || 0) >= 2;
+  return $self->_nonce($id) if ($doc->{maxWireVersion} || 0) >= 2;
   $self->_error($id, 'MongoDB version 2.6 required');
 }
 
