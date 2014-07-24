@@ -30,9 +30,10 @@ sub delete {
 sub find_version {
   my ($self, $name, $version, $cb) = @_;
 
-  my $cursor = $self->files->find({filename => $name});
-  $cursor->sort({uploadDate => 1})->limit(-1)->fields({_id => 1});
-  $cursor->skip($version - 1) if $version;
+  # Positive numbers are absolute and negative ones relative
+  my $cursor = $self->files->find({filename => $name}, {_id => 1})->limit(-1);
+  $cursor->sort({uploadDate => $version < 0 ? -1 : 1})
+    ->skip($version < 0 ? abs($version) - 1 : $version);
 
   # Non-blocking
   return $cursor->next(
@@ -132,7 +133,9 @@ Delete file. You can also append a callback to perform operation non-blocking.
 
   my $oid = $gridfs->find_version('test.txt', 1);
 
-Find a specific version of a file. You can also append a callback to perform
+Find a specific version of a file, positive numbers from C<0> and upwards
+always point to the same version, and negative ones start with C<-1> for the
+most recently added version. You can also append a callback to perform
 operation non-blocking.
 
   $gridfs->find_version(('test.txt', 1) => sub {
@@ -160,7 +163,7 @@ List files. You can also append a callback to perform operation non-blocking.
 Build L<Mango::GridFS::Reader> object.
 
   # Read all data at once from newest version of file
-  my $oid  = $gridfs->find_version('test.txt', 1);
+  my $oid  = $gridfs->find_version('test.txt', -1);
   my $data = $gridfs->reader->open($oid)->slurp;
 
   # Read all data in chunks from file
