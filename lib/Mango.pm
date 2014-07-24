@@ -78,15 +78,15 @@ sub new { shift->SUPER::new->from_string(@_) }
 sub query { shift->_op('query', 1, @_) }
 
 sub _auth {
-  my ($self, $id, $auth, $err, $doc) = @_;
-  my ($db, $user, $pass) = @$auth;
+  my ($self, $id) = @_;
 
-  # Run "authenticate" command with "nonce" value
-  my $nonce = $doc->{nonce} // '';
-  my $key = md5_sum $nonce . $user . md5_sum "$user:mongo:$pass";
-  my $command
-    = bson_doc(authenticate => 1, user => $user, nonce => $nonce, key => $key);
-  $self->_fast($id, $db, $command, sub { shift->_nonce($id) });
+  # No authentication
+  return $self->_next
+    unless my $auth = shift @{$self->{connections}{$id}{credentials}};
+
+  # Run "getnonce" command followed by "authenticate"
+  my $cb = sub { shift->_nonce($id, $auth, @_) };
+  $self->_fast($id, $auth->[0], {getnonce => 1}, $cb);
 }
 
 sub _build {
@@ -210,15 +210,15 @@ sub _next {
 }
 
 sub _nonce {
-  my ($self, $id) = @_;
+  my ($self, $id, $auth, $err, $doc) = @_;
+  my ($db, $user, $pass) = @$auth;
 
-  # No authentication
-  return $self->_next
-    unless my $auth = shift @{$self->{connections}{$id}{credentials}};
-
-  # Run "getnonce" command followed by "authenticate"
-  my $cb = sub { shift->_auth($id, $auth, @_) };
-  $self->_fast($id, $auth->[0], {getnonce => 1}, $cb);
+  # Run "authenticate" command with "nonce" value
+  my $nonce = $doc->{nonce} // '';
+  my $key = md5_sum $nonce . $user . md5_sum "$user:mongo:$pass";
+  my $command
+    = bson_doc(authenticate => 1, user => $user, nonce => $nonce, key => $key);
+  $self->_fast($id, $db, $command, sub { shift->_auth($id) });
 }
 
 sub _op {
@@ -264,7 +264,7 @@ sub _start {
 
 sub _version {
   my ($self, $id, $err, $doc) = @_;
-  return $self->_nonce($id) if ($doc->{maxWireVersion} || 0) >= 2;
+  return $self->_auth($id) if ($doc->{maxWireVersion} || 0) >= 2;
   $self->_error($id, 'MongoDB version 2.6 required');
 }
 
