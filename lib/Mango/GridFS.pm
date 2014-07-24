@@ -133,10 +133,9 @@ Delete file. You can also append a callback to perform operation non-blocking.
 
   my $oid = $gridfs->find_version('test.txt', 1);
 
-Find a specific version of a file, positive numbers from C<0> and upwards
-always point to the same version, and negative ones start with C<-1> for the
-most recently added version. You can also append a callback to perform
-operation non-blocking.
+Find versions of files, positive numbers from C<0> and upwards always point to
+a specific version, negative ones start with C<-1> for the most recently added
+version. You can also append a callback to perform operation non-blocking.
 
   $gridfs->find_version(('test.txt', 1) => sub {
     my ($gridfs, $err, $oid) = @_;
