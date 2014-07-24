@@ -78,7 +78,7 @@ sub new { shift->SUPER::new->from_string(@_) }
 sub query { shift->_op('query', 1, @_) }
 
 sub _auth {
-  my ($self, $id, $credentials, $auth, $err, $doc) = @_;
+  my ($self, $id, $auth, $err, $doc) = @_;
   my ($db, $user, $pass) = @$auth;
 
   # Run "authenticate" command with "nonce" value
@@ -86,7 +86,7 @@ sub _auth {
   my $key = md5_sum $nonce . $user . md5_sum "$user:mongo:$pass";
   my $command
     = bson_doc(authenticate => 1, user => $user, nonce => $nonce, key => $key);
-  $self->_fast($id, $db, $command, sub { shift->_nonce($id, $credentials) });
+  $self->_fast($id, $db, $command, sub { shift->_nonce($id) });
 }
 
 sub _build {
@@ -142,7 +142,8 @@ sub _connect {
       $self->_fast($id, $self->default_db, {isMaster => 1}, $cb);
     }
   );
-  $self->{connections}{$id} = {nb => $nb, start => 1};
+  $self->{connections}{$id}
+    = {credentials => [@{$self->credentials}], nb => $nb, start => 1};
 
   my $num = scalar keys %{$self->{connections}};
   warn "-- New connection ($host:$port:$num)\n" if DEBUG;
@@ -209,14 +210,14 @@ sub _next {
 }
 
 sub _nonce {
-  my ($self, $id, $credentials) = @_;
+  my ($self, $id) = @_;
 
   # No authentication
-  $credentials ||= [@{$self->credentials}];
-  return $self->_next unless my $auth = shift @$credentials;
+  return $self->_next
+    unless my $auth = shift @{$self->{connections}{$id}{credentials}};
 
   # Run "getnonce" command followed by "authenticate"
-  my $cb = sub { shift->_auth($id, $credentials, $auth, @_) };
+  my $cb = sub { shift->_auth($id, $auth, @_) };
   $self->_fast($id, $auth->[0], {getnonce => 1}, $cb);
 }
 
