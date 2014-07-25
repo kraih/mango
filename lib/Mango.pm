@@ -146,7 +146,7 @@ sub _connect {
       $stream->on(read => sub { $self->_read($id, pop) });
 
       # Check node information with "isMaster" command
-      my $cb = sub { shift->_master($id, $nb, $hosts, @_) };
+      my $cb = sub { shift->_master($id, $nb, $hosts, pop) };
       $self->_fast($id, $self->default_db, {isMaster => 1}, $cb);
     }
   );
@@ -201,7 +201,7 @@ sub _id { $_[0]{id} = $_[0]->protocol->next_id($_[0]{id} // 0) }
 sub _loop { $_[1] ? Mojo::IOLoop->singleton : $_[0]->ioloop }
 
 sub _master {
-  my ($self, $id, $nb, $hosts, $err, $doc) = @_;
+  my ($self, $id, $nb, $hosts, $doc) = @_;
 
   # Check version
   return $self->_error($id, 'MongoDB version 2.6 required')
