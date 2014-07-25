@@ -132,8 +132,8 @@ sub _connect {
 
       # Connection established
       $stream->timeout($self->inactivity_timeout);
-      $stream->on(close => sub { $self && $self->_error($id) });
-      $stream->on(error => sub { $self && $self->_error($id, pop) });
+      $stream->on(close => sub { $self && $self->_error($id, undef, 1) });
+      $stream->on(error => sub { $self && $self->_error($id, pop,   1) });
       $stream->on(read => sub { $self->_read($id, pop) });
 
       # Check node information with "isMaster" command
@@ -149,14 +149,17 @@ sub _connect {
 }
 
 sub _error {
-  my ($self, $id, $err) = @_;
+  my ($self, $id, $err, $reconnect) = @_;
 
   my $c    = delete $self->{connections}{$id};
   my $last = $c->{last};
   $last //= shift @{$self->{queue}} if $err;
-  $self->_connect($c->{nb}) if @{$self->{queue}};
-  return $err ? $self->emit(error => $err) : $self unless $last;
-  $self->_finish(undef, $last->{cb}, $err || 'Premature connection close');
+
+  my $default = 'Premature connection close';
+  if ($last) { $self->_finish(undef, $last->{cb}, $err || $default) }
+  elsif ($err) { $self->emit(error => $err) }
+
+  $self->_connect($c->{nb}) if $reconnect && !$c->{close} && @{$self->{queue}};
 }
 
 sub _fast {
@@ -167,7 +170,7 @@ sub _fast {
     my ($self, $err, $reply) = @_;
     my $doc = $reply->{docs}[0];
     $err ||= $self->protocol->command_error($doc);
-    return $err ? $self->_error($id, $err) : $self->$cb($err, $doc);
+    $err ? $self->_error($id, $err) : $self->$cb($err, $doc);
   };
 
   # Skip the queue and run command right away
@@ -199,8 +202,9 @@ sub _master {
 
   # Get primary and try to connect again
   unshift @$hosts, [$1, $2] if ($doc->{primary} // '') =~ /^(.+):(\d+)$/;
-  $self->_loop($nb)->remove($id);
   return $self->_error($id, "Couldn't find primary node") unless @$hosts;
+  $self->{connections}{$id}{close} = 1;
+  $self->_loop($nb)->remove($id);
   $self->_connect($nb, $hosts);
 }
 
