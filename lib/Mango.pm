@@ -81,7 +81,7 @@ sub _auth {
   my ($self, $id) = @_;
 
   # No authentication
-  return $self->_next
+  return $self->emit(connection => $id)->_next
     unless my $auth = shift @{$self->{connections}{$id}{credentials}};
 
   # Run "getnonce" command followed by "authenticate"
@@ -166,11 +166,10 @@ sub _fast {
   my ($self, $id, $db, $command, $cb) = @_;
 
   # Handle errors
-  my $protocol = $self->protocol;
-  my $wrapper  = sub {
+  my $wrapper = sub {
     my ($self, $err, $reply) = @_;
     my $doc = $reply->{docs}[0];
-    $err ||= $protocol->command_error($doc);
+    $err ||= $self->protocol->command_error($doc);
     return $err ? $self->_error($id, $err) : $self->$cb($err, $doc);
   };
 
@@ -199,7 +198,7 @@ sub _master {
     unless ($doc->{maxWireVersion} || 0) >= 2;
 
   # Continue with authentication if we are connected to the primary
-  return $self->emit(connection => $id)->_auth($id) if $doc->{ismaster};
+  return $self->_auth($id) if $doc->{ismaster};
 
   # Get primary and try to connect again
   unshift @$hosts, [$1, $2] if ($doc->{primary} // '') =~ /^(.+):(\d+)$/;
