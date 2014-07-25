@@ -124,21 +124,16 @@ sub _connect {
       my ($loop, $err, $stream) = @_;
 
       # Connection error (try next server)
-      if ($err) {
-        return $self->_error($id, $err) unless @$hosts;
-        delete $self->{connections}{$id};
-        return $self->_connect($nb, $hosts);
-      }
+      return $self->_connect_again($id, $nb, $hosts, $err) if $err;
 
       # Connection established
       $stream->timeout($self->inactivity_timeout);
       $stream->on(close => sub { $self && $self->_error($id) });
       $stream->on(error => sub { $self && $self->_error($id, pop) });
       $stream->on(read => sub { $self->_read($id, pop) });
-      $self->emit(connection => $id);
 
       # Check version with "isMaster" command
-      my $cb = sub { shift->_version($id, @_) };
+      my $cb = sub { shift->_master($id, $nb, $hosts, @_) };
       $self->_fast($id, $self->default_db, {isMaster => 1}, $cb);
     }
   );
@@ -147,6 +142,13 @@ sub _connect {
 
   my $num = scalar keys %{$self->{connections}};
   warn "-- New connection ($host:$port:$num)\n" if DEBUG;
+}
+
+sub _connect_again {
+  my ($self, $id, $nb, $hosts, $err) = @_;
+  return $self->_error($id, $err) unless @$hosts;
+  delete $self->{connections}{$id};
+  $self->_connect($nb, $hosts);
 }
 
 sub _error {
@@ -188,6 +190,21 @@ sub _finish {
 sub _id { $_[0]{id} = $_[0]->protocol->next_id($_[0]{id} // 0) }
 
 sub _loop { $_[1] ? Mojo::IOLoop->singleton : $_[0]->ioloop }
+
+sub _master {
+  my ($self, $id, $nb, $hosts, $err, $doc) = @_;
+
+  # Check version
+  return $self->_error($id, 'MongoDB version 2.6 required')
+    unless ($doc->{maxWireVersion} || 0) >= 2;
+
+  # Continue with authentication if we are connected to the primary
+  return $self->emit(connection => $id)->_auth($id) if $doc->{ismaster};
+
+  # Get primary and try to connect again
+  unshift @$hosts, [$1, $2] if ($doc->{primary} // '') =~ /^(.+):(\d+)$/;
+  $self->_connect_again($id, $nb, $hosts, "Couldn't find primary node");
+}
 
 sub _next {
   my ($self, $op) = @_;
@@ -260,12 +277,6 @@ sub _start {
   croak $err if $err;
 
   return $reply;
-}
-
-sub _version {
-  my ($self, $id, $err, $doc) = @_;
-  return $self->_auth($id) if ($doc->{maxWireVersion} || 0) >= 2;
-  $self->_error($id, 'MongoDB version 2.6 required');
 }
 
 sub _write {

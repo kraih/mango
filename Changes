@@ -1,5 +1,6 @@
 
 1.03  2014-07-25
+  - Improved Mango to avoid secondary nodes.
 
 1.02  2014-07-24
   - Fixed version handling in Mango::GridFS.
