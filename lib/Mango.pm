@@ -124,7 +124,11 @@ sub _connect {
       my ($loop, $err, $stream) = @_;
 
       # Connection error (try next server)
-      return $self->_connect_again($id, $nb, $hosts, $err) if $err;
+      if ($err) {
+        return $self->_error($id, $err) unless @$hosts;
+        delete $self->{connections}{$id};
+        return $self->_connect($nb, $hosts);
+      }
 
       # Connection established
       $stream->timeout($self->inactivity_timeout);
@@ -142,14 +146,6 @@ sub _connect {
 
   my $num = scalar keys %{$self->{connections}};
   warn "-- New connection ($host:$port:$num)\n" if DEBUG;
-}
-
-sub _connect_again {
-  my ($self, $id, $nb, $hosts, $err) = @_;
-  $self->_loop($nb)->remove($id);
-  return $self->_error($id, $err) unless @$hosts;
-  delete $self->{connections}{$id};
-  $self->_connect($nb, $hosts);
 }
 
 sub _error {
@@ -203,7 +199,9 @@ sub _master {
 
   # Get primary and try to connect again
   unshift @$hosts, [$1, $2] if ($doc->{primary} // '') =~ /^(.+):(\d+)$/;
-  $self->_connect_again($id, $nb, $hosts, "Couldn't find primary node");
+  $self->_loop($nb)->remove($id);
+  return $self->_error($id, "Couldn't find primary node") unless @$hosts;
+  $self->_connect($nb, $hosts);
 }
 
 sub _next {
