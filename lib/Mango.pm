@@ -80,7 +80,7 @@ sub query { shift->_op('query', 1, @_) }
 sub _auth {
   my ($self, $id) = @_;
 
-  # No authentication
+  # No more authentication (connection is ready)
   return $self->emit(connection => $id)->_next
     unless my $auth = shift @{$self->{connections}{$id}{credentials}};
 
@@ -115,8 +115,8 @@ sub _cleanup {
 
 sub _connect {
   my ($self, $nb, $hosts) = @_;
-  my ($host, $port) = @{shift @{$hosts ||= [@{$self->hosts}]}};
 
+  my ($host, $port) = @{shift @{$hosts ||= [@{$self->hosts}]}};
   weaken $self;
   my $id;
   $id = $self->_loop($nb)->client(
@@ -132,7 +132,7 @@ sub _connect {
       $stream->on(error => sub { $self && $self->_error($id, pop) });
       $stream->on(read => sub { $self->_read($id, pop) });
 
-      # Check version with "isMaster" command
+      # Check node information with "isMaster" command
       my $cb = sub { shift->_master($id, $nb, $hosts, @_) };
       $self->_fast($id, $self->default_db, {isMaster => 1}, $cb);
     }
@@ -146,6 +146,7 @@ sub _connect {
 
 sub _connect_again {
   my ($self, $id, $nb, $hosts, $err) = @_;
+  $self->_loop($nb)->remove($id);
   return $self->_error($id, $err) unless @$hosts;
   delete $self->{connections}{$id};
   $self->_connect($nb, $hosts);
@@ -208,29 +209,28 @@ sub _master {
 sub _next {
   my ($self, $op) = @_;
 
+  # Make sure all connections are saturated
   push @{$self->{queue} ||= []}, $op if $op;
-
   my $connections = $self->{connections};
-  my @ids         = keys %$connections;
   my $start;
-  $self->_write($_) and $start++ for @ids;
-  return unless $op;
+  $self->_write($_) and $start++ for my @ids = keys %$connections;
 
-  # Blocking
+  # Check if we need a blocking connection
+  return unless $op;
   return $self->_connect(0)
     if !$op->{nb} && !grep { !$connections->{$_}{nb} } @ids;
 
-  # Non-blocking
+  # Check if we need more non-blocking connections
   $self->_connect(1)
     if !$start && @{$self->{queue}} && @ids < $self->max_connections;
 }
 
 sub _nonce {
   my ($self, $id, $auth, $err, $doc) = @_;
-  my ($db, $user, $pass) = @$auth;
 
   # Run "authenticate" command with "nonce" value
   my $nonce = $doc->{nonce} // '';
+  my ($db, $user, $pass) = @$auth;
   my $key = md5_sum $nonce . $user . md5_sum "$user:mongo:$pass";
   my $command
     = bson_doc(authenticate => 1, user => $user, nonce => $nonce, key => $key);
@@ -267,15 +267,12 @@ sub _start {
   # Non-blocking
   return $self->_next($op) if $op->{cb};
 
+  # Blocking
   my ($err, $reply);
   $op->{cb} = sub { shift->ioloop->stop; ($err, $reply) = @_ };
   $self->_next($op);
   $self->ioloop->start;
-
-  # Throw blocking errors
-  croak $err if $err;
-
-  return $reply;
+  return $err ? croak $err : $reply;
 }
 
 sub _write {
