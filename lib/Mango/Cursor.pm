@@ -5,8 +5,8 @@ use Mango::BSON 'bson_doc';
 use Mojo::IOLoop;
 
 has [
-  qw(await_data collection comment hint id max_scan max_time_ms snapshot),
-  qw(sort tailable)
+  qw(await_data collection comment hint id max_scan max_time_ms),
+  qw(read_preference snapshot sort tailable)
 ];
 has [qw(batch_size limit skip)] => 0;
 has [qw(fields query)] => sub { {} };
@@ -38,8 +38,9 @@ sub build_query {
   if (my $hint     = $self->hint)        { $ext{'$hint'}      = $hint }
   if (my $max_scan = $self->max_scan)    { $ext{'$maxScan'}   = $max_scan }
   if (my $max      = $self->max_time_ms) { $ext{'$maxTimeMS'} = $max }
-  if (my $snapshot = $self->snapshot)    { $ext{'$snapshot'}  = 1 }
-  if (my $sort     = $self->sort)        { $ext{'$orderby'}   = $sort }
+  if (my $pref = $self->read_preference) { $ext{'$readPreference'} = $pref }
+  if (my $snapshot = $self->snapshot) { $ext{'$snapshot'} = 1 }
+  if (my $sort     = $self->sort)     { $ext{'$orderby'}  = $sort }
 
   my $query = $self->query;
   return $query unless keys %ext;
@@ -49,10 +50,9 @@ sub build_query {
 sub clone {
   my $self  = shift;
   my $clone = $self->new;
-  $clone->$_($self->$_)
-    for qw(await_data batch_size collection comment fields hint limit);
-  $clone->$_($self->$_)
-    for qw(max_scan max_time_ms query skip snapshot sort tailable);
+  $clone->$_($self->$_) for qw(await_data batch_size collection comment);
+  $clone->$_($self->$_) for qw(fields hint limit max_scan max_time_ms query);
+  $clone->$_($self->$_) for qw(read_preference skip snapshot sort tailable);
   return $clone;
 }
 
@@ -314,6 +314,13 @@ Timeout for query in milliseconds.
   $cursor   = $cursor->query({foo => 'bar'});
 
 Original query.
+
+=head2 read_preference
+
+  my $pref = $cursor->read_preference;
+  $cursor  = $cursor->read_preference({mode => 'SECONDARY'});
+
+Read preference.
 
 =head2 skip
 

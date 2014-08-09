@@ -71,6 +71,9 @@ is_deeply $cursor->query, {'$query' => {foo => 'bar'}, '$foo' => 'bar'},
 $cursor = $collection->find({})->comment('Test!')->max_time_ms(500);
 is_deeply $cursor->build_query,
   {'$query' => {}, '$comment' => 'Test!', '$maxTimeMS' => 500}, 'right query';
+$cursor = $collection->find({})->read_preference({mode => 'SECONDARY'});
+is_deeply $cursor->build_query,
+  {'$query' => {}, '$readPreference' => {mode => 'SECONDARY'}}, 'right query';
 
 # Clone cursor
 $cursor
@@ -82,7 +85,7 @@ ok defined $cursor->id, 'has a cursor id';
 ok $doc->{test}, 'right document';
 my $clone
   = $cursor->snapshot(1)->hint({test => 1})->max_time_ms(500)->tailable(1)
-  ->await_data(1)->clone;
+  ->await_data(1)->read_preference({mode => 'SECONDARY'})->clone;
 isnt $cursor, $clone, 'different objects';
 ok !defined $clone->id, 'has no cursor id';
 is $clone->batch_size, 2,      'right batch size';
@@ -95,8 +98,9 @@ is $clone->skip,        1,   'right skip value';
 is $clone->snapshot,    1,   'right snapshot value';
 is $clone->max_scan,    100, 'right max_scan value';
 is $clone->max_time_ms, 500, 'right max_time_ms value';
-is $clone->tailable,    1,   'is tailable';
-is $clone->await_data,  1,   'is awaiting data';
+is_deeply $clone->read_preference, {mode => 'SECONDARY'}, 'right fields';
+is $clone->tailable,   1, 'is tailable';
+is $clone->await_data, 1, 'is awaiting data';
 is_deeply $clone->sort, {test => 1}, 'right sort value';
 $cursor = $collection->find({foo => 'bar'}, {foo => 1});
 is_deeply $cursor->clone->query,  {foo => 'bar'}, 'right query';
