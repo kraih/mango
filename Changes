@@ -1,5 +1,5 @@
 
-1.06  2014-08-16
+1.06  2014-08-21
 
 1.05  2014-08-10
   - Added read_preference attribute to Mango::Cursor.
