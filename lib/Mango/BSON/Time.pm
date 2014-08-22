@@ -2,11 +2,14 @@ package Mango::BSON::Time;
 use Mojo::Base -base;
 use overload bool => sub {1}, '""' => sub { shift->to_string }, fallback => 1;
 
+use Mojo::Date;
 use Time::HiRes 'time';
 
 sub new { shift->SUPER::new(time => shift // int(time * 1000)) }
 
 sub TO_JSON { shift->to_string }
+
+sub to_datetime { Mojo::Date->new->epoch(shift->to_epoch)->to_datetime }
 
 sub to_epoch { shift->to_string / 1000 }
 
@@ -49,6 +52,12 @@ Construct a new L<Mango::BSON::Time> object.
   my $str = $time->TO_JSON;
 
 Alias for L</"to_string">.
+
+=head2 to_datetime
+
+  my $str = $time->to_datetime;
+
+Convert time to L<RFC 3339|http://tools.ietf.org/html/rfc3339> date and time.
 
 =head2 to_epoch
 

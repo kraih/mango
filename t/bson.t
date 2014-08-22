@@ -55,6 +55,8 @@ is length int bson_time->to_epoch, length time, 'right length';
 is substr(bson_time->to_epoch, 0, 5), substr(time, 0, 5), 'same start';
 is bson_time(1360626536748), 1360626536748, 'right epoch milliseconds';
 is bson_time(1360626536748)->to_epoch, 1360626536.748, 'right epoch seconds';
+is bson_time(1360626536748)->to_datetime, '2013-02-11T23:48:56Z',
+  'right format';
 
 # Empty document
 my $bson = bson_encode {};
