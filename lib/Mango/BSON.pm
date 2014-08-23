@@ -509,6 +509,9 @@ Pre-encoded BSON document.
 Create new BSON element of the UTC datetime type with L<Mango::BSON::Time>,
 defaults to milliseconds since the UNIX epoch.
 
+  # "1360626536.748"
+  bson_time(1360626536748)->to_epoch;
+
   # "2013-02-11T23:48:56Z"
   bson_time(1360626536748)->to_datetime;
 
