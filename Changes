@@ -1,5 +1,6 @@
 
 1.07  2014-08-23
+  - Fixed small JSON serialization bug in Mango::BSON::Time.
 
 1.06  2014-08-22
   - Added to_datetime method to Mango::BSON::Time.

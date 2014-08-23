@@ -426,6 +426,8 @@ is_deeply bson_decode(bson_encode {test => [-sin(9**9**9)]}),
 # Time to JSON
 is encode_json({time => bson_time(1360626536748)}), '{"time":1360626536748}',
   'right JSON';
+is encode_json({time => bson_time('1360626536748')}),
+  '{"time":1360626536748}', 'right JSON';
 
 # Binary to JSON
 is encode_json({bin => bson_bin('Hello World!')}),

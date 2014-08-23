@@ -7,9 +7,9 @@ use Time::HiRes 'time';
 
 sub new { shift->SUPER::new(time => shift // int(time * 1000)) }
 
-sub TO_JSON { shift->to_string }
+sub TO_JSON { 0 + shift->{time} }
 
-sub to_datetime { Mojo::Date->new->epoch(shift->to_epoch)->to_datetime }
+sub to_datetime { Mojo::Date->new(int shift->to_epoch)->to_datetime }
 
 sub to_epoch { shift->to_string / 1000 }
 
@@ -49,9 +49,9 @@ Construct a new L<Mango::BSON::Time> object.
 
 =head2 TO_JSON
 
-  my $str = $time->TO_JSON;
+  my $num = $time->TO_JSON;
 
-Alias for L</"to_string">.
+Numeric representation of time.
 
 =head2 to_datetime
 
