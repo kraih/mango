@@ -9,7 +9,7 @@ sub new { shift->SUPER::new(time => shift // int(time * 1000)) }
 
 sub TO_JSON { 0 + shift->{time} }
 
-sub to_datetime { Mojo::Date->new(int shift->to_epoch)->to_datetime }
+sub to_datetime { Mojo::Date->new(shift->to_epoch)->to_datetime }
 
 sub to_epoch { shift->to_string / 1000 }
 

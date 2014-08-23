@@ -512,7 +512,7 @@ defaults to milliseconds since the UNIX epoch.
   # "1360626536.748"
   bson_time(1360626536748)->to_epoch;
 
-  # "2013-02-11T23:48:56Z"
+  # "2013-02-11T23:48:56.748Z"
   bson_time(1360626536748)->to_datetime;
 
 =head2 bson_true
