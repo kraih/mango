@@ -1,4 +1,6 @@
 
+1.08  2014-08-24
+
 1.07  2014-08-23
   - Fixed small JSON serialization bug in Mango::BSON::Time.
 
