@@ -1,4 +1,6 @@
 
+1.09  2014-08-25
+
 1.08  2014-08-24
   - Improved to_datetime method in Mango::BSON::Time to be able to handle
     higher precision times.
