@@ -6,7 +6,7 @@ use warnings;
 use Config;
 use ExtUtils::MakeMaker;
 
-die "Perl with support for quads is required!\n"
+die "64-bit Perl or one built with -Duse64bitint is required!\n"
   unless (($Config{use64bitint} // '') eq 'define' || $Config{longsize} >= 8);
 
 WriteMakefile(
