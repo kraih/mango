@@ -4,7 +4,8 @@ use Mojo::Base -base;
 use Carp 'croak';
 use Mango::BSON qw(bson_code bson_doc bson_oid);
 use Mango::Bulk;
-use Mango::Cursor;
+use Mango::Cursor::Command;
+use Mango::Cursor::Query;
 
 has [qw(db name)];
 
@@ -60,7 +61,7 @@ sub ensure_index {
 }
 
 sub find {
-  Mango::Cursor->new(
+  Mango::Cursor::Query->new(
     collection => shift,
     query      => shift // {},
     fields     => shift // {}
@@ -213,7 +214,7 @@ sub _aggregate {
 
   # Cursor
   my $cursor = $doc->{cursor};
-  return Mango::Cursor->new(collection => $self, id => $cursor->{id})
+  return Mango::Cursor::Command->new(collection => $self, id => $cursor->{id})
     ->add_batch($cursor->{firstBatch});
 }
 
@@ -394,7 +395,7 @@ append a callback to perform operation non-blocking.
   my $cursor = $collection->find({foo => 'bar'});
   my $cursor = $collection->find({foo => 'bar'}, {foo => 1});
 
-Build L<Mango::Cursor> object for query.
+Build L<Mango::Cursor::Query> object for query.
 
   # Exclude "_id" field from results
   my $docs = $collection->find({foo => 'bar'}, {_id => 0})->all;

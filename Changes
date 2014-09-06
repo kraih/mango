@@ -1,5 +1,6 @@
 
-1.10  2014-09-02
+1.10  2014-09-06
+  - Added Mango::Cursor::Command and Mango::Cursor::Query.
 
 1.09  2014-09-01
   - Improved Makefile.PL error message for 64-bit requirement.

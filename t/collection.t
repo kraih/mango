@@ -225,6 +225,18 @@ $delay->wait;
 is scalar @$result, 30, 'thirty documents found';
 is $collection->remove->{n}, 30, 'thirty documents removed';
 
+# Try to restart aggregate cursor
+$collection->insert({stuff => $_}) for 1 .. 30;
+$cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
+  {cursor => {batchSize => 5}});
+is $cursor->next->{stuff}, 1, 'right result';
+ok $cursor->id, 'cursor has id';
+$cursor->rewind;
+ok !$cursor->id, 'no cursor id';
+eval { $cursor->next };
+like $@, qr/Cursor cannot be restarted/, 'right error';
+is $collection->remove->{n}, 30, 'thirty documents removed';
+
 # Save document blocking
 $oid = $collection->save({update => 'me'});
 $doc = $collection->find_one($oid);
