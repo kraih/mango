@@ -115,16 +115,18 @@ sub _start { die 'Cursor cannot be restarted' }
 
 =head1 NAME
 
-Mango::Cursor - MongoDB cursor base class
+Mango::Cursor - MongoDB cursor
 
 =head1 SYNOPSIS
 
-  package Mango::Cursor::MyCursor;
-  use Mojo::Base 'Mango::Cursor';
+  use Mango::Cursor;
+
+  my $cursor = Mango::Cursor->new(collection => $collection);
+  my $docs   = $cursor->all;
 
 =head1 DESCRIPTION
 
-L<Mango::Cursor> is an abstract base class for MongoDB cursors.
+L<Mango::Cursor> is a container for MongoDB cursors.
 
 =head1 ATTRIBUTES
 

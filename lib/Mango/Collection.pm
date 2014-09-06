@@ -4,7 +4,7 @@ use Mojo::Base -base;
 use Carp 'croak';
 use Mango::BSON qw(bson_code bson_doc bson_oid);
 use Mango::Bulk;
-use Mango::Cursor::Command;
+use Mango::Cursor;
 use Mango::Cursor::Query;
 
 has [qw(db name)];
@@ -214,7 +214,7 @@ sub _aggregate {
 
   # Cursor
   my $cursor = $doc->{cursor};
-  return Mango::Cursor::Command->new(collection => $self, id => $cursor->{id})
+  return Mango::Cursor->new(collection => $self, id => $cursor->{id})
     ->add_batch($cursor->{firstBatch});
 }
 
@@ -304,8 +304,7 @@ the following new ones.
     [{'$match' => {'$gt' => 23}}], {explain => bson_true});
 
 Aggregate collection with aggregation framework, additional options will be
-passed along to the server verbatim, usually results in a
-L<Mango::Cursor::Command> object. You can also append a callback to perform
+passed along to the server verbatim. You can also append a callback to perform
 operation non-blocking.
 
   my $pipeline = [{'$group' => {_id => undef, total => {'$sum' => '$foo'}}}];
