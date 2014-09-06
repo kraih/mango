@@ -124,7 +124,7 @@ Mango::Cursor - MongoDB cursor base class
 
 =head1 DESCRIPTION
 
-L<Mango::Cursor> is a base class for MongoDB cursors.
+L<Mango::Cursor> is an abstract base class for MongoDB cursors.
 
 =head1 ATTRIBUTES
 
