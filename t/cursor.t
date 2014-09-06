@@ -286,6 +286,19 @@ $delay  = Mojo::IOLoop->delay(
 $delay->wait;
 ok !$fail, 'no error';
 is_deeply $docs[0], $docs[1], 'found same document again';
+is $collection->remove->{n}, 3, 'three documents removed';
+
+# Try to restart aggregate cursor
+$collection->insert({stuff => $_}) for 1 .. 30;
+$cursor = $collection->aggregate([{'$match' => {stuff => {'$gt' => 0}}}],
+  {cursor => {batchSize => 5}});
+is $cursor->next->{stuff}, 1, 'right result';
+ok $cursor->id, 'cursor has id';
+$cursor->rewind;
+ok !$cursor->id, 'no cursor id';
+eval { $cursor->next };
+like $@, qr/Cursor cannot be restarted/, 'right error';
+is $collection->remove->{n}, 30, 'thirty documents removed';
 
 # Tailable cursor
 $collection->drop;
