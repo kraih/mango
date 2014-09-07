@@ -126,7 +126,8 @@ Mango::Cursor - MongoDB cursor
 
 =head1 DESCRIPTION
 
-L<Mango::Cursor> is a container for MongoDB cursors.
+L<Mango::Cursor> is a container for MongoDB cursors used by
+L<Mango::Collection>.
 
 =head1 ATTRIBUTES
 
