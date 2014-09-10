@@ -117,15 +117,11 @@ is_deeply $found, {_id => $created, foo => 'yada'}, 'right document';
 is $removed->{n}, 1, 'one document removed';
 
 # Error in callback
-$collection->insert({foo => 'bar'} => sub { die 'Oops!' });
+Mojo::IOLoop->singleton->reactor->unsubscribe('error');
 $fail = undef;
-$mango->once(
-  error => sub {
-    my ($mango, $err) = @_;
-    $fail = $err;
-    Mojo::IOLoop->stop;
-  }
-);
+Mojo::IOLoop->singleton->reactor->once(
+  error => sub { $fail .= pop; Mojo::IOLoop->stop });
+$collection->insert({foo => 'bar'} => sub { die 'Oops!' });
 Mojo::IOLoop->start;
 like $fail, qr/Oops!/, 'right error';
 is $collection->remove->{n}, 1, 'one document removed';
