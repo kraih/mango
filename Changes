@@ -1,4 +1,6 @@
 
+1.12  2014-09-12
+
 1.11  2014-09-11
   - Fixed test that was depending on Mojolicious internals.
 
