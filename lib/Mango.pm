@@ -303,7 +303,7 @@ sub _write {
   # Fast operation
   delete $c->{start} unless my $last = delete $c->{fast};
 
-  # Blocking operations have precedence
+  # Blocking operations have a higher precedence
   return $c->{start}
     unless $last || ($c->{nb} xor !($self->{queue}->[-1] || {})->{nb});
   $last ||= $c->{nb} ? shift @{$self->{queue}} : pop @{$self->{queue}};

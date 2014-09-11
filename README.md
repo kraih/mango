@@ -23,13 +23,13 @@ get '/' => sub {
   $collection->insert({when => bson_time, from => $ip} => sub {
     my ($collection, $err, $oid) = @_;
 
-    return $c->render_exception($err) if $err;
+    return $c->reply->exception($err) if $err;
 
     # Retrieve information about previous visitors
     $collection->find->sort({when => -1})->fields({_id => 0})->all(sub {
       my ($collection, $err, $docs) = @_;
 
-      return $c->render_exception($err) if $err;
+      return $c->reply->exception($err) if $err;
 
       # And show it to current visitor
       $c->render(json => $docs);
