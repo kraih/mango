@@ -420,7 +420,8 @@ Emitted when a new connection has been established.
     ...
   });
 
-Emitted if an error occurs that can't be associated with an operation.
+Emitted if an error occurs that can't be associated with an operation, fatal
+if unhandled.
 
   $mango->on(error => sub {
     my ($mango, $err) = @_;
