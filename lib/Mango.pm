@@ -164,8 +164,7 @@ sub _error {
   $self->_loop($c->{nb})->remove($id);
 
   my $last = $c->{last} // shift @{$self->{queue}};
-  if ($last) { $self->_finish(undef, $last->{cb}, $err) }
-  else       { $self->emit(error => $err) }
+  $self->_finish(undef, $last->{cb}, $err) if $last;
 }
 
 sub _fast {
@@ -412,21 +411,6 @@ following new ones.
   });
 
 Emitted when a new connection has been established.
-
-=head2 error
-
-  $mango->on(error => sub {
-    my ($mango, $err) = @_;
-    ...
-  });
-
-Emitted if an error occurs that can't be associated with an operation, fatal
-if unhandled.
-
-  $mango->on(error => sub {
-    my ($mango, $err) = @_;
-    say "This looks bad: $err";
-  });
 
 =head1 ATTRIBUTES
 
