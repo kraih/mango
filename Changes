@@ -1,5 +1,7 @@
 
-1.13  2014-09-18
+1.13  2014-09-21
+  - Updated Makefile.PL for version 2 of the CPAN distribution metadata
+    specification.
 
 1.12  2014-09-12
   - Fixed small connection management bug.
