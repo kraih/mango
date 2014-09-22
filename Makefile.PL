@@ -18,15 +18,11 @@ WriteMakefile(
   META_MERGE   => {
     requires  => {perl => '5.010001'},
     resources => {
-      license  => ['http://www.opensource.org/licenses/artistic-license-2.0'],
-      homepage => 'http://mojolicio.us',
-      bugtracker => {web => 'https://github.com/kraih/mango/issues'},
-      repository => {
-        url  => 'https://github.com/kraih/mango.git',
-        web  => 'https://github.com/kraih/mango',
-        type => 'git'
-      },
-      x_IRC => 'irc://irc.perl.org/#mojo'
+      license    => 'http://www.opensource.org/licenses/artistic-license-2.0',
+      homepage   => 'http://mojolicio.us',
+      bugtracker => 'https://github.com/kraih/mango/issues',
+      repository => 'https://github.com/kraih/mango.git',
+      x_IRC      => 'irc://irc.perl.org/#mojo'
     },
     no_index => {directory => ['t']}
   },
