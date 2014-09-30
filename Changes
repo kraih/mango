@@ -1,6 +1,7 @@
 
-1.15  2014-09-25
-  - This distribution is no longer being maintained.
+1.15  2014-09-30
+  - This distribution is now being maintained at
+    https://github.com/oliwer/mango.
 
 1.14  2014-09-22
   - Fixed packaging bug.

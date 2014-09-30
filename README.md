@@ -1,4 +1,4 @@
 
-# Deprecated
+# Moved
 
-  I'm sorry to inform you that Mango is no longer being maintained.
+  Mango is now maintained at [https://github.com/oliwer/mango](https://github.com/oliwer/mango).
