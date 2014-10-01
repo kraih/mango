@@ -7,7 +7,7 @@ has [
   qw(await_data comment hint max_scan max_time_ms read_preference snapshot),
   qw(sort tailable)
 ];
-has [qw(fields query)] => sub { {} };
+has [qw(fields query)];
 has skip => 0;
 
 sub build_query {
