@@ -14,6 +14,45 @@ my $mango      = Mango->new($ENV{TEST_ONLINE});
 my $collection = $mango->db->collection('collection_test');
 $collection->drop if $collection->options;
 
+# Check if a collection object is passed to cb.
+# Args don't matter, only neaded to stay alive
+my @methods = (
+  [create            => [{foo => 'bar'}]],
+  [save              => [{foo => 'bar'}]],
+  [find_one          => [{foo => 'bar'}]],
+  [ensure_index      => [{foo => 1}]],
+  [drop_index        => ['foo']],
+  [index_information => []],
+  [options           => []],
+  [stats             => []],
+  [
+    find_and_modify =>
+      [{query => {foo => 'bar'}, update => {'$set' => {foo => 'baz'}}}]
+  ],
+  [remove => [{foo => 'baz'}]],
+
+  # cleanup at the end
+  [drop => []],
+);
+my %passed;
+my @subs;
+
+for my $method (@methods) {
+  push @subs, sub {
+    my $end = shift->begin;
+    my ($m_name, $m_args) = @$method;
+
+    $collection->$m_name(@$m_args, sub { $passed{$m_name} = shift; $end->() });
+  };
+}
+
+my $del = Mojo::IOLoop->delay(@subs);
+$del->wait;
+
+foreach my $m (keys %passed) {
+  isa_ok $passed{$m}, 'Mango::Collection', "$m passed $passed{$m}";
+}
+
 # Collection names
 is $collection->name, 'collection_test', 'right collection name';
 is $collection->full_name, join('.', $mango->db->name, $collection->name),
